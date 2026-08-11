@@ -304,9 +304,9 @@
 
   @media print{
     body *{visibility:hidden;}
-    #inscripcionModal, #inscripcionModal *{visibility:visible;}
-    #inscripcionModal{position:absolute; top:0; left:0; width:100%; margin:0; padding:0; background:#fff; display:block;}
-    #inscripcionModal .modal-card{box-shadow:none; max-width:100%; width:100%; margin:0; border-radius:0;}
+    .modal-overlay.open, .modal-overlay.open *{visibility:visible;}
+    .modal-overlay.open{position:absolute; top:0; left:0; width:100%; margin:0; padding:0; background:#fff; display:block;}
+    .modal-overlay.open .modal-card{box-shadow:none; max-width:100%; width:100%; margin:0; border-radius:0;}
     .no-print{display:none !important;}
   }
 
@@ -718,6 +718,111 @@
     </div>
   </div>
 
+  <!-- ============ MODAL: PREINSCRIPCIÓN ============ -->
+  <div class="modal-overlay" id="preinscripcionModal">
+    <div class="modal-card insc-card">
+      <button class="modal-close no-print" id="preinscripcionModalClose" aria-label="Cerrar">✕</button>
+      <div class="icon" style="margin-bottom:10px;">PR</div>
+      <h3 style="margin-bottom:4px;">Preinscripción — XX Euromodelo Joven 2026</h3>
+      <p class="modal-intro" style="margin-bottom:var(--space-3);">Fundación Revel</p>
+
+      <form id="preinscripcionForm" novalidate>
+
+        <div class="insc-section">
+          <h4>Datos del estudiante</h4>
+          <div class="form-grid">
+            <div class="field full">
+              <label>Correo electrónico</label>
+              <input required type="email" name="email">
+            </div>
+            <div class="field full">
+              <label>Nombre completo del estudiante</label>
+              <input required type="text" name="nombre_completo">
+            </div>
+            <div class="field full">
+              <label>Tipo de documento</label>
+              <div class="radio-row" id="preTipoDocumento">
+                <label><input type="radio" name="tipo_documento" value="Tarjeta de identidad" required> Tarjeta de identidad</label>
+                <label><input type="radio" name="tipo_documento" value="Cédula de ciudadanía" required> Cédula de ciudadanía</label>
+                <label><input type="radio" name="tipo_documento" value="Pasaporte" required> Pasaporte</label>
+                <label><input type="radio" name="tipo_documento" value="Otro" required> Otro</label>
+              </div>
+            </div>
+            <div class="field">
+              <label>Número de documento</label>
+              <input required type="text" inputmode="numeric" name="numero_documento" id="preNumeroDocumento">
+              <span class="field-error" id="preNumeroDocumentoError">Ingresa solo números para este tipo de documento.</span>
+            </div>
+            <div class="field">
+              <label>Número de teléfono</label>
+              <div class="phone-row">
+                <span class="phone-prefix">+57</span>
+                <input required type="text" inputmode="numeric" pattern="[0-9]{7,10}" name="telefono" placeholder="3001234567" style="flex:1;">
+              </div>
+            </div>
+            <div class="field full">
+              <label>Ciudad</label>
+              <div class="radio-row">
+                <label><input type="radio" name="ciudad" value="Riohacha" required> Riohacha</label>
+                <label><input type="radio" name="ciudad" value="Bucaramanga" required> Bucaramanga</label>
+                <label><input type="radio" name="ciudad" value="Bogotá" required> Bogotá</label>
+              </div>
+            </div>
+            <div class="field full">
+              <label>Institución educativa</label>
+              <input required type="text" name="institucion_educativa">
+            </div>
+          </div>
+        </div>
+
+        <div class="insc-section">
+          <h4>Tratamiento de datos personales</h4>
+          <p class="insc-legal">De conformidad a lo dispuesto por la Ley 1581 de 2012 y las demás normas que la modifiquen, reglamenten y/o adhieran, ¿Autorizo a la Fundación Revel y a la Universidad Pontificia Bolivariana a realizar el tratamiento de mis datos personales los cuales podrán recolectar, almacenar, tratar y utilizar mi información personal y capturar registros fotográficos y audiovisuales, los cuales podrán ser publicados en diferentes medios de información institucionales y externos?</p>
+          <div class="field full">
+            <label>¿Autoriza la política de tratamiento de datos personales?</label>
+            <div class="radio-row">
+              <label><input type="radio" name="autoriza_datos" value="Sí" required> Sí</label>
+              <label><input type="radio" name="autoriza_datos" value="No" required> No</label>
+            </div>
+          </div>
+          <div class="field full">
+            <label>¿Eres menor de edad?</label>
+            <div class="radio-row" id="preEsMenor">
+              <label><input type="radio" name="es_menor" value="Sí" required> Sí</label>
+              <label><input type="radio" name="es_menor" value="No" required> No</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="insc-section insc-hidden" id="preMenorSection">
+          <h4>Autorización de imagen</h4>
+          <p class="insc-legal">Actuando en representación de mi hijo participante del Euromodelo Joven 2026, autorizo el uso de sus derechos de imagen que le reconoce la Constitución, la Ley y las demás normas.</p>
+          <div class="field full">
+            <div class="radio-row">
+              <label><input type="radio" name="autoriza_imagen" value="Sí"> Sí</label>
+              <label><input type="radio" name="autoriza_imagen" value="No"> No</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="insc-modal-actions no-print">
+          <button type="button" class="btn-print" id="prePrintBtn">Imprimir</button>
+          <button type="submit" class="btn-primary">Enviar preinscripción</button>
+        </div>
+      </form>
+
+      <div class="success-panel" id="preinscripcionSuccess">
+        <div class="mark">✓</div>
+        <h3>Preinscripción enviada</h3>
+        <p>Recibirás más información del proceso de inscripción por correo electrónico.</p>
+        <p class="ref-code" id="preinscripcionRefCode"></p>
+        <div class="insc-modal-actions no-print" style="justify-content:center; margin-top:var(--space-3);">
+          <button type="button" class="btn-print" id="prePrintBtn2">Imprimir comprobante</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </main>
 
 <footer>
@@ -1043,20 +1148,7 @@
     alert('El staff debe vincular aquí el enlace de descarga del Handbook 2026 en PDF.');
   });
 
-  // ---------- Google Forms: Preinscripción ----------
-  // Reemplaza este valor por el enlace real de Google Forms de Preinscripción.
-  const GOOGLE_FORMS = {
-    preinscripcion: '',
-  };
-  function openGoogleForm(key){
-    const url = GOOGLE_FORMS[key];
-    if(url){
-      window.open(url, '_blank', 'noopener');
-    }else{
-      alert('El staff debe vincular aquí el enlace del formulario de Google (' + key + ').');
-    }
-  }
-  document.getElementById('heroPreinscripcionBtn').addEventListener('click', () => openGoogleForm('preinscripcion'));
+  document.getElementById('heroPreinscripcionBtn').addEventListener('click', () => openPreinscripcionModal());
   document.getElementById('heroInscripcionBtn').addEventListener('click', () => openInscripcionModal());
 
   // ---------- Storage-backed form submission (Mesas Directivas) ----------
@@ -1271,6 +1363,7 @@
     delete data.institucion_educativa_otro;
     data.telefono = '+57 ' + data.telefono;
     data.enviado = new Date().toISOString();
+    data.form = 'inscripcion';
     const code = refCode('INSC');
     data.ref_code = code;
 
@@ -1292,6 +1385,86 @@
     inscripcionForm.style.display = 'none';
     inscripcionSuccessPanel.classList.add('show');
     document.getElementById('inscripcionRefCode').textContent = 'Código de referencia: ' + code;
+  });
+
+  // ---------- Preinscripción: envío a Google Sheets (misma Sheet, pestaña "preinscripciones") ----------
+  const preNumeroDocumento = document.getElementById('preNumeroDocumento');
+  const preNumeroDocumentoError = document.getElementById('preNumeroDocumentoError');
+  function preDocumentoEsNumerico(){
+    const tipo = (new FormData(document.getElementById('preinscripcionForm'))).get('tipo_documento');
+    return tipo === 'Tarjeta de identidad' || tipo === 'Cédula de ciudadanía';
+  }
+  document.getElementById('preTipoDocumento').addEventListener('change', (e) => {
+    if(e.target.name !== 'tipo_documento') return;
+    preNumeroDocumento.setAttribute('inputmode', preDocumentoEsNumerico() ? 'numeric' : 'text');
+    preNumeroDocumento.dispatchEvent(new Event('input'));
+  });
+  preNumeroDocumento.addEventListener('input', () => {
+    const valido = !preDocumentoEsNumerico() || /^[0-9]*$/.test(preNumeroDocumento.value);
+    preNumeroDocumentoError.classList.toggle('show', !valido);
+    preNumeroDocumento.setCustomValidity(valido ? '' : 'Este documento solo admite números.');
+  });
+
+  const preMenorSection = document.getElementById('preMenorSection');
+  document.getElementById('preEsMenor').addEventListener('change', (e) => {
+    if(e.target.name !== 'es_menor') return;
+    const esMenor = e.target.value === 'Sí';
+    preMenorSection.classList.toggle('insc-hidden', !esMenor);
+    preMenorSection.querySelectorAll('input[name="autoriza_imagen"]').forEach(inp => inp.required = esMenor);
+  });
+
+  const preinscripcionModal = document.getElementById('preinscripcionModal');
+  const preinscripcionForm = document.getElementById('preinscripcionForm');
+  const preinscripcionSuccessPanel = document.getElementById('preinscripcionSuccess');
+  function openPreinscripcionModal(){
+    preinscripcionForm.reset();
+    preinscripcionForm.style.display = '';
+    preinscripcionSuccessPanel.classList.remove('show');
+    preMenorSection.classList.add('insc-hidden');
+    preinscripcionModal.classList.add('open');
+  }
+  function closePreinscripcionModal(){
+    preinscripcionModal.classList.remove('open');
+  }
+  document.getElementById('preinscripcionModalClose').addEventListener('click', closePreinscripcionModal);
+  preinscripcionModal.addEventListener('click', (e) => { if(e.target === preinscripcionModal) closePreinscripcionModal(); });
+  document.addEventListener('keydown', (e) => { if(e.key === 'Escape' && preinscripcionModal.classList.contains('open')) closePreinscripcionModal(); });
+  document.getElementById('prePrintBtn').addEventListener('click', () => window.print());
+  document.getElementById('prePrintBtn2').addEventListener('click', () => window.print());
+
+  preinscripcionForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    if(!preinscripcionForm.checkValidity()){
+      preinscripcionForm.reportValidity();
+      return;
+    }
+
+    const data = Object.fromEntries(new FormData(preinscripcionForm).entries());
+    data.telefono = '+57 ' + data.telefono;
+    data.enviado = new Date().toISOString();
+    data.form = 'preinscripcion';
+    const code = refCode('PRE');
+    data.ref_code = code;
+
+    try{
+      if(INSCRIPCION_SCRIPT_URL){
+        await fetch(INSCRIPCION_SCRIPT_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: {'Content-Type': 'text/plain;charset=utf-8'},
+          body: JSON.stringify(data),
+        });
+      }else{
+        console.warn('El staff debe configurar INSCRIPCION_SCRIPT_URL con la URL del Apps Script.');
+      }
+    }catch(err){
+      console.error('No se pudo enviar la preinscripción:', err);
+    }
+
+    preinscripcionForm.style.display = 'none';
+    preinscripcionSuccessPanel.classList.add('show');
+    document.getElementById('preinscripcionRefCode').textContent = 'Código de referencia: ' + code;
   });
 </script>
 
