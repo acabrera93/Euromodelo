@@ -89,21 +89,34 @@
   .btn-solid:hover{filter:brightness(1.05);}
 
   .star-ring{
-    position:relative; width:280px; height:280px; margin:0 auto; flex-shrink:0;
+    position:absolute; left:-50px; top:50%; transform:translateY(-50%);
+    width:280px; height:280px; opacity:.4; z-index:0; pointer-events:none;
   }
-  .star-ring .core{
-    position:absolute; inset:0; margin:auto; width:132px; height:132px; border-radius:50%;
-    border:1px solid rgba(255,255,255,.25); display:flex; flex-direction:column; align-items:center; justify-content:center;
-  }
-  .star-ring .core .num{font-family:'Fraunces',serif; font-size:52px; font-weight:600; line-height:1;}
-  .star-ring .core .cap{font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.15em; color:var(--gold-star); margin-top:6px;}
   .star-ring .dots{position:absolute; inset:0; animation:spin 90s linear infinite;}
   @media (prefers-reduced-motion:reduce){.star-ring .dots{animation:none;}}
   .star-ring .dot{
-    position:absolute; top:50%; left:50%; width:8px; height:8px; border-radius:50%; background:var(--gold-star);
+    position:absolute; top:50%; left:50%; width:16px; height:16px; background:var(--gold-star);
     transform-origin:0 0;
+    clip-path:polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
   }
   @keyframes spin{to{transform:rotate(360deg);}}
+
+  .hero-grid{position:relative; z-index:1;}
+  .hero-photo{
+    position:relative; border-radius:var(--radius); overflow:hidden; aspect-ratio:4/5;
+    border:1px solid rgba(255,255,255,.18); box-shadow:0 20px 50px rgba(0,0,0,.28);
+  }
+  .hero-photo img{width:100%; height:100%; object-fit:cover; display:block;}
+
+  /* ---- Galería horizontal (hero) ---- */
+  .photo-marquee{background:var(--navy-deep); padding:var(--space-3) 0; overflow:hidden;}
+  .photo-marquee-track{display:flex; gap:14px; width:max-content; animation:marquee 45s linear infinite;}
+  .photo-marquee-track img{
+    height:150px; width:auto; border-radius:10px; object-fit:cover; flex-shrink:0;
+    border:1px solid rgba(255,255,255,.12);
+  }
+  @keyframes marquee{from{transform:translateX(0);} to{transform:translateX(-50%);}}
+  @media (prefers-reduced-motion:reduce){.photo-marquee-track{animation:none; overflow-x:auto;}}
 
   .stat-strip{
     background:var(--white); border-top:1px solid var(--line); border-bottom:1px solid var(--line);
@@ -136,6 +149,11 @@
   .gallery-empty{
     grid-column:1 / -1; background:var(--white); border:1px dashed var(--line); border-radius:var(--radius);
     padding:var(--space-4); text-align:center; color:#8695AC; font-size:13.5px;
+  }
+  .memoria-card{cursor:pointer;}
+  .memoria-cover{
+    aspect-ratio:16/9; border-radius:10px; background-size:cover; background-position:center;
+    background-color:var(--blue-pale); margin-bottom:2px;
   }
   .card{
     background:var(--white); border:1px solid var(--line); border-radius:var(--radius); padding:var(--space-3);
@@ -326,7 +344,7 @@
 
   @media (max-width:860px){
     .hero-grid{grid-template-columns:1fr;}
-    .star-ring{width:200px; height:200px; margin-top:var(--space-4);}
+    .star-ring{display:none;}
     .stat-strip .container{grid-template-columns:repeat(2,1fr);}
     .form-grid{grid-template-columns:1fr;}
   }
@@ -363,6 +381,9 @@
   <!-- ============ INICIO ============ -->
   <section class="page active" id="page-inicio">
     <div class="hero">
+      <div class="star-ring" aria-hidden="true">
+        <div class="dots" id="dotsRing"></div>
+      </div>
       <div class="container hero-grid">
         <div>
           <span class="eyebrow">Programa académico internacional sobre Europa</span>
@@ -374,14 +395,14 @@
             <button class="btn-ghost" id="downloadHandbookBtn">Descargar Handbook (PDF)</button>
           </div>
         </div>
-        <div class="star-ring">
-          <div class="dots" id="dotsRing"></div>
-          <div class="core">
-            <span class="num">XX</span>
-            <span class="cap">EDICIÓN 2026</span>
-          </div>
+        <div class="hero-photo">
+          <img src="https://lh3.googleusercontent.com/d/1GMg6tbOk6-qAXQnf2_NWS073ZhvBW-mk=w900" alt="Europarticipantes del Euromodelo Joven" loading="lazy">
         </div>
       </div>
+    </div>
+
+    <div class="photo-marquee">
+      <div class="photo-marquee-track" id="photoMarqueeTrack"></div>
     </div>
 
     <div class="stat-strip">
@@ -576,17 +597,22 @@
         <div class="section-head">
           <span class="art-label">Art. 08 — Memorias</span>
           <h2>Memorias</h2>
-          <p>Galería fotográfica de las ediciones del Euromodelo Joven.</p>
+          <p>Galería fotográfica de las ediciones del Euromodelo Joven. Haz clic en una tarjeta para ver las fotos.</p>
         </div>
 
-        <h3 class="subsection-title">Euromodelo Regional</h3>
-        <div class="grid-cards gallery-grid" id="memoriasRegionalGrid"></div>
-
-        <h3 class="subsection-title" style="margin-top:var(--space-5);">Euromodelo Congreso</h3>
-        <div class="grid-cards gallery-grid" id="memoriasCongresoGrid"></div>
+        <div class="grid-cards" id="memoriasCardsGrid"></div>
       </div>
     </div>
   </section>
+
+  <!-- ============ MODAL: GALERÍA DE MEMORIAS ============ -->
+  <div class="modal-overlay" id="memoriasModal">
+    <div class="modal-card insc-card">
+      <button class="modal-close" id="memoriasModalClose" aria-label="Cerrar">✕</button>
+      <h3 id="memoriasModalTitle" style="margin-bottom:var(--space-3);"></h3>
+      <div class="grid-cards gallery-grid" id="memoriasModalGrid"></div>
+    </div>
+  </div>
 
 
   <!-- ============ MODAL: DETALLE DE COMISIÓN ============ -->
@@ -997,23 +1023,88 @@
   renderMesaGrid('mesasComisionesGrid', mesasComisiones, 'comisiones');
   renderMesaGrid('mesasPlenariaGrid', mesasPlenaria, 'plenaria');
 
-  // ---------- Memorias (galería de fotos) ----------
-  // Completa estos arreglos con las fotos de cada edición: {src: 'URL de la imagen', alt: 'Descripción'}.
-  const MEMORIAS_REGIONAL = [];
-  const MEMORIAS_CONGRESO = [];
-  function renderGallery(gridId, photos){
-    const grid = document.getElementById(gridId);
-    if(!photos.length){
-      grid.innerHTML = '<div class="gallery-empty">Fotos pendientes de cargar por el staff.</div>';
-      return;
+  // ---------- Memorias (galería de fotos, alojadas en Google Drive) ----------
+  function driveImg(id, w){ return 'https://lh3.googleusercontent.com/d/' + id + '=w' + w; }
+
+  const MEMORIAS_REGIONAL = [
+    '1Wx19LxHVRICB7ra88CIjqwChTfCo6JjU',
+    '1FuTiulZ4jSljF2bGZEbWY9ZIezAiRAqn',
+    '1mq1ijxyjO4sCJWlErS4timPsQv-3gxeO',
+    '1wEt9GhWxRN5cWpMyFOct9yKyZQ-3LjZX',
+    '1pqrShxgOb_CUmTXRESEPAXtsoW_89s7z',
+    '1mEv8rIyk_3BSve65BUmJjG-tCqlpNbx7',
+    '1pjk1wmQpsAMULH28OCfK3dOk5NTTE-19',
+    '1jS1SltVCbKdRm2egGVe4OZxPTJUY5wXq',
+    '1HB30cCDYvlU600Flo3OxQtGu9BD6BxK8',
+    '16NJVDcLiFa-FnE5OIvI9iLU13qyhLl0O',
+    '1YOLJsv8U20n5Q0MeEhcRLm-6OnOX3j2L',
+    '1Logt_apYCOCFeJBcOQ7Lf1Us6bRpJKQ0',
+  ];
+
+  // Se excluyeron 2 fotos en formato .heif de esta carpeta: los navegadores no lo pueden mostrar.
+  // Conviértelas a JPG/PNG y súbelas de nuevo para poder incluirlas.
+  const MEMORIAS_NACIONAL = [
+    '1uGqC-Kdsxlei3PtBJmk4undGLqpJuZP5',
+    '1GMg6tbOk6-qAXQnf2_NWS073ZhvBW-mk',
+    '1GJT8nJRBZoZDfAo73LGa2LxLAZvXU96i',
+    '1_OpY-au5wAnnPrZRaTOxpr4T1WZ1qp16',
+    '1sLlYbEfbKKcMTH3CjmsDkk5sk0PqDzcD',
+    '1VE5-08GuoOuRTPAD-54fcX6xYnQ0Gg3J',
+    '1hU-l5dnzIkuForjx18ERR2rgefptRTyq',
+  ];
+
+  const MEMORIAS_ALBUMS = [
+    {key:'regional', title:'Euromodelo Regional', photos: MEMORIAS_REGIONAL},
+    {key:'nacional', title:'Euromodelo Nacional', photos: MEMORIAS_NACIONAL},
+  ];
+
+  const memoriasCardsGrid = document.getElementById('memoriasCardsGrid');
+  MEMORIAS_ALBUMS.forEach(album => {
+    const card = document.createElement('div');
+    card.className = 'card memoria-card';
+    card.dataset.album = album.key;
+    const coverUrl = album.photos.length ? driveImg(album.photos[0], 600) : '';
+    card.innerHTML = `
+      <div class="memoria-cover" style="background-image:url('${coverUrl}');"></div>
+      <h3>${album.title}</h3>
+      <p>${album.photos.length} foto${album.photos.length === 1 ? '' : 's'}</p>
+      <div class="card-foot"><span class="link-btn">Ver galería →</span></div>`;
+    memoriasCardsGrid.appendChild(card);
+  });
+
+  const memoriasModal = document.getElementById('memoriasModal');
+  const memoriasModalTitle = document.getElementById('memoriasModalTitle');
+  const memoriasModalGrid = document.getElementById('memoriasModalGrid');
+  function openMemoriasAlbum(album){
+    memoriasModalTitle.textContent = album.title;
+    if(!album.photos.length){
+      memoriasModalGrid.innerHTML = '<div class="gallery-empty">Fotos pendientes de cargar por el staff.</div>';
+    }else{
+      memoriasModalGrid.innerHTML = album.photos.map(id => `
+        <a class="gallery-photo" href="${driveImg(id, 1600)}" target="_blank" rel="noopener">
+          <img src="${driveImg(id, 500)}" alt="${album.title}" loading="lazy">
+        </a>`).join('');
     }
-    grid.innerHTML = photos.map(p => `
-      <a class="gallery-photo" href="${p.src}" target="_blank" rel="noopener">
-        <img src="${p.src}" alt="${p.alt || ''}" loading="lazy">
-      </a>`).join('');
+    memoriasModal.classList.add('open');
   }
-  renderGallery('memoriasRegionalGrid', MEMORIAS_REGIONAL);
-  renderGallery('memoriasCongresoGrid', MEMORIAS_CONGRESO);
+  memoriasCardsGrid.querySelectorAll('[data-album]').forEach(card => {
+    card.addEventListener('click', () => {
+      const album = MEMORIAS_ALBUMS.find(a => a.key === card.dataset.album);
+      openMemoriasAlbum(album);
+    });
+  });
+  document.getElementById('memoriasModalClose').addEventListener('click', () => memoriasModal.classList.remove('open'));
+  memoriasModal.addEventListener('click', (e) => { if(e.target === memoriasModal) memoriasModal.classList.remove('open'); });
+  document.addEventListener('keydown', (e) => { if(e.key === 'Escape' && memoriasModal.classList.contains('open')) memoriasModal.classList.remove('open'); });
+
+  // -- Galería horizontal en el hero: fotos de Euromodelo Nacional en loop --
+  const marqueeTrack = document.getElementById('photoMarqueeTrack');
+  if(MEMORIAS_NACIONAL.length){
+    const marqueePhotos = MEMORIAS_NACIONAL.concat(MEMORIAS_NACIONAL);
+    marqueeTrack.innerHTML = marqueePhotos.map(id =>
+      `<img src="${driveImg(id, 400)}" alt="Euromodelo Nacional" loading="lazy">`
+    ).join('');
+  }
 
   // ---------- Comisiones ----------
   const comisiones = [
