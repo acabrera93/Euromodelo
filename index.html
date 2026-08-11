@@ -126,6 +126,17 @@
 
   /* ---- Card grids (Campus / Grandes Mentes) ---- */
   .grid-cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:var(--space-3);}
+  .gallery-grid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); margin-bottom:var(--space-3);}
+  .gallery-photo{
+    display:block; aspect-ratio:4/3; overflow:hidden; border-radius:var(--radius); border:1px solid var(--line);
+    background:var(--white);
+  }
+  .gallery-photo img{width:100%; height:100%; object-fit:cover; display:block; transition:transform .2s ease;}
+  .gallery-photo:hover img{transform:scale(1.04);}
+  .gallery-empty{
+    grid-column:1 / -1; background:var(--white); border:1px dashed var(--line); border-radius:var(--radius);
+    padding:var(--space-4); text-align:center; color:#8695AC; font-size:13.5px;
+  }
   .card{
     background:var(--white); border:1px solid var(--line); border-radius:var(--radius); padding:var(--space-3);
     display:flex; flex-direction:column; gap:10px;
@@ -341,6 +352,7 @@
       <button data-page="comisiones">Comisiones</button>
       <button data-page="partidos">Partidos Políticos</button>
       <button data-page="mesas">Mesas Directivas</button>
+      <button data-page="memorias">Memorias</button>
     </nav>
     <button class="menu-toggle" id="menuToggle" aria-label="Abrir menú">☰</button>
   </div>
@@ -553,6 +565,25 @@
           <p>Recibirás la confirmación de tu rol en la mesa directiva por parte del staff del Euromodelo Joven.</p>
           <p class="ref-code" id="mesaRefCode"></p>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ MEMORIAS ============ -->
+  <section class="page" id="page-memorias">
+    <div class="section-inner">
+      <div class="container">
+        <div class="section-head">
+          <span class="art-label">Art. 08 — Memorias</span>
+          <h2>Memorias</h2>
+          <p>Galería fotográfica de las ediciones del Euromodelo Joven.</p>
+        </div>
+
+        <h3 class="subsection-title">Euromodelo Regional</h3>
+        <div class="grid-cards gallery-grid" id="memoriasRegionalGrid"></div>
+
+        <h3 class="subsection-title" style="margin-top:var(--space-5);">Euromodelo Congreso</h3>
+        <div class="grid-cards gallery-grid" id="memoriasCongresoGrid"></div>
       </div>
     </div>
   </section>
@@ -965,6 +996,24 @@
   }
   renderMesaGrid('mesasComisionesGrid', mesasComisiones, 'comisiones');
   renderMesaGrid('mesasPlenariaGrid', mesasPlenaria, 'plenaria');
+
+  // ---------- Memorias (galería de fotos) ----------
+  // Completa estos arreglos con las fotos de cada edición: {src: 'URL de la imagen', alt: 'Descripción'}.
+  const MEMORIAS_REGIONAL = [];
+  const MEMORIAS_CONGRESO = [];
+  function renderGallery(gridId, photos){
+    const grid = document.getElementById(gridId);
+    if(!photos.length){
+      grid.innerHTML = '<div class="gallery-empty">Fotos pendientes de cargar por el staff.</div>';
+      return;
+    }
+    grid.innerHTML = photos.map(p => `
+      <a class="gallery-photo" href="${p.src}" target="_blank" rel="noopener">
+        <img src="${p.src}" alt="${p.alt || ''}" loading="lazy">
+      </a>`).join('');
+  }
+  renderGallery('memoriasRegionalGrid', MEMORIAS_REGIONAL);
+  renderGallery('memoriasCongresoGrid', MEMORIAS_CONGRESO);
 
   // ---------- Comisiones ----------
   const comisiones = [
