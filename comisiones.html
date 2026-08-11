@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comisiones — XX Euromodelo Joven 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<header class="site">
+  <div class="nav-row">
+    <a href="index.html" class="brand"><img src="assets/logo.png" class="brand-logo" alt="Euromodelo Joven - Fundación Revel"></a>
+    <nav class="links" id="navLinks">
+      <a href="index.html">Inicio</a>
+      <a href="campus.html">Campus Euromodelo - Capacitaciones</a>
+      <a href="mentes.html">Grandes Mentes</a>
+      <a href="roles.html">Roles</a>
+      <a href="comisiones.html" class="active">Comisiones</a>
+      <a href="partidos.html">Partidos Políticos</a>
+      <a href="mesas-postulacion.html">Mesas Directivas</a>
+      <a href="galeria.html">Galería</a>
+    </nav>
+    <div class="auth-area" id="authArea">
+      <button class="btn-ghost-sm" id="loginBtn">Iniciar sesión</button>
+      <div class="login-panel" id="loginPanel">
+        <h4>Iniciar sesión</h4>
+        <p class="login-note">Piloto: usa el usuario y la contraseña generados al finalizar tu preinscripción.</p>
+        <form id="loginForm">
+          <input type="text" name="username" placeholder="Usuario" required>
+          <input type="password" name="password" placeholder="Contraseña" required>
+          <button type="submit">Entrar</button>
+        </form>
+        <p id="loginError" style="display:none; color:#C0392B; font-size:12px; margin-top:8px;">Usuario o contraseña incorrectos.</p>
+        <div class="login-links">
+          <a href="preinscripcion.html">Preinscribirme</a>
+          <a href="inscripcion.html">Ir a inscripción</a>
+        </div>
+      </div>
+    </div>
+    <button class="menu-toggle" id="menuToggle" aria-label="Abrir menú">&#9776;</button>
+  </div>
+</header>
+
+<div class="page-banner">
+  <div class="container">
+    <div>
+      <h1>Comisiones temáticas</h1>
+      <p>Cada comisario y europarlamentario debate dentro de una de estas siete comisiones, según el tema de su propuesta legislativa.</p>
+    </div>
+    <div class="photo-placeholder ph-banner" style="height:160px;">
+      <span class="ph-icon">&#128247;</span>
+      <span class="ph-label">Espacio para foto de cabecera — Comisiones</span>
+    </div>
+  </div>
+</div>
+
+<div class="section-inner">
+  <div class="container">
+    <div class="grid-cards" id="comisionesGrid"></div>
+  </div>
+</div>
+<div class="modal-overlay" id="detailModal">
+  <div class="modal-card">
+    <button class="modal-close" aria-label="Cerrar">&#10005;</button>
+    <div class="icon js-modal-icon"></div>
+    <h3 class="js-modal-title"></h3>
+    <p class="modal-intro js-modal-intro"></p>
+    <ul class="modal-topics js-modal-topics"></ul>
+  </div>
+</div>
+<footer>
+  <div class="container">
+    <span>Fundación Revel — XX Euromodelo Joven 2026</span>
+    <span>En alianza con la Delegación de la Unión Europea en Colombia</span>
+  </div>
+</footer>
+<script src="assets/main.js"></script>
+<script>
+  initLoginPanel();
+  const detailModal = createModalController('detailModal');
+</script>
+<script>
+  const comisiones = [{"code": "01", "title": "Asuntos Económicos, Presupuestarios y Sociales", "desc": "Empleo juvenil, educación y formación, inclusión social, protección al consumidor y salud y bienestar de los jóvenes europeos.", "intro": "Responsable del bienestar económico y social de los jóvenes en la Unión Europea: empleo, educación, inclusión y protección social.", "topics": [["Empleo juvenil", "Reducir el desempleo juvenil y mejorar la calidad de los empleos disponibles, incluido el apoyo al emprendimiento."], ["Educación y formación", "Garantizar el acceso equitativo a educación de calidad y al aprendizaje a lo largo de la vida."], ["Inclusión social", "Combatir la exclusión, la pobreza y la desigualdad entre los jóvenes."], ["Protección del consumidor", "Proteger a los jóvenes frente a la publicidad dirigida y la inseguridad digital."], ["Salud y bienestar", "Atender la salud mental y el acceso a servicios de salud."], ["Digitalización y empleabilidad", "Promover la alfabetización digital y las habilidades para el trabajo del futuro."], ["Movilidad laboral y social", "Facilitar la movilidad de los jóvenes dentro de la UE y la portabilidad de derechos sociales."], ["Desarrollo regional y rural", "Garantizar acceso a empleo, educación y servicios sin importar el lugar de residencia."]]}, {"code": "02", "title": "Asuntos Exteriores, DDHH, Seguridad y Defensa", "desc": "Política exterior y diplomacia, derechos humanos, seguridad internacional, defensa común y lucha contra el terrorismo.", "intro": "Encargada de la política exterior de la UE y de la promoción de la paz, los derechos humanos y la seguridad internacional.", "topics": [["Política exterior y diplomacia", "Desarrollar la política exterior de la UE y la cooperación con otras regiones."], ["Derechos humanos", "Proteger y promover los derechos humanos y actuar frente a sus violaciones."], ["Seguridad internacional", "Prevenir conflictos y gestionar crisis en zonas afectadas."], ["Defensa", "Desarrollar la política de defensa común y la cooperación militar entre Estados."], ["Lucha contra el terrorismo", "Prevenir la radicalización y combatir el extremismo violento."], ["Cooperación en seguridad y defensa", "Coordinar operaciones militares y misiones de paz entre Estados miembros."], ["Gobernanza global", "Impulsar la reforma de instituciones internacionales y el multilateralismo."], ["Ayuda humanitaria", "Garantizar asistencia a países y regiones en crisis humanitarias."]]}, {"code": "03", "title": "Educación, Cultura y Desarrollo Regional", "desc": "Movilidad estudiantil (como Erasmus+), formación profesional, promoción cultural y reducción de las disparidades regionales.", "intro": "Promueve la cooperación en educación, el acceso igualitario a la cultura y el desarrollo económico y social de las regiones de Europa.", "topics": [["Educación inclusiva y accesible", "Garantizar acceso igualitario a educación de calidad para todos los jóvenes."], ["Movilidad estudiantil", "Impulsar programas como Erasmus+ y el intercambio académico y cultural."], ["Formación profesional", "Promover la adquisición de habilidades relevantes para el mercado laboral."], ["Cultura y diversidad cultural", "Fomentar el intercambio y el diálogo intercultural en Europa."], ["Desarrollo regional y cohesión social", "Reducir las disparidades entre regiones mediante inversión e innovación."], ["Sostenibilidad y medio ambiente", "Integrar la educación ambiental en los programas educativos."], ["Participación ciudadana", "Fomentar la participación juvenil en la vida democrática."], ["Innovación y emprendimiento cultural", "Apoyar a jóvenes artistas y emprendedores culturales."]]}, {"code": "04", "title": "Industria, Investigación y Tecnología", "desc": "Innovación, transformación digital, investigación y desarrollo, política espacial europea y regulación ética de la tecnología.", "intro": "Impulsa la competitividad de la industria europea, la investigación y el uso responsable de la tecnología.", "topics": [["Promoción de la innovación", "Fomentar la investigación y el desarrollo, y apoyar a empresas innovadoras."], ["Industria digital", "Impulsar la adopción de IA, IoT y computación en la nube, y la ciberseguridad."], ["Investigación y desarrollo tecnológico", "Apoyar la colaboración entre academia, industria y sector público."], ["Política espacial europea", "Desarrollar sistemas de navegación satelital y observación de la Tierra."], ["Economía circular", "Promover la eficiencia energética y la reducción de residuos."], ["Formación en tecnología", "Preparar a los jóvenes en habilidades digitales para el futuro."], ["Cooperación internacional", "Fomentar la investigación científica conjunta con socios internacionales."], ["Regulación y ética en tecnología", "Crear marcos regulatorios para la IA, la biotecnología y la robótica."]]}, {"code": "05", "title": "Medio Ambiente, Agricultura y Seguridad Alimentaria", "desc": "Protección ambiental, cambio climático, agricultura sostenible, seguridad alimentaria y desarrollo rural.", "intro": "Supervisa la protección del medio ambiente, la agricultura sostenible y la seguridad alimentaria, con foco en las generaciones futuras.", "topics": [["Protección del medio ambiente", "Preservar la biodiversidad, los ecosistemas y la calidad del aire y del agua."], ["Cambio climático", "Reducir emisiones y fomentar la resiliencia frente a fenómenos extremos."], ["Agricultura sostenible", "Promover prácticas agrícolas ecológicas y el uso responsable de recursos."], ["Seguridad alimentaria", "Garantizar la calidad y trazabilidad de los alimentos."], ["Economía circular", "Impulsar la reducción, reutilización y reciclaje en la cadena agroalimentaria."], ["Desarrollo rural", "Apoyar la diversificación económica y el empleo en zonas rurales."], ["Protección animal", "Promover el bienestar animal en la producción agroalimentaria."], ["Cooperación internacional", "Fomentar la conservación ambiental y la agricultura sostenible a nivel global."]]}, {"code": "06", "title": "Empleo, Asuntos Sociales y Comercio Internacional", "desc": "Derechos laborales, protección social, formación profesional y comercio justo entre la Unión Europea y el resto del mundo.", "intro": "Vela por condiciones laborales dignas y una política de comercio internacional que sea coherente con la protección social y los derechos de los trabajadores.", "topics": [["Derechos laborales", "Proteger las condiciones de trabajo, la seguridad y salud en el empleo y la libre circulación de trabajadores."], ["Protección social", "Fortalecer los sistemas de seguridad social, pensiones y prestaciones por desempleo."], ["Diálogo social", "Promover la negociación colectiva y la participación sindical en las decisiones laborales."], ["Formación profesional y empleabilidad", "Impulsar la capacitación y reconversión laboral frente a la automatización."], ["Comercio justo", "Vigilar que los acuerdos comerciales de la UE respeten estándares laborales y ambientales."], ["Relaciones comerciales internacionales", "Negociar y evaluar tratados de libre comercio con socios externos."], ["Protección frente al dumping social", "Evitar la competencia desleal basada en la precarización laboral."], ["Cadenas de suministro responsables", "Exigir trazabilidad y respeto a los derechos humanos en el comercio internacional."]]}, {"code": "07", "title": "Asuntos Constitucionales, Libertades Civiles, Justicia e Igualdad de Género", "desc": "Funcionamiento institucional de la UE, derechos y libertades fundamentales, cooperación judicial e igualdad de género.", "intro": "Vela por el correcto funcionamiento institucional de la Unión Europea, la protección de los derechos fundamentales y la igualdad de género.", "topics": [["Funcionamiento institucional", "Revisar los tratados y el reparto de competencias entre las instituciones de la UE."], ["Derechos y libertades fundamentales", "Proteger los derechos recogidos en la Carta de los Derechos Fundamentales de la UE."], ["Cooperación judicial y policial", "Fortalecer la justicia transfronteriza y la seguridad interior de la Unión."], ["Migración y asilo", "Definir políticas comunes de gestión migratoria y protección a solicitantes de asilo."], ["Igualdad de género", "Impulsar políticas que garanticen la igualdad real entre hombres y mujeres."], ["Lucha contra la discriminación", "Combatir cualquier forma de discriminación por género, origen o condición."], ["Elecciones europeas y participación democrática", "Fortalecer los procesos electorales y la participación ciudadana."], ["Protección de datos y privacidad", "Salvaguardar los derechos digitales de los ciudadanos europeos."]]}];
+  const comisionesGrid = document.getElementById('comisionesGrid');
+  comisiones.forEach((c, i) => {
+    comisionesGrid.innerHTML += `
+      <div class="card" style="cursor:pointer;" data-comision-index="${i}">
+        <div class="photo-placeholder ph-sq"><span class="ph-icon">&#128247;</span><span class="ph-label">${c.code}</span></div>
+        <h3>${c.title}</h3>
+        <p>${c.desc}</p>
+        <div class="card-foot"><span class="link-btn">Ver detalle &rarr;</span></div>
+      </div>`;
+  });
+  comisionesGrid.querySelectorAll('[data-comision-index]').forEach(card => {
+    card.addEventListener('click', () => renderDetailModal(detailModal, comisiones[+card.dataset.comisionIndex]));
+  });
+</script>
+</body>
+</html>

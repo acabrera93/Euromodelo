@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Preinscripción — XX Euromodelo Joven 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<header class="site">
+  <div class="nav-row">
+    <a href="index.html" class="brand"><img src="assets/logo.png" class="brand-logo" alt="Euromodelo Joven - Fundación Revel"></a>
+    <nav class="links" id="navLinks">
+      <a href="index.html" class="active">Inicio</a>
+      <a href="campus.html">Campus Euromodelo - Capacitaciones</a>
+      <a href="mentes.html">Grandes Mentes</a>
+      <a href="roles.html">Roles</a>
+      <a href="comisiones.html">Comisiones</a>
+      <a href="partidos.html">Partidos Políticos</a>
+      <a href="mesas-postulacion.html">Mesas Directivas</a>
+      <a href="galeria.html">Galería</a>
+    </nav>
+    <div class="auth-area" id="authArea">
+      <button class="btn-ghost-sm" id="loginBtn">Iniciar sesión</button>
+      <div class="login-panel" id="loginPanel">
+        <h4>Iniciar sesión</h4>
+        <p class="login-note">Piloto: usa el usuario y la contraseña generados al finalizar tu preinscripción.</p>
+        <form id="loginForm">
+          <input type="text" name="username" placeholder="Usuario" required>
+          <input type="password" name="password" placeholder="Contraseña" required>
+          <button type="submit">Entrar</button>
+        </form>
+        <p id="loginError" style="display:none; color:#C0392B; font-size:12px; margin-top:8px;">Usuario o contraseña incorrectos.</p>
+        <div class="login-links">
+          <a href="preinscripcion.html">Preinscribirme</a>
+          <a href="inscripcion.html">Ir a inscripción</a>
+        </div>
+      </div>
+    </div>
+    <button class="menu-toggle" id="menuToggle" aria-label="Abrir menú">&#9776;</button>
+  </div>
+</header>
+
+<div class="page-banner">
+  <div class="container" style="grid-template-columns:1fr;">
+    <div>
+      <h1>Preinscripción</h1>
+      <p>Completa tus datos básicos para reservar tu cupo. Al finalizar, la plataforma te entregará un usuario y una contraseña para continuar con tu inscripción.</p>
+    </div>
+  </div>
+</div>
+
+<div class="section-inner">
+  <div class="container" style="max-width:720px;">
+    <form class="form-card" id="preForm">
+      <div class="form-grid">
+        <div class="field full"><label>Correo electrónico</label><input required type="email" name="email"></div>
+        <div class="field full"><label>Nombre del estudiante</label><input required type="text" name="nombre"></div>
+        <div class="field">
+          <label>Tipo de documento de identidad</label>
+          <select required name="tipoDocumento">
+            <option value="">Selecciona una opción</option>
+            <option>Tarjeta de identidad</option>
+            <option>Cédula de ciudadanía</option>
+            <option>Pasaporte</option>
+            <option>Otro</option>
+          </select>
+        </div>
+        <div class="field"><label>Número de documento</label><input required type="text" name="numDocumento"></div>
+        <div class="field">
+          <label>Número de teléfono</label>
+          <div class="phone-row">
+            <span class="phone-prefix">+57</span>
+            <input required type="text" inputmode="numeric" pattern="[0-9]{7,10}" name="telefono" placeholder="3001234567" style="flex:1;">
+          </div>
+        </div>
+        <div class="field">
+          <label>Ciudad</label>
+          <select required name="ciudad">
+            <option value="">Selecciona una ciudad</option>
+            <option>Riohacha</option>
+            <option>Bucaramanga</option>
+            <option>Bogotá</option>
+          </select>
+        </div>
+        <div class="field full"><label>Institución educativa</label><input required type="text" name="institucion"></div>
+      </div>
+
+      <p class="legal-box">De conformidad a lo dispuesto por la Ley 1581 de 2012 y las demás normas que la modifiquen, reglamenten y/o adhieran, ¿Autorizo a la Fundación Revel y a la Universidad Pontificia Bolivariana a realizar el tratamiento de mis datos personales los cuales podrán recolectar, almacenar, tratar y utilizar mi información personal y capturar registros fotográficos y audiovisuales, los cuales podrán ser publicados en diferentes medios de información institucionales y externos?</p>
+      <div class="field full">
+        <label>¿Autoriza la política de tratamiento de datos personales?</label>
+        <div class="radio-row">
+          <label><input type="radio" name="autorizaDatos" value="Sí" required> Sí</label>
+          <label><input type="radio" name="autorizaDatos" value="No" required> No</label>
+        </div>
+      </div>
+      <div class="field full">
+        <label>¿Eres menor de edad?</label>
+        <div class="radio-row" id="preEsMenor">
+          <label><input type="radio" name="esMenor" value="Sí" required> Sí</label>
+          <label><input type="radio" name="esMenor" value="No" required> No</label>
+        </div>
+      </div>
+
+      <div class="field full" id="preMenorSection" style="display:none;">
+        <p class="legal-box">Actuando en representación de mi hijo participante del Euromodelo Joven 2026, autorizo el uso de sus derechos de imagen que le reconoce la Constitución, la Ley y las demás normas.</p>
+        <label>Autorización de imagen</label>
+        <div class="radio-row">
+          <label><input type="radio" name="autorizaImagen" value="Sí"> Sí</label>
+          <label><input type="radio" name="autorizaImagen" value="No"> No</label>
+        </div>
+      </div>
+
+      <div class="form-submit-row">
+        <span class="form-note">Al enviar, se generará automáticamente tu usuario y contraseña. Guárdalos: los necesitarás para iniciar sesión y completar tu inscripción.</span>
+        <button class="btn-primary" type="submit">Enviar preinscripción</button>
+      </div>
+    </form>
+
+    <div class="success-panel" id="preSuccess">
+      <div class="mark">&#10003;</div>
+      <h3>¡Preinscripción registrada!</h3>
+      <p>Guarda estos datos: los necesitarás para iniciar sesión y completar tu inscripción.</p>
+      <div class="credentials-card">
+        <p style="margin:0; font-size:13px; color:rgba(255,255,255,.75);">Tus credenciales de acceso</p>
+        <div class="cred-row">
+          <div class="cred-item"><div class="cred-label">Usuario</div><div class="cred-value" id="credUsername"></div></div>
+          <div class="cred-item"><div class="cred-label">Contraseña</div><div class="cred-value" id="credPassword"></div></div>
+        </div>
+      </div>
+      <a class="btn-primary" href="inscripcion.html" style="display:inline-block; margin-top:var(--space-3);">Continuar a inscripción &rarr;</a>
+    </div>
+  </div>
+</div>
+<footer>
+  <div class="container">
+    <span>Fundación Revel — XX Euromodelo Joven 2026</span>
+    <span>En alianza con la Delegación de la Unión Europea en Colombia</span>
+  </div>
+</footer>
+<script src="assets/main.js"></script>
+<script>
+  initLoginPanel();
+  const detailModal = createModalController('detailModal');
+</script>
+<script>
+  // El backend real (Google Sheets) recibe los envíos; aquí solo se define la URL del Apps Script.
+  const EUROMODELO_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbztpSnDRFqR1JAvh4jmNyLcUo05Ur3PoRckFeavmP6PqezdYTW0QNTz172gG20U6vYsPg/exec';
+
+  document.getElementById('preEsMenor').addEventListener('change', (e) => {
+    if (e.target.name !== 'esMenor') return;
+    const esMenor = e.target.value === 'Sí';
+    const section = document.getElementById('preMenorSection');
+    section.style.display = esMenor ? 'block' : 'none';
+    section.querySelectorAll('input[name="autorizaImagen"]').forEach(inp => inp.required = esMenor);
+  });
+
+  function refCode(prefix){
+    return prefix + '-' + Math.random().toString(36).slice(2,7).toUpperCase();
+  }
+
+  const preForm = document.getElementById('preForm');
+  preForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const fd = new FormData(preForm);
+    const data = {
+      nombre: fd.get('nombre').trim(),
+      tipoDocumento: fd.get('tipoDocumento'),
+      numDocumento: fd.get('numDocumento').trim(),
+      ciudad: fd.get('ciudad'),
+      institucion: fd.get('institucion').trim(),
+      email: fd.get('email').trim(),
+      telefono: fd.get('telefono').trim(),
+      autorizacion: true,
+      autorizaDatos: fd.get('autorizaDatos'),
+      esMenor: fd.get('esMenor'),
+      autorizaImagen: fd.get('autorizaImagen') || '',
+    };
+    const creds = createUser(data);
+
+    // Envío al backend real (Google Sheets + notificación por correo al staff).
+    try{
+      fetch(EUROMODELO_SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: {'Content-Type': 'text/plain;charset=utf-8'},
+        body: JSON.stringify({
+          form: 'preinscripcion',
+          enviado: new Date().toISOString(),
+          ref_code: refCode('PRE'),
+          email: data.email,
+          nombre_completo: data.nombre,
+          tipo_documento: data.tipoDocumento,
+          numero_documento: data.numDocumento,
+          telefono: '+57 ' + data.telefono,
+          ciudad: data.ciudad,
+          institucion_educativa: data.institucion,
+          autoriza_datos: fd.get('autorizaDatos'),
+          es_menor: fd.get('esMenor'),
+          autoriza_imagen: fd.get('autorizaImagen') || '',
+        }),
+      });
+    }catch(err){
+      console.error('No se pudo enviar la preinscripción al backend:', err);
+    }
+
+    preForm.style.display = 'none';
+    document.getElementById('preSuccess').classList.add('show');
+    document.getElementById('credUsername').textContent = creds.username;
+    document.getElementById('credPassword').textContent = creds.password;
+  });
+</script>
+</body>
+</html>

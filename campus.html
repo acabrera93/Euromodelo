@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Campus Euromodelo - Capacitaciones — XX Euromodelo Joven 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<header class="site">
+  <div class="nav-row">
+    <a href="index.html" class="brand"><img src="assets/logo.png" class="brand-logo" alt="Euromodelo Joven - Fundación Revel"></a>
+    <nav class="links" id="navLinks">
+      <a href="index.html">Inicio</a>
+      <a href="campus.html" class="active">Campus Euromodelo - Capacitaciones</a>
+      <a href="mentes.html">Grandes Mentes</a>
+      <a href="roles.html">Roles</a>
+      <a href="comisiones.html">Comisiones</a>
+      <a href="partidos.html">Partidos Políticos</a>
+      <a href="mesas-postulacion.html">Mesas Directivas</a>
+      <a href="galeria.html">Galería</a>
+    </nav>
+    <div class="auth-area" id="authArea">
+      <button class="btn-ghost-sm" id="loginBtn">Iniciar sesión</button>
+      <div class="login-panel" id="loginPanel">
+        <h4>Iniciar sesión</h4>
+        <p class="login-note">Piloto: usa el usuario y la contraseña generados al finalizar tu preinscripción.</p>
+        <form id="loginForm">
+          <input type="text" name="username" placeholder="Usuario" required>
+          <input type="password" name="password" placeholder="Contraseña" required>
+          <button type="submit">Entrar</button>
+        </form>
+        <p id="loginError" style="display:none; color:#C0392B; font-size:12px; margin-top:8px;">Usuario o contraseña incorrectos.</p>
+        <div class="login-links">
+          <a href="preinscripcion.html">Preinscribirme</a>
+          <a href="inscripcion.html">Ir a inscripción</a>
+        </div>
+      </div>
+    </div>
+    <button class="menu-toggle" id="menuToggle" aria-label="Abrir menú">&#9776;</button>
+  </div>
+</header>
+
+<div class="page-banner">
+  <div class="container">
+    <div>
+      <h1>Campus Euromodelo - Capacitaciones</h1>
+      <p>Módulos formativos en video para preparar tu participación: instituciones europeas, bancadas, comisiones y procedimiento legislativo. Completalos antes de tu ronda regional.</p>
+    </div>
+    <div class="photo-placeholder ph-banner" style="height:160px;">
+      <span class="ph-icon">&#128247;</span>
+      <span class="ph-label">Espacio para foto de cabecera — Campus Euromodelo</span>
+    </div>
+  </div>
+</div>
+
+<div class="section-inner">
+  <div class="container">
+    <div class="grid-cards" id="campusGrid"></div>
+  </div>
+</div>
+
+<!-- Popup de capacitación: material / video -->
+<div class="modal-overlay" id="actionModal">
+  <div class="modal-card">
+    <button class="modal-close" aria-label="Cerrar">&#10005;</button>
+    <div class="icon js-modal-icon"></div>
+    <h3 class="js-modal-title"></h3>
+    <p class="modal-intro js-modal-intro"></p>
+    <div class="action-grid">
+      <div class="action-card" id="actionMaterial">
+        <div class="a-icon">&#128214;</div>
+        <div class="a-title">Léelo a tu ritmo</div>
+        <div class="a-sub">Material de la capacitación</div>
+      </div>
+      <div class="action-card" id="actionVideo">
+        <div class="a-icon">&#127909;</div>
+        <div class="a-title">Vuélvela a ver</div>
+        <div class="a-sub">Grabación de la capacitación</div>
+      </div>
+    </div>
+  </div>
+</div>
+<footer>
+  <div class="container">
+    <span>Fundación Revel — XX Euromodelo Joven 2026</span>
+    <span>En alianza con la Delegación de la Unión Europea en Colombia</span>
+  </div>
+</footer>
+<script src="assets/main.js"></script>
+<script>
+  initLoginPanel();
+  const detailModal = createModalController('detailModal');
+</script>
+<script>
+  const campusModules = [{"code": "M1", "title": "¿Qué es la Unión Europea?", "desc": "Fundamentos institucionales: qué es la UE, sus valores y su lugar en el sistema internacional.", "tag": "Introductorio"}, {"code": "M2", "title": "Órganos legislativos de la UE", "desc": "Comisión Europea, Parlamento Europeo y Consejo de la Unión Europea: funciones y diferencias.", "tag": "Instituciones"}, {"code": "M3", "title": "Bancadas y partidos políticos", "desc": "Las siete bancadas europeas representadas en el Euromodelo Joven y sus ideologías.", "tag": "Bancadas"}, {"code": "M4", "title": "PLO — Sesión por comisiones", "desc": "Cómo funciona el Procedimiento Legislativo Ordinario dentro de cada comisión.", "tag": "Procedimiento"}, {"code": "M5", "title": "PLO — Sesión plenaria", "desc": "Debate moderado, enmiendas y votación en la sesión plenaria del Euromodelo Joven.", "tag": "Procedimiento"}, {"code": "M6", "title": "Mociones, puntos y quórums", "desc": "Reglas de procedimiento: mociones, puntos de orden y tipos de quórum y mayoría.", "tag": "Reglamento"}, {"code": "M7", "title": "Guía para comisarios", "desc": "Cómo redactar y sustentar una propuesta legislativa ante la mesa directiva.", "tag": "Rol: Comisario"}];
+  const campusGrid = document.getElementById('campusGrid');
+  campusModules.forEach((m, i) => {
+    campusGrid.innerHTML += `
+      <div class="card" style="cursor:pointer;" data-module-index="${i}">
+        <div class="photo-placeholder ph-sq"><span class="ph-icon">&#128247;</span><span class="ph-label">${m.code}</span></div>
+        <h3>${m.title}</h3>
+        <p>${m.desc}</p>
+        <div class="card-foot">
+          <span class="tag">${m.tag}</span>
+          <span class="link-btn">Abrir capacitación &rarr;</span>
+        </div>
+      </div>`;
+  });
+
+  const actionModal = createModalController('actionModal');
+  campusGrid.querySelectorAll('[data-module-index]').forEach(card => {
+    card.addEventListener('click', () => {
+      const m = campusModules[+card.dataset.moduleIndex];
+      actionModal.el.querySelector('.js-modal-icon').textContent = m.code;
+      actionModal.el.querySelector('.js-modal-title').textContent = m.title;
+      actionModal.el.querySelector('.js-modal-intro').textContent = m.desc + ' Elige cómo quieres repasarla:';
+      actionModal.open();
+    });
+  });
+  document.getElementById('actionMaterial').addEventListener('click', () => {
+    alert('El staff debe vincular aquí el material de apoyo (PDF o guía) de esta capacitación.');
+  });
+  document.getElementById('actionVideo').addEventListener('click', () => {
+    alert('El staff debe vincular aquí la grabación en video de esta capacitación.');
+  });
+</script>
+</body>
+</html>

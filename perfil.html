@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mi perfil — XX Euromodelo Joven 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<header class="site">
+  <div class="nav-row">
+    <a href="index.html" class="brand"><img src="assets/logo.png" class="brand-logo" alt="Euromodelo Joven - Fundación Revel"></a>
+    <nav class="links" id="navLinks">
+      <a href="index.html" class="active">Inicio</a>
+      <a href="campus.html">Campus Euromodelo - Capacitaciones</a>
+      <a href="mentes.html">Grandes Mentes</a>
+      <a href="roles.html">Roles</a>
+      <a href="comisiones.html">Comisiones</a>
+      <a href="partidos.html">Partidos Políticos</a>
+      <a href="mesas-postulacion.html">Mesas Directivas</a>
+      <a href="galeria.html">Galería</a>
+    </nav>
+    <div class="auth-area" id="authArea">
+      <button class="btn-ghost-sm" id="loginBtn">Iniciar sesión</button>
+      <div class="login-panel" id="loginPanel">
+        <h4>Iniciar sesión</h4>
+        <p class="login-note">Piloto: usa el usuario y la contraseña generados al finalizar tu preinscripción.</p>
+        <form id="loginForm">
+          <input type="text" name="username" placeholder="Usuario" required>
+          <input type="password" name="password" placeholder="Contraseña" required>
+          <button type="submit">Entrar</button>
+        </form>
+        <p id="loginError" style="display:none; color:#C0392B; font-size:12px; margin-top:8px;">Usuario o contraseña incorrectos.</p>
+        <div class="login-links">
+          <a href="preinscripcion.html">Preinscribirme</a>
+          <a href="inscripcion.html">Ir a inscripción</a>
+        </div>
+      </div>
+    </div>
+    <button class="menu-toggle" id="menuToggle" aria-label="Abrir menú">&#9776;</button>
+  </div>
+</header>
+
+<div id="perfilLoggedOut" style="display:none;">
+  <div class="section-inner">
+    <div class="container" style="max-width:560px; text-align:center;">
+      <h2>Aún no has iniciado sesión</h2>
+      <p style="color:#4A5A73; margin-bottom:var(--space-3);">Inicia sesión desde el botón "Iniciar sesión" en la parte superior, con el usuario y la contraseña que recibiste en tu preinscripción.</p>
+      <a class="btn-primary" href="preinscripcion.html">Ir a preinscripción</a>
+    </div>
+  </div>
+</div>
+
+<div id="perfilLoggedIn" style="display:none;">
+  <div class="profile-hero">
+    <div class="container profile-card">
+      <div class="photo-placeholder ph-avatar-lg" style="border-color:rgba(255,255,255,.5); color:rgba(255,255,255,.7); background:rgba(255,255,255,.06);">
+        <span class="ph-icon">&#128247;</span>
+        <span class="ph-label">Foto</span>
+      </div>
+      <div>
+        <p class="profile-name" id="pfNombre"></p>
+        <p class="profile-meta" id="pfMeta"></p>
+        <div class="profile-badges" id="pfBadges"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-inner">
+    <div class="container" style="max-width:760px;">
+      <div id="pfNoInscripcion" style="display:none;">
+        <div class="form-card" style="text-align:center;">
+          <h3 style="color:var(--navy-deep); margin-top:0;">Aún no has completado tu inscripción</h3>
+          <p style="color:#4A5A73;">Elige tus tres opciones de rol, tus tres opciones de comisión y tu bancada de preferencia.</p>
+          <a class="btn-primary" href="inscripcion.html">Completar inscripción &rarr;</a>
+        </div>
+      </div>
+
+      <div id="pfInscripcionData" style="display:none;">
+        <div class="section-head">
+          <h2 style="font-size:20px;">Tu inscripción</h2>
+        </div>
+        <div class="grid-cards">
+          <div class="card">
+            <h3>Opciones de rol</h3>
+            <ul class="role-bullets" id="pfRoles" style="--accent:var(--gold-star);"></ul>
+          </div>
+          <div class="card">
+            <h3>Opciones de comisión</h3>
+            <ul class="role-bullets" id="pfComisiones" style="--accent:var(--blue-slate);"></ul>
+          </div>
+          <div class="card">
+            <h3>Bancada de preferencia</h3>
+            <p id="pfPartido" style="font-weight:600; color:var(--blue-revel);"></p>
+          </div>
+        </div>
+      </div>
+
+      <div style="text-align:center; margin-top:var(--space-4);">
+        <button class="btn-ghost" id="pfLogoutBtn" style="border-color:var(--blue-slate); color:var(--blue-revel);">Cerrar sesión</button>
+      </div>
+    </div>
+  </div>
+</div>
+<footer>
+  <div class="container">
+    <span>Fundación Revel — XX Euromodelo Joven 2026</span>
+    <span>En alianza con la Delegación de la Unión Europea en Colombia</span>
+  </div>
+</footer>
+<script src="assets/main.js"></script>
+<script>
+  initLoginPanel();
+  const detailModal = createModalController('detailModal');
+</script>
+<script>
+  const user = currentUserData();
+  if (!user) {
+    document.getElementById('perfilLoggedOut').style.display = 'block';
+  } else {
+    document.getElementById('perfilLoggedIn').style.display = 'block';
+    document.getElementById('pfNombre').textContent = user.nombre || user.username;
+    document.getElementById('pfMeta').textContent = (user.institucion || 'Institución por confirmar') + ' · ' + (user.ciudad || 'Ciudad por confirmar');
+
+    const badges = [];
+    badges.push(`<span class="profile-badge"><b>Usuario</b>${user.username}</span>`);
+    badges.push(`<span class="profile-badge"><b>Ciudad</b>${user.ciudad || 'Por confirmar'}</span>`);
+    if (user.inscripcion) {
+      badges.push(`<span class="profile-badge"><b>Rol 1</b>${user.inscripcion.rol1}</span>`);
+      badges.push(`<span class="profile-badge"><b>Comisión 1</b>${user.inscripcion.comision1}</span>`);
+      badges.push(`<span class="profile-badge"><b>Bancada</b>${user.inscripcion.partido}</span>`);
+    } else {
+      badges.push(`<span class="profile-badge">Inscripción pendiente</span>`);
+    }
+    document.getElementById('pfBadges').innerHTML = badges.join('');
+
+    if (user.inscripcion) {
+      document.getElementById('pfInscripcionData').style.display = 'block';
+      const ins = user.inscripcion;
+      document.getElementById('pfRoles').innerHTML =
+        `<li>Opción 1: ${ins.rol1}</li><li>Opción 2: ${ins.rol2}</li><li>Opción 3: ${ins.rol3}</li>`;
+      document.getElementById('pfComisiones').innerHTML =
+        `<li>Opción 1: ${ins.comision1}</li><li>Opción 2: ${ins.comision2}</li><li>Opción 3: ${ins.comision3}</li>`;
+      document.getElementById('pfPartido').textContent = ins.partido;
+    } else {
+      document.getElementById('pfNoInscripcion').style.display = 'block';
+    }
+
+    document.getElementById('pfLogoutBtn').addEventListener('click', () => {
+      logoutUser();
+      window.location.href = 'index.html';
+    });
+  }
+</script>
+</body>
+</html>

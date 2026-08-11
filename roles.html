@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Roles — XX Euromodelo Joven 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<header class="site">
+  <div class="nav-row">
+    <a href="index.html" class="brand"><img src="assets/logo.png" class="brand-logo" alt="Euromodelo Joven - Fundación Revel"></a>
+    <nav class="links" id="navLinks">
+      <a href="index.html">Inicio</a>
+      <a href="campus.html">Campus Euromodelo - Capacitaciones</a>
+      <a href="mentes.html">Grandes Mentes</a>
+      <a href="roles.html" class="active">Roles</a>
+      <a href="comisiones.html">Comisiones</a>
+      <a href="partidos.html">Partidos Políticos</a>
+      <a href="mesas-postulacion.html">Mesas Directivas</a>
+      <a href="galeria.html">Galería</a>
+    </nav>
+    <div class="auth-area" id="authArea">
+      <button class="btn-ghost-sm" id="loginBtn">Iniciar sesión</button>
+      <div class="login-panel" id="loginPanel">
+        <h4>Iniciar sesión</h4>
+        <p class="login-note">Piloto: usa el usuario y la contraseña generados al finalizar tu preinscripción.</p>
+        <form id="loginForm">
+          <input type="text" name="username" placeholder="Usuario" required>
+          <input type="password" name="password" placeholder="Contraseña" required>
+          <button type="submit">Entrar</button>
+        </form>
+        <p id="loginError" style="display:none; color:#C0392B; font-size:12px; margin-top:8px;">Usuario o contraseña incorrectos.</p>
+        <div class="login-links">
+          <a href="preinscripcion.html">Preinscribirme</a>
+          <a href="inscripcion.html">Ir a inscripción</a>
+        </div>
+      </div>
+    </div>
+    <button class="menu-toggle" id="menuToggle" aria-label="Abrir menú">&#9776;</button>
+  </div>
+</header>
+
+<div class="page-banner">
+  <div class="container">
+    <div>
+      <h1>Roles dentro del Euromodelo Joven</h1>
+      <p>Cada europarticipante asume un rol que reproduce el funcionamiento real de las instituciones europeas. Haz clic en cada tarjeta para ver el detalle completo.</p>
+    </div>
+    <div class="photo-placeholder ph-banner" style="height:160px;">
+      <span class="ph-icon">&#128247;</span>
+      <span class="ph-label">Espacio para foto de cabecera — Roles</span>
+    </div>
+  </div>
+</div>
+
+<div class="section-inner">
+  <div class="container">
+    <div class="grid-cards" id="rolesGrid"></div>
+
+    <div style="text-align:center; margin:var(--space-5) 0;">
+      <button class="btn-solid" id="openQuizBtn" style="background:var(--navy-deep); color:var(--white);">&#129517; Brújula Legislativa: descubre tu rol</button>
+      <p style="font-size:12.5px; color:#8695AC; margin-top:10px;">5 preguntas rápidas para saber si eres Comisario, Europarlamentario o Primer Ministro.</p>
+    </div>
+
+    <div class="section-head" style="margin-top:var(--space-6);">
+      <span class="subsection-title" style="font-size:14px; color:var(--blue-slate); text-transform:uppercase; letter-spacing:.04em;">Mesas directivas</span>
+      <h2>Quién conduce el debate</h2>
+      <p>La mesa directiva garantiza el orden, el tiempo y la calificación del debate. Su composición cambia según el tipo de sesión.</p>
+    </div>
+
+    <h3 class="subsection-title">Sesión por Comisiones</h3>
+    <div class="grid-cards" id="mesasComisionesGrid"></div>
+
+    <h3 class="subsection-title" style="margin-top:var(--space-3);">Sesión Plenaria</h3>
+    <div class="grid-cards" id="mesasPlenariaGrid"></div>
+  </div>
+</div>
+<div class="modal-overlay" id="detailModal">
+  <div class="modal-card">
+    <button class="modal-close" aria-label="Cerrar">&#10005;</button>
+    <div class="icon js-modal-icon"></div>
+    <h3 class="js-modal-title"></h3>
+    <p class="modal-intro js-modal-intro"></p>
+    <ul class="modal-topics js-modal-topics"></ul>
+  </div>
+</div>
+<div class="modal-overlay" id="quizModal">
+  <div class="modal-card">
+    <button class="modal-close" aria-label="Cerrar">&#10005;</button>
+    <div class="quiz-body"></div>
+  </div>
+</div>
+<footer>
+  <div class="container">
+    <span>Fundación Revel — XX Euromodelo Joven 2026</span>
+    <span>En alianza con la Delegación de la Unión Europea en Colombia</span>
+  </div>
+</footer>
+<script src="assets/main.js"></script>
+<script>
+  initLoginPanel();
+  const detailModal = createModalController('detailModal');
+</script>
+<script>
+  const roles = [{"code": "CO", "title": "Comisario", "color": "#C9A227", "bullets": ["Redacta y presenta una propuesta legislativa", "Expone ante su comisión y, si es seleccionada, en plenaria", "Responde las preguntas de la mesa directiva"], "desc": "Es el rol base del Euromodelo Joven. Su función es crear una propuesta legislativa que será debatida en comisión y, en caso de ser seleccionada, en plenaria. El comisario deberá exponer su propuesta y responder las preguntas que se le formulen. Representa a una bancada política dentro de la Comisión Europea."}, {"code": "EP", "title": "Europarlamentario", "color": "#1E3D73", "bullets": ["Es el rol más numeroso del programa", "Formula preguntas a los comisarios y redacta enmiendas", "Vota las enmiendas y las propuestas legislativas"], "desc": "Es el rol más numeroso dentro del Euromodelo Joven. Su participación es la más relevante de cara al desarrollo del debate: formulan preguntas para discutir la propuesta y crean las enmiendas que serán votadas, además de votar las propuestas legislativas de los comisarios. Representan los ideales de un partido político del Parlamento Europeo."}, {"code": "PM", "title": "Primer Ministro", "color": "#3E6E9E", "bullets": ["Representa a un Estado miembro de la UE", "Formula preguntas sobre las propuestas legislativas", "Vota las enmiendas y las propuestas legislativas"], "desc": "Es el segundo rol participante en el debate. Sus intervenciones aportan al desarrollo del debate, formulan preguntas para discutir las propuestas y su función especial es votar las enmiendas propuestas por los europarlamentarios y las propuestas legislativas de los comisarios. Representan los intereses de un Estado miembro de la Unión Europea."}];
+  const rolesGrid = document.getElementById('rolesGrid');
+  roles.forEach((r, i) => {
+    rolesGrid.innerHTML += `
+      <div class="card accent" style="--accent:${r.color}; cursor:pointer;" data-role-index="${i}">
+        <div class="photo-placeholder ph-sq" style="border-color:${r.color}; color:${r.color};"><span class="ph-icon">&#128247;</span><span class="ph-label">${r.code}</span></div>
+        <h3>${r.title}</h3>
+        <ul class="role-bullets" style="--accent:${r.color};">${r.bullets.map(b => `<li>${b}</li>`).join('')}</ul>
+        <div class="card-foot"><span class="link-btn">Ver detalle &rarr;</span></div>
+      </div>`;
+  });
+
+  const mesasComisiones = [{"code": "PC", "title": "Presidente", "color": "#0B2545", "bullets": ["Lleva el debate de forma balanceada e imparcial", "Decide mociones y puntos junto al secretario"], "desc": "Es la cabeza de la mesa directiva en sesión por comisiones. Su función es llevar el debate de forma balanceada e imparcial y, junto con su secretario/a, llevar el recuento de la calificación de los participantes de forma individual. A su vez, decide junto con su secretario/a las mociones y demás puntos."}, {"code": "SC", "title": "Secretario", "color": "#3E6E9E", "bullets": ["Apoya el orden del debate y los tiempos", "Lleva la calificación individual de los participantes"], "desc": "Es el segundo integrante de la mesa directiva en comisión. Su función es, junto con el presidente, llevar el orden del debate, el tiempo de intervenciones y la calificación de los participantes de forma individual."}];
+  const mesasPlenaria = [{"code": "PP", "title": "Presidente", "color": "#0B2545", "bullets": ["Lleva el debate de forma balanceada e imparcial", "Decide mociones y puntos junto al secretario"], "desc": "Es la cabeza de la mesa directiva en sesión plenaria. Su función es llevar el debate de forma balanceada e imparcial y, junto con su vicepresidente y secretario/a, llevar el recuento de la calificación de los participantes de forma individual. A su vez, decide junto con su secretario/a las mociones y demás puntos."}, {"code": "VP", "title": "Vicepresidente", "color": "#2E7D6B", "bullets": ["Apoya la calificación, los tiempos y el orden", "Media en caso de moción de censura"], "desc": "Es el segundo integrante de la mesa directiva en plenaria. Su función es brindar apoyo al presidente y secretario/a en caso de que sea requerido, y apoyar con la calificación, los tiempos y el orden del debate. En caso de presentarse una moción de censura, será el vicepresidente quien se retire a dialogar con las partes involucradas, evitando que se detenga el debate."}, {"code": "SP", "title": "Secretario", "color": "#3E6E9E", "bullets": ["Lleva el orden del debate y los tiempos", "Registra la calificación individual de los participantes"], "desc": "Es el tercer integrante de la mesa directiva en plenaria. Su función es, junto con el presidente y el vicepresidente, llevar el orden del debate, el tiempo de intervenciones y la calificación de los participantes de forma individual."}];
+
+  function renderMesaGrid(gridId, data, groupPrefix){
+    const grid = document.getElementById(gridId);
+    data.forEach((m, i) => {
+      grid.innerHTML += `
+        <div class="card accent" style="--accent:${m.color}; cursor:pointer;" data-mesa-group="${groupPrefix}" data-mesa-index="${i}">
+          <div class="photo-placeholder ph-sq" style="border-color:${m.color}; color:${m.color};"><span class="ph-icon">&#128247;</span><span class="ph-label">${m.code}</span></div>
+          <h3>${m.title}</h3>
+          <ul class="role-bullets" style="--accent:${m.color};">${m.bullets.map(b => `<li>${b}</li>`).join('')}</ul>
+          <div class="card-foot"><span class="link-btn">Ver detalle &rarr;</span></div>
+        </div>`;
+    });
+  }
+  renderMesaGrid('mesasComisionesGrid', mesasComisiones, 'comisiones');
+  renderMesaGrid('mesasPlenariaGrid', mesasPlenaria, 'plenaria');
+
+  rolesGrid.querySelectorAll('[data-role-index]').forEach(card => {
+    card.addEventListener('click', () => renderDetailModal(detailModal, roles[+card.dataset.roleIndex]));
+  });
+  document.querySelectorAll('[data-mesa-group]').forEach(card => {
+    const data = card.dataset.mesaGroup === 'comisiones' ? mesasComisiones : mesasPlenaria;
+    card.addEventListener('click', () => renderDetailModal(detailModal, data[+card.dataset.mesaIndex]));
+  });
+
+  /* ---- Test: Brújula Legislativa ---- */
+  const rolesInfo = {"CO": {"code": "CO", "title": "Comisario", "color": "#C9A227", "bullets": ["Redacta y presenta una propuesta legislativa", "Expone ante su comisión y, si es seleccionada, en plenaria", "Responde las preguntas de la mesa directiva"], "desc": "Es el rol base del Euromodelo Joven. Su función es crear una propuesta legislativa que será debatida en comisión y, en caso de ser seleccionada, en plenaria. El comisario deberá exponer su propuesta y responder las preguntas que se le formulen. Representa a una bancada política dentro de la Comisión Europea."}, "EP": {"code": "EP", "title": "Europarlamentario", "color": "#1E3D73", "bullets": ["Es el rol más numeroso del programa", "Formula preguntas a los comisarios y redacta enmiendas", "Vota las enmiendas y las propuestas legislativas"], "desc": "Es el rol más numeroso dentro del Euromodelo Joven. Su participación es la más relevante de cara al desarrollo del debate: formulan preguntas para discutir la propuesta y crean las enmiendas que serán votadas, además de votar las propuestas legislativas de los comisarios. Representan los ideales de un partido político del Parlamento Europeo."}, "PM": {"code": "PM", "title": "Primer Ministro", "color": "#3E6E9E", "bullets": ["Representa a un Estado miembro de la UE", "Formula preguntas sobre las propuestas legislativas", "Vota las enmiendas y las propuestas legislativas"], "desc": "Es el segundo rol participante en el debate. Sus intervenciones aportan al desarrollo del debate, formulan preguntas para discutir las propuestas y su función especial es votar las enmiendas propuestas por los europarlamentarios y las propuestas legislativas de los comisarios. Representan los intereses de un Estado miembro de la Unión Europea."}};
+  const quizQuestions = [{"q": "En un trabajo en grupo, normalmente tú...", "options": [{"label": "Propones la idea inicial y la defiendes ante los demás", "value": "CO"}, {"label": "Haces preguntas y buscas mejorar la propuesta de otros", "value": "EP"}, {"label": "Te preocupas por representar los intereses de todo el grupo", "value": "PM"}]}, {"q": "Tu mayor fortaleza es...", "options": [{"label": "Crear y argumentar propuestas propias", "value": "CO"}, {"label": "El pensamiento crítico y detectar fallas en un argumento", "value": "EP"}, {"label": "La negociación y la defensa de intereses ajenos", "value": "PM"}]}, {"q": "En un debate, preferirías...", "options": [{"label": "Exponer tu propia propuesta ante todos", "value": "CO"}, {"label": "Formular preguntas incómodas y proponer cambios", "value": "EP"}, {"label": "Representar la postura de tu país o región", "value": "PM"}]}, {"q": "Tus amigos te describirían como alguien...", "options": [{"label": "Creativo/a e iniciador/a de proyectos", "value": "CO"}, {"label": "Analítico/a y curioso/a", "value": "EP"}, {"label": "Diplomático/a y buen/a negociador/a", "value": "PM"}]}, {"q": "Si tuvieras que elegir una película, elegirías una...", "options": [{"label": "Donde el protagonista lidera un cambio desde cero", "value": "CO"}, {"label": "De juicio, investigación o misterio a resolver", "value": "EP"}, {"label": "De diplomacia y negociación internacional", "value": "PM"}]}];
+  const quizModal = createModalController('quizModal');
+  function startRoleQuiz() {
+    initQuiz({
+      modalId: 'quizModal',
+      questions: quizQuestions,
+      onFinish: (answers, body) => {
+        const tally = { CO: 0, EP: 0, PM: 0 };
+        answers.forEach(a => tally[a]++);
+        const winner = Object.keys(tally).reduce((a, b) => tally[a] >= tally[b] ? a : b);
+        const r = rolesInfo[winner];
+        body.innerHTML = `
+          <div class="quiz-result">
+            <div class="result-icon" style="background:${r.color}">${r.code}</div>
+            <h3>¡Tu perfil es: ${r.title}!</h3>
+            <p>${r.desc}</p>
+            <a class="btn-primary" href="inscripcion.html?rol=${encodeURIComponent(r.title)}">Inscribirme como ${r.title} &rarr;</a><br>
+            <button class="quiz-restart" id="quizRestartBtn">Volver a intentar</button>
+          </div>`;
+        document.getElementById('quizRestartBtn').addEventListener('click', startRoleQuiz);
+      }
+    });
+  }
+  document.getElementById('openQuizBtn').addEventListener('click', () => {
+    quizModal.open();
+    startRoleQuiz();
+  });
+</script>
+</body>
+</html>

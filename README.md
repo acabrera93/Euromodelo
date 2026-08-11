@@ -1,0 +1,72 @@
+# XX Euromodelo Joven 2026 — Sitio web
+
+Sitio multi-página (no SPA). Cada sección es un archivo HTML independiente que comparte
+los estilos y el JavaScript de la carpeta `assets/`.
+
+## Estructura de archivos
+
+```
+index.html                  Inicio
+campus.html                 Campus Euromodelo - Capacitaciones
+mentes.html                 Grandes Mentes
+roles.html                  Roles (incluye test "Brújula Legislativa")
+comisiones.html             Comisiones (7)
+partidos.html                Partidos Políticos (hemiciclo + test "Match Europeo")
+mesas-postulacion.html      Postulación a Mesas Directivas
+mesas-votacion.html         Votación de Mesas Directivas (ciudad > comisión > candidatos)
+galeria.html                Galería "20 Años, Mil Historias"
+preinscripcion.html         Formulario de preinscripción (genera usuario/contraseña)
+inscripcion.html            Formulario de inscripción (requiere login)
+perfil.html                 Landing del estudiante tras iniciar sesión
+
+assets/
+  styles.css                 Hoja de estilos compartida (tokens de color, tipografía, componentes)
+  main.js                    JavaScript compartido (modales, quizzes, hemiciclo, autenticación)
+  logo.png                   Logo Euromodelo Joven / Fundación Revel (fondo transparente)
+```
+
+## Importante: autenticación y almacenamiento
+
+El sitio usa **localStorage del navegador** (no una base de datos ni un backend real).
+Esto significa que:
+
+- Los usuarios generados en `preinscripcion.html` y las inscripciones de `inscripcion.html`
+  solo existen en el navegador de cada estudiante — no hay un panel centralizado donde el
+  staff pueda ver todos los registros.
+- Es un **piloto funcional para validar el flujo** (preinscripción → credenciales → login →
+  inscripción → perfil), no la solución definitiva. Antes de producción, esto debe
+  conectarse a un backend real (base de datos + autenticación segura) para que el staff
+  pueda consultar y administrar las inscripciones desde un solo lugar.
+- Las contraseñas se generan y almacenan en texto plano en el navegador. Aceptable para un
+  piloto; no aceptable para producción.
+
+## Pendientes para el equipo de diseño / staff
+
+1. **Fotografías**: hay un componente reutilizable `.photo-placeholder` (fondo rayado +
+   ícono de cámara) en todos los espacios donde antes había un ícono de texto (M1, CO, EP,
+   PPE, etc.) y en el encabezado de cada página. Reemplazar por `<img>` cuando haya fotos.
+2. **Google Forms**: los botones "Preinscripción" e "Inscripción" del Inicio ya NO apuntan
+   a Google Forms — ahora son subpáginas propias (`preinscripcion.html` / `inscripcion.html`).
+3. **Handbook**: el botón "Descargar Handbook (PDF)" en Inicio está pendiente de vincular
+   al archivo real.
+4. **Campus Euromodelo**: cada capacitación abre un popup con dos botones ("Léelo a tu
+   ritmo" / "Vuélvela a ver") pendientes de enlazar a material real y video real.
+5. **Grandes Mentes**: perfiles de invitados con datos de marcador de posición
+   ("Por confirmar"); actualizar nombre, rol, biografía y foto cuando se confirmen.
+6. **Mesas Directivas — Votación**: estructura completa (4 ciudades × 7 comisiones × roles),
+   con candidatos de marcador de posición. Reemplazar por nombre real + enlace de video de
+   YouTube de cada candidato.
+7. **Galería**: pestañas por edición con espacios de foto vacíos, listas para poblarse.
+8. **Partidos Políticos**: los íconos de partido son placeholders de foto/logo (no se
+   incrustaron logos reales por restricciones de marca — ver conversación previa).
+
+## Componentes reutilizables clave (en `assets/styles.css` y `assets/main.js`)
+
+- `createModalController(id)` — fábrica de modales, usada por todos los popups del sitio.
+- `renderDetailModal(controller, item)` — renderiza el modal de detalle genérico
+  (roles, comisiones, partidos, mesas).
+- `initQuiz(config)` — motor genérico de tests de selección múltiple (usado por "Brújula
+  Legislativa" y "Match Europeo").
+- `buildHemiciclo(containerId, parties, onDotClick)` — genera el hemiciclo SVG interactivo.
+- `createUser`, `loginUser`, `logoutUser`, `currentUserData`, `saveInscripcion` — sistema de
+  autenticación piloto basado en localStorage.

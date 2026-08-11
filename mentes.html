@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grandes Mentes — XX Euromodelo Joven 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<header class="site">
+  <div class="nav-row">
+    <a href="index.html" class="brand"><img src="assets/logo.png" class="brand-logo" alt="Euromodelo Joven - Fundación Revel"></a>
+    <nav class="links" id="navLinks">
+      <a href="index.html">Inicio</a>
+      <a href="campus.html">Campus Euromodelo - Capacitaciones</a>
+      <a href="mentes.html" class="active">Grandes Mentes</a>
+      <a href="roles.html">Roles</a>
+      <a href="comisiones.html">Comisiones</a>
+      <a href="partidos.html">Partidos Políticos</a>
+      <a href="mesas-postulacion.html">Mesas Directivas</a>
+      <a href="galeria.html">Galería</a>
+    </nav>
+    <div class="auth-area" id="authArea">
+      <button class="btn-ghost-sm" id="loginBtn">Iniciar sesión</button>
+      <div class="login-panel" id="loginPanel">
+        <h4>Iniciar sesión</h4>
+        <p class="login-note">Piloto: usa el usuario y la contraseña generados al finalizar tu preinscripción.</p>
+        <form id="loginForm">
+          <input type="text" name="username" placeholder="Usuario" required>
+          <input type="password" name="password" placeholder="Contraseña" required>
+          <button type="submit">Entrar</button>
+        </form>
+        <p id="loginError" style="display:none; color:#C0392B; font-size:12px; margin-top:8px;">Usuario o contraseña incorrectos.</p>
+        <div class="login-links">
+          <a href="preinscripcion.html">Preinscribirme</a>
+          <a href="inscripcion.html">Ir a inscripción</a>
+        </div>
+      </div>
+    </div>
+    <button class="menu-toggle" id="menuToggle" aria-label="Abrir menú">&#9776;</button>
+  </div>
+</header>
+
+<div class="page-banner">
+  <div class="container">
+    <div>
+      <h1>Grandes Mentes</h1>
+      <p>Serie de conversatorios con embajadores de la Unión Europea, académicos y expertos internacionales, organizados según los tres ejes del XX Euromodelo Joven 2026.</p>
+    </div>
+    <div class="photo-placeholder ph-banner" style="height:160px;">
+      <span class="ph-icon">&#128247;</span>
+      <span class="ph-label">Espacio para foto de cabecera — Grandes Mentes</span>
+    </div>
+  </div>
+</div>
+
+<div class="section-inner">
+  <div class="container">
+    <div class="grid-cards" id="menteGrid"></div>
+  </div>
+</div>
+
+<!-- Popup de perfil del invitado -->
+<div class="modal-overlay" id="speakerModal">
+  <div class="modal-card">
+    <button class="modal-close" aria-label="Cerrar">&#10005;</button>
+    <div class="photo-placeholder ph-avatar-lg" style="margin-bottom:16px;">
+      <span class="ph-icon">&#128247;</span>
+      <span class="ph-label">Foto</span>
+    </div>
+    <h3 class="js-speaker-name" style="text-align:center; color:var(--gold-star);"></h3>
+    <p class="js-speaker-role" style="text-align:center; font-size:13px; color:#8695AC; margin-top:-6px;"></p>
+    <p class="modal-intro js-speaker-bio" style="margin-top:14px;"></p>
+  </div>
+</div>
+<footer>
+  <div class="container">
+    <span>Fundación Revel — XX Euromodelo Joven 2026</span>
+    <span>En alianza con la Delegación de la Unión Europea en Colombia</span>
+  </div>
+</footer>
+<script src="assets/main.js"></script>
+<script>
+  initLoginPanel();
+  const detailModal = createModalController('detailModal');
+</script>
+<script>
+  const mentesTalks = [{"code": "GG", "title": "Global Gateway y América Latina", "desc": "Conversatorio sobre la estrategia europea de infraestructura e inversión en la región.", "tag": "Eje: Global Gateway", "speaker_name": "Por confirmar", "speaker_role": "Especialista en cooperación UE-América Latina", "speaker_bio": "Espacio para la biografía completa del invitado: trayectoria profesional, cargos relevantes y vínculo con el eje de Global Gateway. El staff debe completar este texto cuando se confirme el conferencista."}, {"code": "DD", "title": "Defensa de la democracia", "desc": "Diálogo con expertos sobre desinformación, resiliencia democrática y participación juvenil.", "tag": "Eje: Democracia", "speaker_name": "Por confirmar", "speaker_role": "Experto/a en democracia y participación juvenil", "speaker_bio": "Espacio para la biografía completa del invitado: trayectoria profesional, cargos relevantes y vínculo con el eje de Defensa de la Democracia. El staff debe completar este texto cuando se confirme el conferencista."}, {"code": "IS", "title": "Innovación social en Europa", "desc": "Casos de innovación social y transición digital aplicables al contexto latinoamericano.", "tag": "Eje: Innovación Social", "speaker_name": "Por confirmar", "speaker_role": "Especialista en innovación social y transición digital", "speaker_bio": "Espacio para la biografía completa del invitado: trayectoria profesional, cargos relevantes y vínculo con el eje de Innovación Social. El staff debe completar este texto cuando se confirme el conferencista."}, {"code": "PD", "title": "Panel diplomático", "desc": "Embajadores acreditados de la Unión Europea en Colombia dialogan con los europarticipantes.", "tag": "Cátedra Europa", "speaker_name": "Por confirmar", "speaker_role": "Embajador/a acreditado/a ante Colombia", "speaker_bio": "Espacio para la biografía completa del invitado: trayectoria diplomática, país que representa y temas que abordará en el panel. El staff debe completar este texto cuando se confirme el invitado."}];
+  const menteGrid = document.getElementById('menteGrid');
+  mentesTalks.forEach((m, i) => {
+    menteGrid.innerHTML += `
+      <div class="card">
+        <div class="photo-placeholder ph-sq"><span class="ph-icon">&#128247;</span><span class="ph-label">${m.code}</span></div>
+        <h3>${m.title}</h3>
+        <p>${m.desc}</p>
+        <div class="card-foot">
+          <span class="tag">${m.tag}</span>
+          <span class="link-btn">Ver conversatorio &rarr;</span>
+        </div>
+        <div class="placeholder-note">Fecha por confirmar.</div>
+        <div class="speaker-row" data-speaker-index="${i}">
+          <div class="photo-placeholder ph-circle"><span class="ph-icon">&#128247;</span></div>
+          <div class="speaker-info">
+            <span class="speaker-name">${m.speaker_name}</span>
+            <span class="speaker-role">${m.speaker_role}</span>
+          </div>
+        </div>
+      </div>`;
+  });
+
+  const speakerModal = createModalController('speakerModal');
+  menteGrid.querySelectorAll('[data-speaker-index]').forEach(row => {
+    row.addEventListener('click', () => {
+      const m = mentesTalks[+row.dataset.speakerIndex];
+      speakerModal.el.querySelector('.js-speaker-name').textContent = m.speaker_name;
+      speakerModal.el.querySelector('.js-speaker-role').textContent = m.speaker_role;
+      speakerModal.el.querySelector('.js-speaker-bio').textContent = m.speaker_bio;
+      speakerModal.open();
+    });
+  });
+</script>
+</body>
+</html>

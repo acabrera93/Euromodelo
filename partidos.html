@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Partidos Políticos — XX Euromodelo Joven 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<header class="site">
+  <div class="nav-row">
+    <a href="index.html" class="brand"><img src="assets/logo.png" class="brand-logo" alt="Euromodelo Joven - Fundación Revel"></a>
+    <nav class="links" id="navLinks">
+      <a href="index.html">Inicio</a>
+      <a href="campus.html">Campus Euromodelo - Capacitaciones</a>
+      <a href="mentes.html">Grandes Mentes</a>
+      <a href="roles.html">Roles</a>
+      <a href="comisiones.html">Comisiones</a>
+      <a href="partidos.html" class="active">Partidos Políticos</a>
+      <a href="mesas-postulacion.html">Mesas Directivas</a>
+      <a href="galeria.html">Galería</a>
+    </nav>
+    <div class="auth-area" id="authArea">
+      <button class="btn-ghost-sm" id="loginBtn">Iniciar sesión</button>
+      <div class="login-panel" id="loginPanel">
+        <h4>Iniciar sesión</h4>
+        <p class="login-note">Piloto: usa el usuario y la contraseña generados al finalizar tu preinscripción.</p>
+        <form id="loginForm">
+          <input type="text" name="username" placeholder="Usuario" required>
+          <input type="password" name="password" placeholder="Contraseña" required>
+          <button type="submit">Entrar</button>
+        </form>
+        <p id="loginError" style="display:none; color:#C0392B; font-size:12px; margin-top:8px;">Usuario o contraseña incorrectos.</p>
+        <div class="login-links">
+          <a href="preinscripcion.html">Preinscribirme</a>
+          <a href="inscripcion.html">Ir a inscripción</a>
+        </div>
+      </div>
+    </div>
+    <button class="menu-toggle" id="menuToggle" aria-label="Abrir menú">&#9776;</button>
+  </div>
+</header>
+
+<div class="page-banner">
+  <div class="container">
+    <div>
+      <h1>Partidos políticos del Parlamento Europeo</h1>
+      <p>Los europarlamentarios y primeros ministros representan a una de estas siete bancadas, cada una con una ideología e intereses propios dentro del debate.</p>
+    </div>
+    <div class="photo-placeholder ph-banner" style="height:160px;">
+      <span class="ph-icon">&#128247;</span>
+      <span class="ph-label">Espacio para foto de cabecera — Partidos Políticos</span>
+    </div>
+  </div>
+</div>
+
+<div class="section-inner">
+  <div class="container">
+    <div class="grid-cards" id="partidosGrid"></div>
+
+    <div class="section-head" style="margin-top:var(--space-6);">
+      <h2>Hemiciclo interactivo</h2>
+      <p>Así se distribuyen los escaños que simulamos en el Euromodelo Joven. Haz clic en un punto o en la leyenda para ver el detalle de cada bancada.</p>
+    </div>
+    <div class="hemiciclo-wrap" id="hemicicloContainer"></div>
+
+    <div style="text-align:center; margin:var(--space-6) 0 0;">
+      <div class="section-head" style="margin:0 auto var(--space-3); text-align:center;">
+        <h2>&#128153; Match Europeo</h2>
+        <p style="margin:0 auto;">10 preguntas sobre sociedad, economía, política y cultura para descubrir con qué bancada vibras más.</p>
+      </div>
+      <button class="btn-solid" id="openPartyQuizBtn" style="background:var(--navy-deep); color:var(--white);">&#128153; Descubre tu Match Europeo</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="detailModal">
+  <div class="modal-card">
+    <button class="modal-close" aria-label="Cerrar">&#10005;</button>
+    <div class="icon js-modal-icon"></div>
+    <h3 class="js-modal-title"></h3>
+    <p class="modal-intro js-modal-intro"></p>
+    <ul class="modal-topics js-modal-topics"></ul>
+  </div>
+</div>
+<div class="modal-overlay" id="quizModal">
+  <div class="modal-card">
+    <button class="modal-close" aria-label="Cerrar">&#10005;</button>
+    <div class="quiz-body"></div>
+  </div>
+</div>
+<footer>
+  <div class="container">
+    <span>Fundación Revel — XX Euromodelo Joven 2026</span>
+    <span>En alianza con la Delegación de la Unión Europea en Colombia</span>
+  </div>
+</footer>
+<script src="assets/main.js"></script>
+<script>
+  initLoginPanel();
+  const detailModal = createModalController('detailModal');
+</script>
+<script>
+  const partidos = [{"code": "PPE", "title": "PPE — Partido Popular Europeo", "logo": "assets/partidos/ppe.webp", "color": "#2D5FA8", "ideo": "Centro a centroderecha", "seats": 188, "desc": "Democracia cristiana y conservadurismo moderado. Primera mayoría del Parlamento; busca una Europa unida, competitiva y fiel a los valores democráticos.", "paragraphs": ["Agrupa a partidos democratacristianos, conservadores y de centroderecha de distintos países de la UE. Su ideología se basa en la democracia cristiana, el conservadurismo moderado y el europeísmo.", "Busca fortalecer la integración europea, promover el desarrollo económico sostenible, mejorar la cohesión social y defender los valores democráticos y los derechos humanos. Es la primera mayoría del Parlamento Europeo."]}, {"code": "S&D", "title": "S&D — Alianza Progresista Socialista Demócrata", "logo": "assets/partidos/sd.png", "color": "#E33241", "ideo": "Centro a centroizquierda", "seats": 136, "desc": "Socialdemocracia y justicia social. Defiende la igualdad de oportunidades, los derechos laborales y una Europa más solidaria y sostenible.", "paragraphs": ["Reúne a partidos de centroizquierda y socialdemócratas de distintos países de la UE. Su ideología se centra en la justicia social, la igualdad de oportunidades, la solidaridad y la protección de los derechos laborales.", "Impulsa políticas de cohesión social, igualdad de género, protección del medio ambiente y empleo digno, buscando una Europa más solidaria, inclusiva y sostenible."]}, {"code": "PxE", "title": "Patriots — Patriotas por Europa", "logo": "assets/partidos/patriots.svg", "color": "#142850", "ideo": "Derecha a extrema derecha", "seats": 84, "desc": "Nacionalismo y euroescepticismo. Defiende la soberanía de los Estados miembros y el control de fronteras, y cuestiona la integración europea.", "paragraphs": ["Agrupa a partidos euroescépticos, nacionalistas y de extrema derecha. Su ideología se caracteriza por el nacionalismo, la defensa de la soberanía de los Estados miembros y la crítica a la inmigración.", "Busca cuestionar el proceso de integración europea, reforzar el control de fronteras y proteger la identidad y las tradiciones nacionales frente a las instituciones europeas."]}, {"code": "CRE", "title": "ECR Group — Grupo de los Conservadores y Reformistas Europeos", "logo": "assets/partidos/ecr.png", "color": "#4E8CC7", "ideo": "Conservadurismo / Derecha", "seats": 78, "desc": "Conservadurismo y reformismo institucional. Promueve la responsabilidad fiscal, la economía de mercado y una Unión Europea menos centralizada.", "paragraphs": ["Reúne a partidos conservadores, euroescépticos y reformistas. Su ideología se basa en el conservadurismo, la defensa de la soberanía nacional y la economía de mercado.", "Promueve una Unión Europea más flexible y menos centralizada, con reformas para aumentar la eficiencia y la transparencia de las instituciones europeas."]}, {"code": "RE", "title": "Renew Europe — Renovar Europa", "logo": "assets/partidos/renew.webp", "color": "#F2B705", "ideo": "Liberalismo / Centro", "seats": 77, "desc": "Liberalismo político y económico. Defiende las libertades individuales, la innovación y la cooperación europea frente a los extremismos.", "paragraphs": ["Agrupa a partidos liberales y centristas. Su ideología se basa en el liberalismo, la defensa de los derechos individuales y la economía de mercado.", "Impulsa la libertad individual, la competitividad económica, la innovación y la cooperación europea, oponiéndose a cualquier extremismo o ultranacionalismo."]}, {"code": "LV/ALE", "title": "The Greens/EFA — Los Verdes/Alianza Libre Europea", "logo": "assets/partidos/greens_efa.webp", "color": "#3E9142", "ideo": "Centroizquierda a izquierda", "seats": 53, "desc": "Ecologismo y regionalismo. Prioriza la lucha contra el cambio climático, los derechos humanos y la defensa de las minorías.", "paragraphs": ["Reúne a partidos ecologistas y regionalistas. Su ideología se basa en el ecologismo, la sostenibilidad, la justicia social y la defensa de los derechos humanos.", "Impulsa la transición hacia una economía verde, la protección de la biodiversidad y la lucha contra el cambio climático, junto con la defensa de los derechos de las minorías."]}, {"code": "GUE/NGL", "title": "The Left — Izquierda Unitaria Europea/Verde Nórdica", "logo": "assets/partidos/the_left.png", "color": "#8C1D2B", "ideo": "Extrema izquierda", "seats": 46, "desc": "Socialismo democrático y ecosocialismo. Busca reducir la desigualdad, proteger los derechos laborales y fortalecer los servicios públicos.", "paragraphs": ["Agrupa a partidos de izquierda, socialistas, comunistas y ecologistas. Su ideología se basa en el socialismo democrático, el anticapitalismo y la justicia social.", "Busca reducir las desigualdades económicas y sociales, proteger los derechos laborales y garantizar el acceso universal a servicios públicos de calidad."]}];
+  const partidosGrid = document.getElementById('partidosGrid');
+  partidos.forEach((p, i) => {
+    partidosGrid.innerHTML += `
+      <div class="card accent" style="--accent:${p.color}; cursor:pointer;" data-partido-index="${i}">
+        <div class="photo-placeholder ph-sq" style="border-color:${p.color}; color:${p.color}; ${p.logo ? 'border-style:solid; padding:6px;' : ''}">${p.logo ? `<img src="${p.logo}" alt="${p.title}" style="max-width:100%; max-height:100%; object-fit:contain;" onerror="this.parentElement.innerHTML='<span class=&quot;ph-icon&quot;>&#128247;</span><span class=&quot;ph-label&quot;>${p.code}</span>';">` : `<span class="ph-icon">&#128247;</span><span class="ph-label">${p.code}</span>`}</div>
+        <h3>${p.title}</h3>
+        <p>${p.desc}</p>
+        <div class="card-foot">
+          <span class="party-badge" style="--accent:${p.color};">${p.ideo}</span>
+          <span class="tag">${p.seats} escaños</span>
+        </div>
+      </div>`;
+  });
+  partidosGrid.querySelectorAll('[data-partido-index]').forEach(card => {
+    card.addEventListener('click', () => renderDetailModal(detailModal, partidos[+card.dataset.partidoIndex]));
+  });
+
+  /* ---- Hemiciclo ---- */
+  const hemicicloOrder = ["GUE/NGL", "S&D", "LV/ALE", "RE", "PPE", "CRE", "PxE"];
+  const partidosLookup = {"PPE": {"code": "PPE", "title": "Partido Popular Europeo", "color": "#2D5FA8", "ideo": "Centro a centroderecha", "seats": 188, "desc": "Democracia cristiana y conservadurismo moderado. Primera mayoría del Parlamento; busca una Europa unida, competitiva y fiel a los valores democráticos.", "paragraphs": ["Agrupa a partidos democratacristianos, conservadores y de centroderecha de distintos países de la UE. Su ideología se basa en la democracia cristiana, el conservadurismo moderado y el europeísmo.", "Busca fortalecer la integración europea, promover el desarrollo económico sostenible, mejorar la cohesión social y defender los valores democráticos y los derechos humanos. Es la primera mayoría del Parlamento Europeo."]}, "S&D": {"code": "S&D", "title": "Alianza Progresista de Socialistas y Demócratas", "color": "#E33241", "ideo": "Centro a centroizquierda", "seats": 136, "desc": "Socialdemocracia y justicia social. Defiende la igualdad de oportunidades, los derechos laborales y una Europa más solidaria y sostenible.", "paragraphs": ["Reúne a partidos de centroizquierda y socialdemócratas de distintos países de la UE. Su ideología se centra en la justicia social, la igualdad de oportunidades, la solidaridad y la protección de los derechos laborales.", "Impulsa políticas de cohesión social, igualdad de género, protección del medio ambiente y empleo digno, buscando una Europa más solidaria, inclusiva y sostenible."]}, "PxE": {"code": "PxE", "title": "Patriotas por Europa", "color": "#142850", "ideo": "Derecha a extrema derecha", "seats": 84, "desc": "Nacionalismo y euroescepticismo. Defiende la soberanía de los Estados miembros y el control de fronteras, y cuestiona la integración europea.", "paragraphs": ["Agrupa a partidos euroescépticos, nacionalistas y de extrema derecha. Su ideología se caracteriza por el nacionalismo, la defensa de la soberanía de los Estados miembros y la crítica a la inmigración.", "Busca cuestionar el proceso de integración europea, reforzar el control de fronteras y proteger la identidad y las tradiciones nacionales frente a las instituciones europeas."]}, "CRE": {"code": "CRE", "title": "Conservadores y Reformistas Europeos", "color": "#4E8CC7", "ideo": "Conservadurismo / Derecha", "seats": 78, "desc": "Conservadurismo y reformismo institucional. Promueve la responsabilidad fiscal, la economía de mercado y una Unión Europea menos centralizada.", "paragraphs": ["Reúne a partidos conservadores, euroescépticos y reformistas. Su ideología se basa en el conservadurismo, la defensa de la soberanía nacional y la economía de mercado.", "Promueve una Unión Europea más flexible y menos centralizada, con reformas para aumentar la eficiencia y la transparencia de las instituciones europeas."]}, "RE": {"code": "RE", "title": "Renovar Europa", "color": "#F2B705", "ideo": "Liberalismo / Centro", "seats": 77, "desc": "Liberalismo político y económico. Defiende las libertades individuales, la innovación y la cooperación europea frente a los extremismos.", "paragraphs": ["Agrupa a partidos liberales y centristas. Su ideología se basa en el liberalismo, la defensa de los derechos individuales y la economía de mercado.", "Impulsa la libertad individual, la competitividad económica, la innovación y la cooperación europea, oponiéndose a cualquier extremismo o ultranacionalismo."]}, "LV/ALE": {"code": "LV/ALE", "title": "Los Verdes – Alianza Libre Europea", "color": "#3E9142", "ideo": "Centroizquierda a izquierda", "seats": 53, "desc": "Ecologismo y regionalismo. Prioriza la lucha contra el cambio climático, los derechos humanos y la defensa de las minorías.", "paragraphs": ["Reúne a partidos ecologistas y regionalistas. Su ideología se basa en el ecologismo, la sostenibilidad, la justicia social y la defensa de los derechos humanos.", "Impulsa la transición hacia una economía verde, la protección de la biodiversidad y la lucha contra el cambio climático, junto con la defensa de los derechos de las minorías."]}, "GUE/NGL": {"code": "GUE/NGL", "title": "Izquierda Unitaria Europea / Izquierda Verde Nórdica", "color": "#8C1D2B", "ideo": "Extrema izquierda", "seats": 46, "desc": "Socialismo democrático y ecosocialismo. Busca reducir la desigualdad, proteger los derechos laborales y fortalecer los servicios públicos.", "paragraphs": ["Agrupa a partidos de izquierda, socialistas, comunistas y ecologistas. Su ideología se basa en el socialismo democrático, el anticapitalismo y la justicia social.", "Busca reducir las desigualdades económicas y sociales, proteger los derechos laborales y garantizar el acceso universal a servicios públicos de calidad."]}};
+  const hemicicloParties = hemicicloOrder.map(code => partidosLookup[code]);
+  buildHemiciclo('hemicicloContainer', hemicicloParties, (code) => {
+    renderDetailModal(detailModal, partidosLookup[code]);
+  });
+
+  /* ---- Match Europeo (test de afinidad) ---- */
+  const quizQuestions = [{"q": "Para reactivar la economía juvenil, tú apostarías por...", "options": [{"label": "Incentivos fiscales para que las empresas contraten jóvenes", "value": "PPE"}, {"label": "Más inversión pública en empleo digno y protección social", "value": "S&D"}, {"label": "Priorizar el empleo nacional y limitar la competencia externa", "value": "PxE"}, {"label": "Reducir la burocracia y dejar que el mercado se autorregule", "value": "CRE"}, {"label": "Apoyar el emprendimiento y las startups, con menos trabas", "value": "RE"}, {"label": "Financiar empleos verdes y economía sostenible", "value": "LV/ALE"}, {"label": "Redistribuir la riqueza y fortalecer los sindicatos", "value": "GUE/NGL"}]}, {"q": "Sobre la migración en Europa, piensas que...", "options": [{"label": "Debe gestionarse con orden, dentro de un marco legal común", "value": "PPE"}, {"label": "Hay que garantizar derechos y una integración digna", "value": "S&D"}, {"label": "Cada país debería controlar completamente sus fronteras", "value": "PxE"}, {"label": "Las decisiones migratorias son de cada Estado, no de Bruselas", "value": "CRE"}, {"label": "La libre circulación fortalece a Europa si se gestiona bien", "value": "RE"}, {"label": "Debe acogerse con un enfoque humanitario y de derechos", "value": "LV/ALE"}, {"label": "Las fronteras no deberían limitar la solidaridad entre pueblos", "value": "GUE/NGL"}]}, {"q": "¿Cómo debería tomar decisiones la Unión Europea?", "options": [{"label": "Con instituciones fuertes que integren cada vez más a los países", "value": "PPE"}, {"label": "De forma democrática, priorizando el bienestar social", "value": "S&D"}, {"label": "Devolviendo poder a los gobiernos nacionales", "value": "PxE"}, {"label": "Con una Unión más flexible y menos centralizada", "value": "CRE"}, {"label": "Con más participación ciudadana y transparencia", "value": "RE"}, {"label": "Escuchando a las regiones y a los movimientos ciudadanos", "value": "LV/ALE"}, {"label": "Rompiendo con las élites y dando poder real a la gente", "value": "GUE/NGL"}]}, {"q": "Un proyecto cultural europeo que apoyarías es...", "options": [{"label": "Programas que preserven la identidad humanista de Europa", "value": "PPE"}, {"label": "Acceso gratuito a la cultura para todos los jóvenes", "value": "S&D"}, {"label": "Proteger las tradiciones y el patrimonio de tu propio país", "value": "PxE"}, {"label": "Iniciativas culturales gestionadas localmente, no desde Bruselas", "value": "CRE"}, {"label": "Intercambios culturales y movilidad juvenil (como Erasmus+)", "value": "RE"}, {"label": "Arte y cultura que visibilicen causas sociales y ambientales", "value": "LV/ALE"}, {"label": "Cultura popular y comunitaria, alejada del mercado", "value": "GUE/NGL"}]}, {"q": "¿Qué opinas de los impuestos a las grandes empresas?", "options": [{"label": "Deben ser razonables para no frenar la inversión", "value": "PPE"}, {"label": "Deben pagar más para financiar servicios públicos", "value": "S&D"}, {"label": "Prioridad: proteger la industria nacional frente a multinacionales", "value": "PxE"}, {"label": "Impuestos bajos y reglas claras, sin intervencionismo", "value": "CRE"}, {"label": "Impuestos justos que no ahoguen la innovación", "value": "RE"}, {"label": "Deben pagar por su impacto ambiental (impuesto verde)", "value": "LV/ALE"}, {"label": "Deben pagar mucho más: la riqueza debe repartirse", "value": "GUE/NGL"}]}, {"q": "Sobre la igualdad de género, tú crees que...", "options": [{"label": "Se logra con políticas equilibradas y respeto a la familia", "value": "PPE"}, {"label": "El Estado debe garantizar activamente la igualdad real", "value": "S&D"}, {"label": "Ya existe igualdad legal; no se necesitan más cuotas", "value": "PxE"}, {"label": "Cada país debe decidir sus propias políticas de igualdad", "value": "CRE"}, {"label": "Se logra con libertad individual y oportunidades iguales", "value": "RE"}, {"label": "Requiere políticas feministas firmes y financiadas", "value": "LV/ALE"}, {"label": "Es parte de una lucha más amplia que hay que radicalizar", "value": "GUE/NGL"}]}, {"q": "¿Qué papel debe tener la Unión Europea en el mundo?", "options": [{"label": "Ser un actor global fuerte, unido y con valores claros", "value": "PPE"}, {"label": "Defender los derechos humanos y la cooperación internacional", "value": "S&D"}, {"label": "Priorizar los intereses de cada nación sobre los globales", "value": "PxE"}, {"label": "Aliarse estratégicamente sin ceder soberanía", "value": "CRE"}, {"label": "Liderar la innovación y el libre comercio a nivel global", "value": "RE"}, {"label": "Ser referente en sostenibilidad y justicia climática global", "value": "LV/ALE"}, {"label": "Apoyar a los pueblos frente al poder de las grandes corporaciones", "value": "GUE/NGL"}]}, {"q": "Frente a las redes sociales y la desinformación, tú...", "options": [{"label": "Apoyarías una regulación equilibrada que proteja sin censurar", "value": "PPE"}, {"label": "Exigirías más responsabilidad social a las plataformas", "value": "S&D"}, {"label": "Defenderías la libertad de expresión sin restricciones externas", "value": "PxE"}, {"label": "Confiarías en que el mercado y los usuarios se autorregulen", "value": "CRE"}, {"label": "Apostarías por educación digital y transparencia algorítmica", "value": "RE"}, {"label": "Exigirías que las plataformas asuman su impacto social", "value": "LV/ALE"}, {"label": "Cuestionarías el poder de las grandes tecnológicas sobre la gente", "value": "GUE/NGL"}]}, {"q": "Sobre el cambio climático, tu prioridad sería...", "options": [{"label": "Una transición verde gradual, sin frenar la competitividad", "value": "PPE"}, {"label": "Una transición justa que no deje a nadie atrás", "value": "S&D"}, {"label": "No sacrificar la industria nacional por metas externas", "value": "PxE"}, {"label": "Soluciones tecnológicas antes que regulaciones estrictas", "value": "CRE"}, {"label": "Innovación verde impulsada por el mercado", "value": "RE"}, {"label": "Actuar ya, con metas ambiciosas y vinculantes", "value": "LV/ALE"}, {"label": "Exigir que las grandes industrias paguen por el daño causado", "value": "GUE/NGL"}]}, {"q": "Si tuvieras que elegir un valor que guíe tus decisiones, sería...", "options": [{"label": "Responsabilidad", "value": "PPE"}, {"label": "Solidaridad", "value": "S&D"}, {"label": "Identidad", "value": "PxE"}, {"label": "Libertad institucional", "value": "CRE"}, {"label": "Libertad individual", "value": "RE"}, {"label": "Sostenibilidad", "value": "LV/ALE"}, {"label": "Igualdad", "value": "GUE/NGL"}]}];
+  const quizModal = createModalController('quizModal');
+  function startPartyQuiz() {
+    initQuiz({
+      modalId: 'quizModal',
+      questions: quizQuestions,
+      onFinish: (answers, body) => {
+        const tally = {};
+        partidos.forEach(p => tally[p.code] = 0);
+        answers.forEach(a => tally[a]++);
+        const winnerCode = Object.keys(tally).reduce((a, b) => tally[a] >= tally[b] ? a : b);
+        const p = partidosLookup[winnerCode];
+        const pct = Math.round((tally[winnerCode] / quizQuestions.length) * 100);
+        body.innerHTML = `
+          <div class="quiz-result">
+            <div class="result-icon" style="background:${p.color}">${p.code}</div>
+            <div class="match-pct">${pct}% de afinidad</div>
+            <h3>¡Tu Match Europeo es ${p.title}!</h3>
+            <p>${p.desc}</p>
+            <a class="btn-primary" href="inscripcion.html?partido=${encodeURIComponent(p.title)}">Elegir esta bancada en mi inscripción &rarr;</a><br>
+            <button class="quiz-restart" id="quizRestartBtn">Volver a intentar</button>
+          </div>`;
+        document.getElementById('quizRestartBtn').addEventListener('click', startPartyQuiz);
+      }
+    });
+  }
+  document.getElementById('openPartyQuizBtn').addEventListener('click', () => {
+    quizModal.open();
+    startPartyQuiz();
+  });
+</script>
+</body>
+</html>
