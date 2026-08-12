@@ -216,10 +216,17 @@ function saveInscripcion(username, inscripcionData) {
 }
 // Repetir la Brújula Legislativa desde el área personal reemplaza el resultado anterior,
 // tanto local como en la Sheet.
-function updateBrujulaResult(username, refCode, resultado) {
+const BRUJULA_LOCAL_KEYS_ = {
+  resultado_brujula: 'resultadoBrujula',
+  resultado_brujula_comision: 'resultadoBrujulaComision',
+  resultado_brujula_partido: 'resultadoBrujulaPartido',
+};
+function updateBrujulaResult(username, refCode, resultado, field) {
+  field = field || 'resultado_brujula';
+  const localKey = BRUJULA_LOCAL_KEYS_[field] || 'resultadoBrujula';
   const users = getUsers();
   if (users[username] && users[username].inscripcion) {
-    users[username].inscripcion = { ...users[username].inscripcion, resultadoBrujula: resultado };
+    users[username].inscripcion = { ...users[username].inscripcion, [localKey]: resultado };
     saveUsers(users);
   }
   try {
@@ -227,10 +234,10 @@ function updateBrujulaResult(username, refCode, resultado) {
       method: 'POST',
       mode: 'no-cors',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ form: 'update_brujula', ref_code: refCode, resultado_brujula: resultado }),
+      body: JSON.stringify({ form: 'update_brujula', ref_code: refCode, field, resultado }),
     });
   } catch (e) {
-    console.error('No se pudo sincronizar el resultado de la Brújula Legislativa:', e);
+    console.error('No se pudo sincronizar el resultado de la brújula:', e);
   }
 }
 function changePassword(username, newPassword) {

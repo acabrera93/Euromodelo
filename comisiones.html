@@ -70,6 +70,14 @@
 <div class="section-inner">
   <div class="container">
     <div class="grid-cards" id="comisionesGrid"></div>
+
+    <div style="text-align:center; margin:var(--space-6) 0 0;">
+      <div class="section-head" style="margin:0 auto var(--space-3); text-align:center;">
+        <h2>&#129517; Brújula de Comisión</h2>
+        <p style="margin:0 auto;">8 preguntas sobre tus intereses y lo que te gustaría debatir, para descubrir en qué comisión encajas mejor.</p>
+      </div>
+      <button class="btn-solid" id="openComisionQuizBtn" style="background:var(--navy-deep); color:var(--white);">&#129517; Descubre tu comisión ideal</button>
+    </div>
   </div>
 </div>
 <div class="modal-overlay" id="detailModal">
@@ -79,6 +87,12 @@
     <h3 class="js-modal-title"></h3>
     <p class="modal-intro js-modal-intro"></p>
     <ul class="modal-topics js-modal-topics"></ul>
+  </div>
+</div>
+<div class="modal-overlay" id="quizModal">
+  <div class="modal-card">
+    <button class="modal-close" aria-label="Cerrar">&#10005;</button>
+    <div class="quiz-body"></div>
   </div>
 </div>
 <footer>
@@ -93,7 +107,15 @@
   const detailModal = createModalController('detailModal');
 </script>
 <script>
-  const comisiones = [{"code": "01", "title": "Asuntos Económicos, Presupuestarios y Sociales", "desc": "Empleo juvenil, educación y formación, inclusión social, protección al consumidor y salud y bienestar de los jóvenes europeos.", "intro": "Responsable del bienestar económico y social de los jóvenes en la Unión Europea: empleo, educación, inclusión y protección social.", "topics": [["Empleo juvenil", "Reducir el desempleo juvenil y mejorar la calidad de los empleos disponibles, incluido el apoyo al emprendimiento."], ["Educación y formación", "Garantizar el acceso equitativo a educación de calidad y al aprendizaje a lo largo de la vida."], ["Inclusión social", "Combatir la exclusión, la pobreza y la desigualdad entre los jóvenes."], ["Protección del consumidor", "Proteger a los jóvenes frente a la publicidad dirigida y la inseguridad digital."], ["Salud y bienestar", "Atender la salud mental y el acceso a servicios de salud."], ["Digitalización y empleabilidad", "Promover la alfabetización digital y las habilidades para el trabajo del futuro."], ["Movilidad laboral y social", "Facilitar la movilidad de los jóvenes dentro de la UE y la portabilidad de derechos sociales."], ["Desarrollo regional y rural", "Garantizar acceso a empleo, educación y servicios sin importar el lugar de residencia."]]}, {"code": "02", "title": "Asuntos Exteriores, DDHH, Seguridad y Defensa", "desc": "Política exterior y diplomacia, derechos humanos, seguridad internacional, defensa común y lucha contra el terrorismo.", "intro": "Encargada de la política exterior de la UE y de la promoción de la paz, los derechos humanos y la seguridad internacional.", "topics": [["Política exterior y diplomacia", "Desarrollar la política exterior de la UE y la cooperación con otras regiones."], ["Derechos humanos", "Proteger y promover los derechos humanos y actuar frente a sus violaciones."], ["Seguridad internacional", "Prevenir conflictos y gestionar crisis en zonas afectadas."], ["Defensa", "Desarrollar la política de defensa común y la cooperación militar entre Estados."], ["Lucha contra el terrorismo", "Prevenir la radicalización y combatir el extremismo violento."], ["Cooperación en seguridad y defensa", "Coordinar operaciones militares y misiones de paz entre Estados miembros."], ["Gobernanza global", "Impulsar la reforma de instituciones internacionales y el multilateralismo."], ["Ayuda humanitaria", "Garantizar asistencia a países y regiones en crisis humanitarias."]]}, {"code": "03", "title": "Educación, Cultura y Desarrollo Regional", "desc": "Movilidad estudiantil (como Erasmus+), formación profesional, promoción cultural y reducción de las disparidades regionales.", "intro": "Promueve la cooperación en educación, el acceso igualitario a la cultura y el desarrollo económico y social de las regiones de Europa.", "topics": [["Educación inclusiva y accesible", "Garantizar acceso igualitario a educación de calidad para todos los jóvenes."], ["Movilidad estudiantil", "Impulsar programas como Erasmus+ y el intercambio académico y cultural."], ["Formación profesional", "Promover la adquisición de habilidades relevantes para el mercado laboral."], ["Cultura y diversidad cultural", "Fomentar el intercambio y el diálogo intercultural en Europa."], ["Desarrollo regional y cohesión social", "Reducir las disparidades entre regiones mediante inversión e innovación."], ["Sostenibilidad y medio ambiente", "Integrar la educación ambiental en los programas educativos."], ["Participación ciudadana", "Fomentar la participación juvenil en la vida democrática."], ["Innovación y emprendimiento cultural", "Apoyar a jóvenes artistas y emprendedores culturales."]]}, {"code": "04", "title": "Industria, Investigación y Tecnología", "desc": "Innovación, transformación digital, investigación y desarrollo, política espacial europea y regulación ética de la tecnología.", "intro": "Impulsa la competitividad de la industria europea, la investigación y el uso responsable de la tecnología.", "topics": [["Promoción de la innovación", "Fomentar la investigación y el desarrollo, y apoyar a empresas innovadoras."], ["Industria digital", "Impulsar la adopción de IA, IoT y computación en la nube, y la ciberseguridad."], ["Investigación y desarrollo tecnológico", "Apoyar la colaboración entre academia, industria y sector público."], ["Política espacial europea", "Desarrollar sistemas de navegación satelital y observación de la Tierra."], ["Economía circular", "Promover la eficiencia energética y la reducción de residuos."], ["Formación en tecnología", "Preparar a los jóvenes en habilidades digitales para el futuro."], ["Cooperación internacional", "Fomentar la investigación científica conjunta con socios internacionales."], ["Regulación y ética en tecnología", "Crear marcos regulatorios para la IA, la biotecnología y la robótica."]]}, {"code": "05", "title": "Medio Ambiente, Agricultura y Seguridad Alimentaria", "desc": "Protección ambiental, cambio climático, agricultura sostenible, seguridad alimentaria y desarrollo rural.", "intro": "Supervisa la protección del medio ambiente, la agricultura sostenible y la seguridad alimentaria, con foco en las generaciones futuras.", "topics": [["Protección del medio ambiente", "Preservar la biodiversidad, los ecosistemas y la calidad del aire y del agua."], ["Cambio climático", "Reducir emisiones y fomentar la resiliencia frente a fenómenos extremos."], ["Agricultura sostenible", "Promover prácticas agrícolas ecológicas y el uso responsable de recursos."], ["Seguridad alimentaria", "Garantizar la calidad y trazabilidad de los alimentos."], ["Economía circular", "Impulsar la reducción, reutilización y reciclaje en la cadena agroalimentaria."], ["Desarrollo rural", "Apoyar la diversificación económica y el empleo en zonas rurales."], ["Protección animal", "Promover el bienestar animal en la producción agroalimentaria."], ["Cooperación internacional", "Fomentar la conservación ambiental y la agricultura sostenible a nivel global."]]}, {"code": "06", "title": "Empleo, Asuntos Sociales y Comercio Internacional", "desc": "Derechos laborales, protección social, formación profesional y comercio justo entre la Unión Europea y el resto del mundo.", "intro": "Vela por condiciones laborales dignas y una política de comercio internacional que sea coherente con la protección social y los derechos de los trabajadores.", "topics": [["Derechos laborales", "Proteger las condiciones de trabajo, la seguridad y salud en el empleo y la libre circulación de trabajadores."], ["Protección social", "Fortalecer los sistemas de seguridad social, pensiones y prestaciones por desempleo."], ["Diálogo social", "Promover la negociación colectiva y la participación sindical en las decisiones laborales."], ["Formación profesional y empleabilidad", "Impulsar la capacitación y reconversión laboral frente a la automatización."], ["Comercio justo", "Vigilar que los acuerdos comerciales de la UE respeten estándares laborales y ambientales."], ["Relaciones comerciales internacionales", "Negociar y evaluar tratados de libre comercio con socios externos."], ["Protección frente al dumping social", "Evitar la competencia desleal basada en la precarización laboral."], ["Cadenas de suministro responsables", "Exigir trazabilidad y respeto a los derechos humanos en el comercio internacional."]]}, {"code": "07", "title": "Asuntos Constitucionales, Libertades Civiles, Justicia e Igualdad de Género", "desc": "Funcionamiento institucional de la UE, derechos y libertades fundamentales, cooperación judicial e igualdad de género.", "intro": "Vela por el correcto funcionamiento institucional de la Unión Europea, la protección de los derechos fundamentales y la igualdad de género.", "topics": [["Funcionamiento institucional", "Revisar los tratados y el reparto de competencias entre las instituciones de la UE."], ["Derechos y libertades fundamentales", "Proteger los derechos recogidos en la Carta de los Derechos Fundamentales de la UE."], ["Cooperación judicial y policial", "Fortalecer la justicia transfronteriza y la seguridad interior de la Unión."], ["Migración y asilo", "Definir políticas comunes de gestión migratoria y protección a solicitantes de asilo."], ["Igualdad de género", "Impulsar políticas que garanticen la igualdad real entre hombres y mujeres."], ["Lucha contra la discriminación", "Combatir cualquier forma de discriminación por género, origen o condición."], ["Elecciones europeas y participación democrática", "Fortalecer los procesos electorales y la participación ciudadana."], ["Protección de datos y privacidad", "Salvaguardar los derechos digitales de los ciudadanos europeos."]]}];
+  const comisiones = [
+    {"code": "CLJ", "title": "Asuntos Constitucionales, Libertades Civiles, Justicia e Igualdad de Género", "desc": "Funcionamiento institucional de la UE, derechos y libertades fundamentales, cooperación judicial e igualdad de género.", "intro": "Vela por el correcto funcionamiento institucional de la Unión Europea, la protección de los derechos fundamentales y la igualdad de género.", "topics": [["Funcionamiento institucional", "Revisar los tratados y el reparto de competencias entre las instituciones de la UE."], ["Derechos y libertades fundamentales", "Proteger los derechos recogidos en la Carta de los Derechos Fundamentales de la UE."], ["Cooperación judicial y policial", "Fortalecer la justicia transfronteriza y la seguridad interior de la Unión."], ["Migración y asilo", "Definir políticas comunes de gestión migratoria y protección a solicitantes de asilo."], ["Igualdad de género", "Impulsar políticas que garanticen la igualdad real entre hombres y mujeres."], ["Lucha contra la discriminación", "Combatir cualquier forma de discriminación por género, origen o condición."], ["Elecciones europeas y participación democrática", "Fortalecer los procesos electorales y la participación ciudadana."], ["Protección de datos y privacidad", "Salvaguardar los derechos digitales de los ciudadanos europeos."]]},
+    {"code": "EXT", "title": "Asuntos Exteriores, Derechos Humanos, Seguridad y Defensa", "desc": "Política exterior y diplomacia, derechos humanos, seguridad internacional, defensa común y lucha contra el terrorismo.", "intro": "Encargada de la política exterior de la UE y de la promoción de la paz, los derechos humanos y la seguridad internacional.", "topics": [["Política exterior y diplomacia", "Desarrollar la política exterior de la UE y la cooperación con otras regiones."], ["Derechos humanos", "Proteger y promover los derechos humanos y actuar frente a sus violaciones."], ["Seguridad internacional", "Prevenir conflictos y gestionar crisis en zonas afectadas."], ["Defensa", "Desarrollar la política de defensa común y la cooperación militar entre Estados."], ["Lucha contra el terrorismo", "Prevenir la radicalización y combatir el extremismo violento."], ["Cooperación en seguridad y defensa", "Coordinar operaciones militares y misiones de paz entre Estados miembros."], ["Gobernanza global", "Impulsar la reforma de instituciones internacionales y el multilateralismo."], ["Ayuda humanitaria", "Garantizar asistencia a países y regiones en crisis humanitarias."]]},
+    {"code": "ECO", "title": "Asuntos Presupuestarios, Económicos y Monetarios", "desc": "Presupuesto de la Unión Europea, política económica y monetaria, y estabilidad financiera del bloque.", "intro": "Vela por el presupuesto de la Unión Europea, coordina la política económica y monetaria de los Estados miembros y vigila la estabilidad financiera del bloque.", "topics": [["Presupuesto europeo", "Definir y supervisar el marco financiero plurianual y el presupuesto anual de la UE."], ["Política monetaria", "Coordinar la política monetaria de la eurozona y el papel del Banco Central Europeo."], ["Estabilidad financiera", "Prevenir crisis financieras y supervisar el sistema bancario europeo."], ["Fiscalidad", "Armonizar criterios fiscales y combatir la evasión y elusión de impuestos."], ["Cohesión económica", "Reducir las brechas económicas entre los Estados miembros."], ["Fondos europeos", "Supervisar el uso de fondos estructurales y de recuperación económica."], ["Mercado único", "Fortalecer la integración del mercado interior y la libre circulación de capitales."], ["Cooperación económica internacional", "Coordinar la posición económica de la UE frente a otros bloques y organismos globales."]]},
+    {"code": "CED", "title": "Cultura, Educación y Desarrollo Regional", "desc": "Movilidad estudiantil (como Erasmus+), formación profesional, promoción cultural y reducción de las disparidades regionales.", "intro": "Promueve la cooperación en educación, el acceso igualitario a la cultura y el desarrollo económico y social de las regiones de Europa.", "topics": [["Educación inclusiva y accesible", "Garantizar acceso igualitario a educación de calidad para todos los jóvenes."], ["Movilidad estudiantil", "Impulsar programas como Erasmus+ y el intercambio académico y cultural."], ["Formación profesional", "Promover la adquisición de habilidades relevantes para el mercado laboral."], ["Cultura y diversidad cultural", "Fomentar el intercambio y el diálogo intercultural en Europa."], ["Desarrollo regional y cohesión social", "Reducir las disparidades entre regiones mediante inversión e innovación."], ["Sostenibilidad y medio ambiente", "Integrar la educación ambiental en los programas educativos."], ["Participación ciudadana", "Fomentar la participación juvenil en la vida democrática."], ["Innovación y emprendimiento cultural", "Apoyar a jóvenes artistas y emprendedores culturales."]]},
+    {"code": "EAS", "title": "Empleo, Asuntos Sociales y Comercio Internacional", "desc": "Derechos laborales, protección social, formación profesional y comercio justo entre la Unión Europea y el resto del mundo.", "intro": "Vela por condiciones laborales dignas y una política de comercio internacional que sea coherente con la protección social y los derechos de los trabajadores.", "topics": [["Derechos laborales", "Proteger las condiciones de trabajo, la seguridad y salud en el empleo y la libre circulación de trabajadores."], ["Protección social", "Fortalecer los sistemas de seguridad social, pensiones y prestaciones por desempleo."], ["Diálogo social", "Promover la negociación colectiva y la participación sindical en las decisiones laborales."], ["Formación profesional y empleabilidad", "Impulsar la capacitación y reconversión laboral frente a la automatización."], ["Comercio justo", "Vigilar que los acuerdos comerciales de la UE respeten estándares laborales y ambientales."], ["Relaciones comerciales internacionales", "Negociar y evaluar tratados de libre comercio con socios externos."], ["Protección frente al dumping social", "Evitar la competencia desleal basada en la precarización laboral."], ["Cadenas de suministro responsables", "Exigir trazabilidad y respeto a los derechos humanos en el comercio internacional."]]},
+    {"code": "IIE", "title": "Industria, Investigación y Energía", "desc": "Innovación industrial, investigación científica y la transición energética de Europa.", "intro": "Impulsa la competitividad industrial, la investigación científica y la transición hacia un modelo energético limpio y seguro para Europa.", "topics": [["Transición energética", "Acelerar el paso hacia energías renovables y reducir la dependencia de combustibles fósiles."], ["Seguridad energética", "Garantizar el suministro estable de energía y reducir la dependencia externa."], ["Innovación industrial", "Fomentar la investigación y el desarrollo, y apoyar a la industria europea."], ["Investigación científica", "Financiar proyectos de investigación conjunta entre países miembros."], ["Redes energéticas", "Interconectar las redes eléctricas y de gas entre los Estados miembros."], ["Eficiencia energética", "Reducir el consumo energético en industria, transporte y vivienda."], ["Política espacial", "Desarrollar sistemas satelitales europeos de observación y navegación."], ["Cooperación tecnológica internacional", "Colaborar con socios internacionales en investigación e innovación energética."]]},
+    {"code": "MAS", "title": "Medio Ambiente, Agricultura, Desarrollo Rural y Salud Pública", "desc": "Protección del medio ambiente, agricultura sostenible, desarrollo de las zonas rurales y salud pública.", "intro": "Protege el medio ambiente y la biodiversidad, promueve una agricultura sostenible, impulsa el desarrollo de las zonas rurales y vela por la salud pública de los europeos.", "topics": [["Protección del medio ambiente", "Preservar la biodiversidad, los ecosistemas y la calidad del aire y del agua."], ["Cambio climático", "Reducir emisiones y fomentar la resiliencia frente a fenómenos extremos."], ["Agricultura sostenible", "Promover prácticas agrícolas ecológicas y el uso responsable de recursos."], ["Desarrollo rural", "Apoyar la diversificación económica y el empleo en zonas rurales."], ["Salud pública", "Proteger la salud de los ciudadanos europeos y coordinar la respuesta ante emergencias sanitarias."], ["Seguridad alimentaria", "Garantizar la calidad y trazabilidad de los alimentos."], ["Protección animal", "Promover el bienestar animal en la producción agroalimentaria."], ["Cooperación internacional", "Fomentar la conservación ambiental y la cooperación sanitaria a nivel global."]]}
+  ];
   const comisionesGrid = document.getElementById('comisionesGrid');
   comisiones.forEach((c, i) => {
     comisionesGrid.innerHTML += `
@@ -106,6 +128,126 @@
   });
   comisionesGrid.querySelectorAll('[data-comision-index]').forEach(card => {
     card.addEventListener('click', () => renderDetailModal(detailModal, comisiones[+card.dataset.comisionIndex]));
+  });
+
+  /* ---- Brújula de Comisión (test de afinidad) ---- */
+  const comisionesInfo = {
+    CLJ: { code:'CLJ', title:'Asuntos Constitucionales, Libertades Civiles, Justicia e Igualdad de Género', color:'#6B2D8C',
+      desc:'Vela por el funcionamiento institucional de la UE, los derechos y libertades fundamentales, la cooperación judicial y la igualdad de género. Ideal si te apasiona la justicia, los derechos humanos y la igualdad.' },
+    EXT: { code:'EXT', title:'Asuntos Exteriores, Derechos Humanos, Seguridad y Defensa', color:'#1E3D73',
+      desc:'Se encarga de la política exterior de la UE, la diplomacia, la seguridad internacional y la defensa. Ideal si te interesan las relaciones internacionales, la geopolítica y la resolución de conflictos.' },
+    ECO: { code:'ECO', title:'Asuntos Presupuestarios, Económicos y Monetarios', color:'#C9A227',
+      desc:'Discute el presupuesto europeo, la política económica y monetaria, y la estabilidad financiera. Ideal si te gusta la economía, las finanzas y los grandes números.' },
+    CED: { code:'CED', title:'Cultura, Educación y Desarrollo Regional', color:'#2E7D6B',
+      desc:'Trabaja la movilidad estudiantil, la formación, la cultura y la reducción de las disparidades entre regiones. Ideal si te apasiona la educación, el arte y la identidad cultural.' },
+    EAS: { code:'EAS', title:'Empleo, Asuntos Sociales y Comercio Internacional', color:'#E07B39',
+      desc:'Vela por los derechos laborales, la protección social y el comercio justo entre la UE y el resto del mundo. Ideal si te interesa el trabajo digno, la equidad social y el comercio global.' },
+    IIE: { code:'IIE', title:'Industria, Investigación y Energía', color:'#4E8CC7',
+      desc:'Impulsa la innovación industrial, la investigación científica y la transición energética de Europa. Ideal si te apasiona la tecnología, la ciencia y el futuro energético.' },
+    MAS: { code:'MAS', title:'Medio Ambiente, Agricultura, Desarrollo Rural y Salud Pública', color:'#3E9142',
+      desc:'Protege el medio ambiente, promueve la agricultura sostenible y vela por la salud pública y el desarrollo de las zonas rurales. Ideal si te apasiona la sostenibilidad, el campo y la salud.' },
+  };
+  const comisionQuizQuestions = [
+    { q:'¿Qué problema te preocupa más al pensar en el futuro?', options:[
+      {label:'La discriminación y el acceso desigual a la justicia', value:'CLJ'},
+      {label:'Los conflictos internacionales y la falta de seguridad', value:'EXT'},
+      {label:'El desempleo y las crisis económicas', value:'ECO'},
+      {label:'La falta de acceso a educación de calidad', value:'CED'},
+      {label:'La precariedad laboral y la desigualdad social', value:'EAS'},
+      {label:'El atraso tecnológico y la dependencia energética', value:'IIE'},
+      {label:'El cambio climático y la salud pública', value:'MAS'},
+    ]},
+    { q:'Si pudieras liderar un proyecto en tu colegio, sería sobre...', options:[
+      {label:'Un comité de convivencia e igualdad de género', value:'CLJ'},
+      {label:'Un modelo de diplomacia o intercambio internacional', value:'EXT'},
+      {label:'Un proyecto de ahorro o emprendimiento escolar', value:'ECO'},
+      {label:'Un festival cultural o un programa de tutorías', value:'CED'},
+      {label:'Una feria de empleo juvenil o comercio justo', value:'EAS'},
+      {label:'Un club de robótica, ciencia o energías limpias', value:'IIE'},
+      {label:'Una campaña ambiental o una huerta escolar', value:'MAS'},
+    ]},
+    { q:'Un libro o documental que te llamaría la atención trata sobre...', options:[
+      {label:'Casos judiciales y derechos humanos', value:'CLJ'},
+      {label:'Espionaje, guerra o diplomacia internacional', value:'EXT'},
+      {label:'Crisis financieras y mercados globales', value:'ECO'},
+      {label:'Historia del arte o sistemas educativos', value:'CED'},
+      {label:'Movimientos obreros y comercio internacional', value:'EAS'},
+      {label:'Inteligencia artificial o energías del futuro', value:'IIE'},
+      {label:'Especies en peligro o pandemias', value:'MAS'},
+    ]},
+    { q:'En un debate, te sientes más cómodo/a hablando de...', options:[
+      {label:'Leyes, libertades e igualdad', value:'CLJ'},
+      {label:'Política exterior y defensa', value:'EXT'},
+      {label:'Presupuestos, impuestos y política monetaria', value:'ECO'},
+      {label:'Cultura y sistemas educativos', value:'CED'},
+      {label:'Derechos laborales y comercio', value:'EAS'},
+      {label:'Innovación, tecnología y energía', value:'IIE'},
+      {label:'Medio ambiente y salud pública', value:'MAS'},
+    ]},
+    { q:'Elegirías hacer una pasantía en...', options:[
+      {label:'Una ONG de derechos humanos o un juzgado', value:'CLJ'},
+      {label:'Una embajada o un organismo internacional', value:'EXT'},
+      {label:'Un banco central o un ministerio de hacienda', value:'ECO'},
+      {label:'Un museo o una institución educativa', value:'CED'},
+      {label:'Un sindicato o una empresa exportadora', value:'EAS'},
+      {label:'Una startup tecnológica o una empresa de energía', value:'IIE'},
+      {label:'Una reserva natural o un hospital', value:'MAS'},
+    ]},
+    { q:'Tu materia favorita en el colegio es...', options:[
+      {label:'Ética, cívica o filosofía', value:'CLJ'},
+      {label:'Ciencias sociales o geografía política', value:'EXT'},
+      {label:'Economía o matemáticas financieras', value:'ECO'},
+      {label:'Artes o literatura', value:'CED'},
+      {label:'Emprendimiento o ciencias sociales', value:'EAS'},
+      {label:'Física, tecnología o informática', value:'IIE'},
+      {label:'Biología o ciencias ambientales', value:'MAS'},
+    ]},
+    { q:'Si tuvieras un superpoder para cambiar el mundo, sería...', options:[
+      {label:'Garantizar justicia real para todos', value:'CLJ'},
+      {label:'Terminar con los conflictos armados', value:'EXT'},
+      {label:'Acabar con la pobreza económica', value:'ECO'},
+      {label:'Dar educación gratuita y de calidad a todos', value:'CED'},
+      {label:'Garantizar trabajo digno para todos', value:'EAS'},
+      {label:'Dar acceso a tecnología a todo el planeta', value:'IIE'},
+      {label:'Curar enfermedades y salvar el planeta', value:'MAS'},
+    ]},
+    { q:'¿Qué campaña seguirías más de cerca?', options:[
+      {label:'Una campaña contra la discriminación', value:'CLJ'},
+      {label:'Una misión de paz internacional', value:'EXT'},
+      {label:'Una campaña de educación financiera', value:'ECO'},
+      {label:'Una campaña de becas educativas', value:'CED'},
+      {label:'Una campaña de comercio justo', value:'EAS'},
+      {label:'Una campaña de innovación abierta', value:'IIE'},
+      {label:'Una campaña contra el cambio climático', value:'MAS'},
+    ]},
+  ];
+  const comisionQuizModal = createModalController('quizModal');
+  function startComisionQuiz() {
+    initQuiz({
+      modalId: 'quizModal',
+      questions: comisionQuizQuestions,
+      onFinish: (answers, body) => {
+        const tally = { CLJ:0, EXT:0, ECO:0, CED:0, EAS:0, IIE:0, MAS:0 };
+        answers.forEach(a => tally[a]++);
+        const winnerCode = Object.keys(tally).reduce((a, b) => tally[a] >= tally[b] ? a : b);
+        const c = comisionesInfo[winnerCode];
+        const pct = Math.round((tally[winnerCode] / comisionQuizQuestions.length) * 100);
+        body.innerHTML = `
+          <div class="quiz-result">
+            <div class="result-icon" style="background:${c.color}">${c.code}</div>
+            <div class="match-pct">${pct}% de afinidad</div>
+            <h3>Tu comisión ideal es:<br>${c.title}</h3>
+            <p>${c.desc}</p>
+            <a class="btn-primary" href="perfil.html?comision=${encodeURIComponent(c.title)}">Elegir esta comisión en mi inscripción &rarr;</a><br>
+            <button class="quiz-restart" id="comisionQuizRestartBtn">Volver a intentar</button>
+          </div>`;
+        document.getElementById('comisionQuizRestartBtn').addEventListener('click', startComisionQuiz);
+      }
+    });
+  }
+  document.getElementById('openComisionQuizBtn').addEventListener('click', () => {
+    comisionQuizModal.open();
+    startComisionQuiz();
   });
 </script>
 </body>

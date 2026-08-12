@@ -20,6 +20,8 @@ var FIELD_LABELS_ = {
   comision_opcion3: 'Comisión — Opción 3',
   partido: 'Partido político',
   resultado_brujula: 'Resultado Brújula Legislativa',
+  resultado_brujula_comision: 'Resultado Brújula de Comisión',
+  resultado_brujula_partido: 'Resultado Match Europeo',
   autoriza_datos: 'Autoriza tratamiento de datos',
   es_menor: 'Es menor de edad',
   autoriza_imagen: 'Autoriza derechos de imagen',
@@ -224,6 +226,8 @@ function mapRecordToUser_(record) {
       comision1: record.comision_opcion1, comision2: record.comision_opcion2, comision3: record.comision_opcion3,
       partido: record.partido,
       resultadoBrujula: record.resultado_brujula || '',
+      resultadoBrujulaComision: record.resultado_brujula_comision || '',
+      resultadoBrujulaPartido: record.resultado_brujula_partido || '',
       enviado: record.enviado || '',
     };
   }
@@ -235,9 +239,9 @@ var CANONICAL_HEADERS_ = [
   'telefono', 'ciudad', 'institucion_educativa', 'autoriza_datos', 'es_menor', 'autoriza_imagen',
   'rol_opcion1', 'rol_opcion2', 'rol_opcion3',
   'comision_opcion1', 'comision_opcion2', 'comision_opcion3', 'partido',
-  // Resultado del test "Brújula Legislativa", obligatorio al inscribirse; se puede repetir
-  // desde el área personal, y cada repetición reemplaza el valor anterior.
-  'resultado_brujula',
+  // Resultados de las 3 brújulas, obligatorias al inscribirse; se pueden repetir desde el
+  // área personal, y cada repetición reemplaza el valor anterior.
+  'resultado_brujula', 'resultado_brujula_comision', 'resultado_brujula_partido',
   // Estas tres columnas quedan en blanco al enviar el formulario: el staff las completa
   // manualmente en la Sheet una vez define la asignación final de cada participante.
   'rol_asignado', 'comision_asignada', 'partido_asignado'
@@ -246,7 +250,7 @@ var CANONICAL_HEADERS_ = [
 var INSCRIPCION_FIELDS_ = [
   'rol_opcion1', 'rol_opcion2', 'rol_opcion3',
   'comision_opcion1', 'comision_opcion2', 'comision_opcion3',
-  'partido', 'resultado_brujula'
+  'partido', 'resultado_brujula', 'resultado_brujula_comision', 'resultado_brujula_partido'
 ];
 
 // ---------- Autenticación: login / recuperar contraseña / cambiar contraseña ----------
@@ -305,12 +309,16 @@ function handleUpdatePassword_(sheet, headers, data) {
 }
 
 // Repetir la Brújula Legislativa desde el área personal reemplaza el resultado anterior.
+// Repetir cualquiera de las 3 brújulas desde el área personal reemplaza el resultado anterior.
+var BRUJULA_UPDATE_FIELDS_ = ['resultado_brujula', 'resultado_brujula_comision', 'resultado_brujula_partido'];
 function handleUpdateBrujula_(sheet, headers, data) {
   var refCode = (data.ref_code || '').toString();
-  var resultado = (data.resultado_brujula || '').toString();
+  var field = (data.field || 'resultado_brujula').toString();
+  var resultado = (data.resultado || '').toString();
+  if (BRUJULA_UPDATE_FIELDS_.indexOf(field) === -1) return jsonOut_({ ok: false });
   var rowNum = findRowByColumn_(sheet, headers, 'ref_code', refCode);
   if (rowNum !== -1 && resultado) {
-    var colIdx = headers.indexOf('resultado_brujula');
+    var colIdx = headers.indexOf(field);
     if (colIdx !== -1) {
       var cell = sheet.getRange(rowNum, colIdx + 1);
       cell.setNumberFormat('@');
