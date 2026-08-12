@@ -33,11 +33,17 @@
         <h4>Iniciar sesión</h4>
         <p class="login-note">Piloto: usa el usuario y la contraseña generados al finalizar tu preinscripción.</p>
         <form id="loginForm">
-          <input type="text" name="username" placeholder="Usuario" required>
+          <input type="email" name="username" placeholder="Correo electrónico" required>
           <input type="password" name="password" placeholder="Contraseña" required>
           <button type="submit">Entrar</button>
         </form>
         <p id="loginError" style="display:none; color:#C0392B; font-size:12px; margin-top:8px;">Usuario o contraseña incorrectos.</p>
+        <p class="login-forgot"><a href="#" id="forgotPasswordLink">¿Olvidaste tu contraseña?</a></p>
+        <form id="forgotPasswordForm" style="display:none;">
+          <input type="email" name="email" placeholder="Tu correo electrónico" required>
+          <button type="submit">Enviar nueva contraseña</button>
+        </form>
+        <p id="forgotPasswordSent" style="display:none; color:#2E7D6B; font-size:12px; margin-top:8px;">Si el correo está registrado, te enviaremos una nueva contraseña en unos minutos.</p>
         <div class="login-links">
           <a href="preinscripcion.html">Preinscribirme</a>
           <a href="perfil.html">Mi perfil</a>

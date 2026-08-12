@@ -107,12 +107,18 @@ function slugifyName(str) {
     .replace(/[^a-z0-9]/g, '');
 }
 
-/* ---------- Autenticación local (piloto) ----------
-   Estructura en localStorage:
-   euromodelo_users = { username: { password, nombre, tipoDocumento, numDocumento,
-                                     ciudad, institucion, autorizacion, createdAt,
-                                     inscripcion: null | {...} } }
-   euromodelo_currentUser = "username" | null
+/* ---------- Backend (Google Apps Script) ---------- */
+const EUROMODELO_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbztpSnDRFqR1JAvh4jmNyLcUo05Ur3PoRckFeavmP6PqezdYTW0QNTz172gG20U6vYsPg/exec';
+
+/* ---------- Autenticación (piloto) ----------
+   El usuario es el correo del participante. localStorage guarda una copia local
+   (euromodelo_users) para acceso rápido en el mismo dispositivo; el backend
+   (Sheet "preinscripciones", vía Apps Script) es la fuente de verdad para poder
+   iniciar sesión desde otro dispositivo, y para recuperar la contraseña.
+   euromodelo_users = { email: { password, mustChangePassword, nombre, tipoDocumento,
+                                  numDocumento, ciudad, institucion, autorizacion, createdAt,
+                                  inscripcion: null | {...} } }
+   euromodelo_currentUser = "email" | null
    -------------------------------------------------- */
 const AUTH_USERS_KEY = 'euromodelo_users';
 const AUTH_CURRENT_KEY = 'euromodelo_currentUser';
@@ -127,22 +133,41 @@ function saveUsers(users) {
 }
 function createUser(data) {
   const users = getUsers();
-  let username = slugifyName(data.nombre).slice(0, 6) + (data.numDocumento || '').slice(-3);
-  if (!username || username.length < 4) username = 'euro' + randomAlphaNum(4).toLowerCase();
-  let finalUsername = username;
-  let n = 1;
-  while (users[finalUsername]) { finalUsername = username + n; n++; }
+  const username = (data.email || '').trim().toLowerCase();
   const password = randomAlphaNum(6);
-  users[finalUsername] = { ...data, password, createdAt: new Date().toISOString(), inscripcion: null };
+  users[username] = { ...data, password, mustChangePassword: true, createdAt: new Date().toISOString(), inscripcion: null };
   saveUsers(users);
-  return { username: finalUsername, password };
+  return { username, password };
 }
-function loginUser(username, password) {
+async function loginUser(usernameOrEmail, password) {
+  const uname = (usernameOrEmail || '').trim().toLowerCase();
   const users = getUsers();
-  const u = users[username];
-  if (u && u.password === password) {
-    localStorage.setItem(AUTH_CURRENT_KEY, username);
+  const local = users[uname];
+  if (local && local.password === password) {
+    localStorage.setItem(AUTH_CURRENT_KEY, uname);
     return true;
+  }
+  // No coincide en este dispositivo (o es la primera vez aquí): verificar contra el backend.
+  try {
+    const res = await fetch(EUROMODELO_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ form: 'login', email: uname, password }),
+    });
+    const result = await res.json();
+    if (result && result.ok && result.user) {
+      users[uname] = {
+        ...(local || {}),
+        ...result.user,
+        password,
+        mustChangePassword: local ? !!local.mustChangePassword : false,
+      };
+      saveUsers(users);
+      localStorage.setItem(AUTH_CURRENT_KEY, uname);
+      return true;
+    }
+  } catch (e) {
+    console.error('No se pudo verificar el usuario contra el backend:', e);
   }
   return false;
 }
@@ -163,6 +188,36 @@ function saveInscripcion(username, inscripcionData) {
   if (users[username]) {
     users[username].inscripcion = inscripcionData;
     saveUsers(users);
+  }
+}
+function changePassword(username, newPassword) {
+  const users = getUsers();
+  if (users[username]) {
+    users[username].password = newPassword;
+    users[username].mustChangePassword = false;
+    saveUsers(users);
+  }
+  try {
+    fetch(EUROMODELO_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ form: 'update_password', email: username, newPassword }),
+    });
+  } catch (e) {
+    console.error('No se pudo sincronizar la nueva contraseña con el backend:', e);
+  }
+}
+function requestPasswordReset(email) {
+  try {
+    fetch(EUROMODELO_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ form: 'forgot_password', email: (email || '').trim().toLowerCase() }),
+    });
+  } catch (e) {
+    console.error('No se pudo solicitar la recuperación de contraseña:', e);
   }
 }
 
@@ -200,16 +255,38 @@ function initLoginPanel() {
     loginBtn.addEventListener('click', () => loginPanel.classList.toggle('open'));
   }
   if (loginForm) {
-    loginForm.addEventListener('submit', (e) => {
+    loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const fd = new FormData(loginForm);
-      const ok = loginUser(fd.get('username').trim(), fd.get('password').trim());
+      const submitBtn = loginForm.querySelector('button[type="submit"]');
+      if (submitBtn) submitBtn.disabled = true;
+      const ok = await loginUser(fd.get('username').trim(), fd.get('password').trim());
+      if (submitBtn) submitBtn.disabled = false;
       const errEl = document.getElementById('loginError');
       if (ok) {
         window.location.href = 'perfil.html';
       } else if (errEl) {
         errEl.style.display = 'block';
       }
+    });
+  }
+
+  const forgotLink = document.getElementById('forgotPasswordLink');
+  const forgotForm = document.getElementById('forgotPasswordForm');
+  const forgotSent = document.getElementById('forgotPasswordSent');
+  if (forgotLink && forgotForm) {
+    forgotLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (loginForm) loginForm.style.display = 'none';
+      forgotLink.style.display = 'none';
+      forgotForm.style.display = 'block';
+    });
+    forgotForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const fd = new FormData(forgotForm);
+      requestPasswordReset(fd.get('email'));
+      forgotForm.style.display = 'none';
+      if (forgotSent) forgotSent.style.display = 'block';
     });
   }
 }

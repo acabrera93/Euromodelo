@@ -33,11 +33,17 @@
         <h4>Iniciar sesión</h4>
         <p class="login-note">Piloto: usa el usuario y la contraseña generados al finalizar tu preinscripción.</p>
         <form id="loginForm">
-          <input type="text" name="username" placeholder="Usuario" required>
+          <input type="email" name="username" placeholder="Correo electrónico" required>
           <input type="password" name="password" placeholder="Contraseña" required>
           <button type="submit">Entrar</button>
         </form>
         <p id="loginError" style="display:none; color:#C0392B; font-size:12px; margin-top:8px;">Usuario o contraseña incorrectos.</p>
+        <p class="login-forgot"><a href="#" id="forgotPasswordLink">¿Olvidaste tu contraseña?</a></p>
+        <form id="forgotPasswordForm" style="display:none;">
+          <input type="email" name="email" placeholder="Tu correo electrónico" required>
+          <button type="submit">Enviar nueva contraseña</button>
+        </form>
+        <p id="forgotPasswordSent" style="display:none; color:#2E7D6B; font-size:12px; margin-top:8px;">Si el correo está registrado, te enviaremos una nueva contraseña en unos minutos.</p>
         <div class="login-links">
           <a href="preinscripcion.html">Preinscribirme</a>
           <a href="perfil.html">Mi perfil</a>
@@ -56,14 +62,26 @@
         <p>Usa el usuario y la contraseña que recibiste al finalizar tu preinscripción.</p>
       </div>
       <form class="form-card" id="loginFormPerfil">
-        <div class="field full"><label>Usuario</label><input required type="text" name="username"></div>
+        <div class="field full"><label>Correo electrónico</label><input required type="email" name="username"></div>
         <div class="field full"><label>Contraseña</label><input required type="password" name="password"></div>
         <p id="loginErrorPerfil" style="display:none; color:#C0392B; font-size:13px; margin:0 0 var(--space-2);">Usuario o contraseña incorrectos.</p>
         <div class="form-submit-row">
-          <span class="form-note">¿Aún no tienes usuario? <a href="preinscripcion.html">Preinscríbete</a>.</span>
+          <span class="form-note">¿Aún no tienes usuario? <a href="preinscripcion.html">Preinscríbete</a>. <a href="#" id="forgotPasswordLinkPerfil">¿Olvidaste tu contraseña?</a></span>
           <button class="btn-primary" type="submit">Entrar</button>
         </div>
       </form>
+      <form class="form-card" id="forgotPasswordFormPerfil" style="display:none; margin-top:var(--space-2);">
+        <div class="section-head" style="margin-bottom:var(--space-2);">
+          <h3 style="font-size:16px; color:var(--navy-deep); font-family:'Fraunces',serif;">Recuperar contraseña</h3>
+          <p style="font-size:13px;">Te enviaremos una nueva contraseña a tu correo.</p>
+        </div>
+        <div class="field full"><label>Correo electrónico</label><input required type="email" name="email"></div>
+        <div class="form-submit-row">
+          <span class="form-note"><a href="#" id="backToLoginLinkPerfil">&larr; Volver a iniciar sesión</a></span>
+          <button class="btn-primary" type="submit">Enviar nueva contraseña</button>
+        </div>
+      </form>
+      <p id="forgotPasswordSentPerfil" style="display:none; color:#2E7D6B; font-size:13.5px; text-align:center; margin-top:var(--space-2);">Si el correo está registrado, te enviaremos una nueva contraseña en unos minutos.</p>
     </div>
   </div>
 </div>
@@ -89,21 +107,18 @@
         <form class="form-card" id="insForm">
           <div class="section-head" style="margin-bottom:var(--space-2);">
             <h3 style="font-size:16px; color:var(--navy-deep); font-family:'Fraunces',serif;">Completa tu inscripción</h3>
-            <p style="font-size:13px;">Elige tus tres opciones de rol, tus tres opciones de comisión y tu bancada de preferencia.</p>
+            <p style="font-size:13px;">Elige tus opciones de rol, tus tres opciones de comisión y tu bancada de preferencia.</p>
           </div>
 
           <div class="section-head" style="margin-bottom:var(--space-2);">
-            <h3 style="font-size:15px; color:var(--navy-deep); font-family:'Fraunces',serif;">Tus tres opciones de rol</h3>
-            <p style="font-size:13px;">Es importante que selecciones roles diferentes en cada opción. Si repites una selección, se descartará automáticamente.</p>
+            <h3 style="font-size:15px; color:var(--navy-deep); font-family:'Fraunces',serif;">Tus opciones de rol</h3>
+            <p style="font-size:13px;">Elige tu primera y segunda opción de rol (deben ser diferentes). Como solo existen tres roles, el que no elijas queda automáticamente como tu tercera opción.</p>
           </div>
           <div class="form-grid">
             <div class="field"><label>Opción 1 de rol</label><select name="rol1" id="rol1" class="rol-select"><option value="">Selecciona una opción</option><option>Comisario</option>
 <option>Europarlamentario</option>
 <option>Primer Ministro</option></select></div>
             <div class="field"><label>Opción 2 de rol</label><select name="rol2" id="rol2" class="rol-select"><option value="">Selecciona una opción</option><option>Comisario</option>
-<option>Europarlamentario</option>
-<option>Primer Ministro</option></select></div>
-            <div class="field full"><label>Opción 3 de rol</label><select name="rol3" id="rol3" class="rol-select"><option value="">Selecciona una opción</option><option>Comisario</option>
 <option>Europarlamentario</option>
 <option>Primer Ministro</option></select></div>
           </div>
@@ -181,6 +196,20 @@
     </div>
   </div>
 </div>
+<div class="modal-overlay" id="forcePasswordModal">
+  <div class="modal-card">
+    <h3>Elige una nueva contraseña</h3>
+    <p class="modal-intro">Por seguridad, esta es tu primera vez en tu área personal: elige una contraseña nueva para tu cuenta.</p>
+    <form class="form-card" id="forcePasswordForm" style="box-shadow:none; padding:0; margin-top:var(--space-2);">
+      <div class="field full"><label>Nueva contraseña</label><input required type="password" name="newPassword" minlength="6"></div>
+      <div class="field full"><label>Confirmar contraseña</label><input required type="password" name="confirmPassword" minlength="6"></div>
+      <p id="forcePasswordError" style="display:none; color:#C0392B; font-size:13px; margin:0 0 var(--space-2);">Las contraseñas no coinciden.</p>
+      <div class="form-submit-row" style="justify-content:flex-end;">
+        <button class="btn-primary" type="submit">Guardar contraseña</button>
+      </div>
+    </form>
+  </div>
+</div>
 <footer>
   <div class="container">
     <span>Fundación Revel — XX Euromodelo Joven 2026</span>
@@ -193,8 +222,6 @@
   const detailModal = createModalController('detailModal');
 </script>
 <script>
-  const EUROMODELO_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbztpSnDRFqR1JAvh4jmNyLcUo05Ur3PoRckFeavmP6PqezdYTW0QNTz172gG20U6vYsPg/exec';
-
   // Coloca los archivos de logo (SVG/PNG/WEBP) en assets/partidos/ con estos nombres exactos.
   const PARTIDOS = [
     {code:'PPE', title:'PPE — Partido Popular Europeo', color:'#2D5FA8', logo:'assets/partidos/ppe.webp'},
@@ -205,6 +232,8 @@
     {code:'S&D', title:'S&D — Alianza Progresista Socialista Demócrata', color:'#E33241', logo:'assets/partidos/sd.png'},
     {code:'The Left', title:'The Left — Izquierda Unitaria Europea/Verde Nórdica', color:'#8C1D2B', logo:'assets/partidos/the_left.png'},
   ];
+
+  const ROLES = ['Comisario', 'Europarlamentario', 'Primer Ministro'];
 
   function refCode(prefix){
     return prefix + '-' + Math.random().toString(36).slice(2,7).toUpperCase();
@@ -269,15 +298,19 @@
       e.preventDefault();
       const form = e.target;
       const fd = new FormData(form);
+      const rol1 = fd.get('rol1');
+      const rol2 = fd.get('rol2');
       const data = {
-        rol1: fd.get('rol1'), rol2: fd.get('rol2'), rol3: fd.get('rol3'),
+        rol1, rol2,
+        // Solo existen tres roles: el que no fue elegido en las opciones 1 y 2 queda como opción 3.
+        rol3: ROLES.find(r => r !== rol1 && r !== rol2) || '',
         comision1: fd.get('comision1'), comision2: fd.get('comision2'), comision3: fd.get('comision3'),
         partido: fd.get('partido'),
         enviado: new Date().toISOString(),
       };
-      if (!form.checkValidity() || !data.rol1 || !data.rol2 || !data.rol3 || !data.comision1 || !data.comision2 || !data.comision3 || !data.partido) {
+      if (!form.checkValidity() || !data.rol1 || !data.rol2 || data.rol1 === data.rol2 || !data.comision1 || !data.comision2 || !data.comision3 || !data.partido) {
         form.reportValidity();
-        alert('Completa las tres opciones de rol, las tres opciones de comisión y tu partido antes de enviar.');
+        alert('Completa tus dos opciones de rol (diferentes entre sí), las tres opciones de comisión y tu partido antes de enviar.');
         return;
       }
       const code = user.refCode || refCode('INSC');
@@ -324,15 +357,40 @@
   if (!user) {
     document.getElementById('perfilLoggedOut').style.display = 'block';
     const loginFormPerfil = document.getElementById('loginFormPerfil');
-    loginFormPerfil.addEventListener('submit', (e) => {
+    loginFormPerfil.addEventListener('submit', async (e) => {
       e.preventDefault();
       const fd = new FormData(loginFormPerfil);
-      const ok = loginUser(fd.get('username').trim(), fd.get('password').trim());
+      const submitBtn = loginFormPerfil.querySelector('button[type="submit"]');
+      submitBtn.disabled = true;
+      const ok = await loginUser(fd.get('username').trim(), fd.get('password').trim());
+      submitBtn.disabled = false;
       if (ok) {
         window.location.reload();
       } else {
         document.getElementById('loginErrorPerfil').style.display = 'block';
       }
+    });
+
+    const forgotLinkPerfil = document.getElementById('forgotPasswordLinkPerfil');
+    const forgotFormPerfil = document.getElementById('forgotPasswordFormPerfil');
+    const backToLoginLinkPerfil = document.getElementById('backToLoginLinkPerfil');
+    const forgotSentPerfil = document.getElementById('forgotPasswordSentPerfil');
+    forgotLinkPerfil.addEventListener('click', (e) => {
+      e.preventDefault();
+      loginFormPerfil.style.display = 'none';
+      forgotFormPerfil.style.display = 'block';
+    });
+    backToLoginLinkPerfil.addEventListener('click', (e) => {
+      e.preventDefault();
+      forgotFormPerfil.style.display = 'none';
+      loginFormPerfil.style.display = 'block';
+    });
+    forgotFormPerfil.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const fd = new FormData(forgotFormPerfil);
+      requestPasswordReset(fd.get('email'));
+      forgotFormPerfil.style.display = 'none';
+      forgotSentPerfil.style.display = 'block';
     });
   } else {
     document.getElementById('perfilLoggedIn').style.display = 'block';
@@ -368,6 +426,25 @@
       logoutUser();
       window.location.href = 'index.html';
     });
+
+    if (user.mustChangePassword) {
+      const forcePasswordModal = createModalController('forcePasswordModal');
+      forcePasswordModal.open();
+      document.getElementById('forcePasswordForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        const p1 = fd.get('newPassword');
+        const p2 = fd.get('confirmPassword');
+        const errEl = document.getElementById('forcePasswordError');
+        if (p1 !== p2) {
+          errEl.style.display = 'block';
+          return;
+        }
+        errEl.style.display = 'none';
+        changePassword(user.username, p1);
+        forcePasswordModal.close();
+      });
+    }
   }
 </script>
 </body>

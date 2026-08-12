@@ -33,11 +33,17 @@
         <h4>Iniciar sesión</h4>
         <p class="login-note">Piloto: usa el usuario y la contraseña generados al finalizar tu preinscripción.</p>
         <form id="loginForm">
-          <input type="text" name="username" placeholder="Usuario" required>
+          <input type="email" name="username" placeholder="Correo electrónico" required>
           <input type="password" name="password" placeholder="Contraseña" required>
           <button type="submit">Entrar</button>
         </form>
         <p id="loginError" style="display:none; color:#C0392B; font-size:12px; margin-top:8px;">Usuario o contraseña incorrectos.</p>
+        <p class="login-forgot"><a href="#" id="forgotPasswordLink">¿Olvidaste tu contraseña?</a></p>
+        <form id="forgotPasswordForm" style="display:none;">
+          <input type="email" name="email" placeholder="Tu correo electrónico" required>
+          <button type="submit">Enviar nueva contraseña</button>
+        </form>
+        <p id="forgotPasswordSent" style="display:none; color:#2E7D6B; font-size:12px; margin-top:8px;">Si el correo está registrado, te enviaremos una nueva contraseña en unos minutos.</p>
         <div class="login-links">
           <a href="preinscripcion.html">Preinscribirme</a>
           <a href="perfil.html">Mi perfil</a>
@@ -127,7 +133,7 @@
     <div class="success-panel" id="preSuccess">
       <div class="mark">&#10003;</div>
       <h3>¡Preinscripción registrada!</h3>
-      <p>Guarda estos datos: los necesitarás para iniciar sesión y completar tu inscripción.</p>
+      <p>Guarda estos datos: los necesitarás para iniciar sesión y completar tu inscripción. También te enviamos un correo con esta información.</p>
       <div class="credentials-card">
         <p style="margin:0; font-size:13px; color:rgba(255,255,255,.75);">Tus credenciales de acceso</p>
         <div class="cred-row">
@@ -151,9 +157,6 @@
   const detailModal = createModalController('detailModal');
 </script>
 <script>
-  // El backend real (Google Sheets) recibe los envíos; aquí solo se define la URL del Apps Script.
-  const EUROMODELO_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbztpSnDRFqR1JAvh4jmNyLcUo05Ur3PoRckFeavmP6PqezdYTW0QNTz172gG20U6vYsPg/exec';
-
   document.getElementById('preEsMenor').addEventListener('change', (e) => {
     if (e.target.name !== 'esMenor') return;
     const esMenor = e.target.value === 'Sí';
@@ -177,7 +180,7 @@
       numDocumento: fd.get('numDocumento').trim(),
       ciudad: fd.get('ciudad'),
       institucion: fd.get('institucion').trim(),
-      email: fd.get('email').trim(),
+      email: fd.get('email').trim().toLowerCase(),
       telefono: fd.get('telefono').trim(),
       autorizacion: true,
       autorizaDatos: fd.get('autorizaDatos'),
@@ -198,6 +201,7 @@
           enviado: new Date().toISOString(),
           ref_code: preRefCode,
           email: data.email,
+          password: creds.password,
           nombre_completo: data.nombre,
           tipo_documento: data.tipoDocumento,
           numero_documento: data.numDocumento,
