@@ -31,10 +31,10 @@ header.site{
   position:sticky; top:0; z-index:50; background:var(--navy-deep); color:var(--white);
   border-bottom:1px solid rgba(255,255,255,.08);
 }
-.nav-row{display:flex; align-items:center; justify-content:space-between; padding:12px var(--space-3); max-width:1120px; margin:0 auto; gap:16px;}
+.nav-row{position:relative; display:flex; align-items:center; justify-content:space-between; padding:12px var(--space-3); max-width:1120px; margin:0 auto; gap:16px;}
 .brand{display:flex; align-items:center; gap:12px; flex-shrink:0;}
 .brand-logo{height:38.4px; width:auto; display:block;}
-nav.links{display:flex; gap:2px; align-items:center; flex-wrap:wrap; flex-grow:1;}
+nav.links{display:flex; gap:2px; align-items:center; justify-content:center; flex-wrap:wrap; flex-grow:1;}
 nav.links a{
   background:none; border:none; color:rgba(255,255,255,.75); font-size:13px; font-weight:500;
   padding:8px 11px; border-radius:8px; cursor:pointer; transition:background .15s, color .15s; white-space:nowrap;
@@ -406,8 +406,9 @@ footer .container{display:flex; justify-content:space-between; flex-wrap:wrap; g
   .action-grid{grid-template-columns:1fr;}
 }
 @media (max-width:720px){
-  nav.links{display:none; position:absolute; top:100%; left:0; right:0; background:var(--navy-deep);
-    flex-direction:column; padding:8px var(--space-3) var(--space-3); border-top:1px solid rgba(255,255,255,.08);}
+  nav.links{display:none; position:absolute; top:100%; left:0; right:0; z-index:55; background:var(--navy-deep);
+    flex-direction:column; padding:8px var(--space-3) var(--space-3); border-top:1px solid rgba(255,255,255,.08);
+    max-height:80vh; overflow-y:auto;}
   nav.links.open{display:flex;}
   .menu-toggle{display:block;}
   .auth-area{order:3;}
