@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Simulación de asignación — XX Euromodelo Joven 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<header class="site">
+  <div class="nav-row">
+    <a href="index.html" class="brand"><img src="assets/logo.png" class="brand-logo" alt="Euromodelo Joven - Fundación Revel"></a>
+    <span style="color:var(--white); font-weight:600; font-size:13.5px;">Panel de staff · Simulación de asignación</span>
+  </div>
+</header>
+
+<div class="page-banner">
+  <div class="container" style="grid-template-columns:1fr;">
+    <div>
+      <h1>Simulación de asignación</h1>
+      <p>Vista previa de cómo quedaría el rol, la comisión y el partido de cada inscrito si se asignara ahora mismo, según las reglas acordadas. No escribe nada en la Sheet — es solo para monitorear cómo va evolucionando el reparto mientras siguen las inscripciones.</p>
+    </div>
+  </div>
+</div>
+
+<div class="section-inner">
+  <div class="container">
+
+    <div id="simGate" class="form-card" style="max-width:420px; margin:0 auto;">
+      <div class="section-head" style="margin-bottom:var(--space-2);">
+        <h3 style="font-size:16px; color:var(--navy-deep); font-family:'Fraunces',serif;">Acceso de staff</h3>
+        <p style="font-size:13px;">Ingresa tu correo autorizado y la clave para ver la simulación.</p>
+      </div>
+      <div class="field full"><label>Correo</label><input type="email" id="staffEmailInput"></div>
+      <div class="field full"><label>Clave</label><input type="password" id="staffKeyInput"></div>
+      <p id="simGateError" style="display:none; color:#C0392B; font-size:13px; margin:0 0 var(--space-2);">Correo o clave incorrectos.</p>
+      <div class="form-submit-row" style="justify-content:flex-end;">
+        <button class="btn-primary" id="simGateBtn" type="button">Entrar</button>
+      </div>
+    </div>
+
+    <div id="simContent" style="display:none;">
+      <div class="form-submit-row" style="margin-bottom:var(--space-4); flex-wrap:wrap; gap:12px;">
+        <span class="form-note" id="simMeta">—</span>
+        <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+          <label style="font-size:13px; color:var(--navy-deep); font-weight:600;">Mesa por comisión:
+            <input type="number" id="mesaCountInput" value="2" min="0" style="width:56px; margin-left:6px; border:1px solid var(--line); border-radius:8px; padding:6px 8px; font-family:inherit;">
+          </label>
+          <button class="btn-primary" id="simRefreshBtn" type="button">Actualizar simulación</button>
+        </div>
+      </div>
+      <p id="simError" style="display:none; color:#C0392B; font-size:13px; margin:0 0 var(--space-3);">No se pudo cargar la simulación. Intenta de nuevo.</p>
+
+      <div class="stat-strip" style="margin-bottom:var(--space-5);">
+        <div class="container">
+          <div class="stat"><div class="n" id="statTotal">0</div><div class="l">Inscritos con formulario completo</div></div>
+          <div class="stat"><div class="n" id="statComisionesOk">0/7</div><div class="l">Comisiones que cumplen el mínimo de 10</div></div>
+          <div class="stat"><div class="n" id="statFallback">0</div><div class="l">Asignaciones que no fueron su 1ª opción</div></div>
+          <div class="stat"><div class="n" id="statPartidosLlenos">0</div><div class="l">Partidos en su cupo máximo</div></div>
+        </div>
+      </div>
+
+      <div class="section-head"><h2 style="font-size:20px;">Comisiones</h2><p>Mínimo de 10 personas en total (roles de debate + mesa directiva).</p></div>
+      <div class="grid-cards" id="comisionesGrid" style="margin-bottom:var(--space-5);"></div>
+
+      <div class="section-head"><h2 style="font-size:20px;">Partidos</h2><p>Cupo proporcional a los escaños reales del Parlamento Europeo, escalado a los inscritos actuales.</p></div>
+      <div class="grid-cards" id="partidosGrid" style="margin-bottom:var(--space-5);"></div>
+
+      <div class="section-head"><h2 style="font-size:20px;">Detalle por participante</h2></div>
+      <div class="sim-table-wrap">
+        <table class="sim-table" id="detailTable">
+          <thead><tr><th>Nombre</th><th>Colegio</th><th>Rol</th><th>Comisión</th><th>Origen comisión</th><th>Partido</th><th>Origen partido</th></tr></thead>
+          <tbody id="detailTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+<footer>
+  <div class="container">
+    <span>Fundación Revel — XX Euromodelo Joven 2026</span>
+    <span>Panel interno de staff</span>
+  </div>
+</footer>
+<script src="assets/main.js"></script>
+<script>
+  const SIM_KEY_STORAGE = 'euromodelo_sim_staff_key';
+
+  function comisionOriginInfo(origin) {
+    if (origin === 'preferencia_1') return { cls: 'preferencia', label: '1ª opción' };
+    if (origin === 'reparacion_desde_preferencia_2') return { cls: 'brujula', label: 'Reparación (2ª opción)' };
+    if (origin === 'reparacion_desde_preferencia_3') return { cls: 'brujula', label: 'Reparación (3ª opción)' };
+    return { cls: 'reparacion', label: 'Reparación' };
+  }
+  function partidoOriginInfo(origin) {
+    if (origin === 'preferencia') return { cls: 'preferencia', label: 'Preferencia' };
+    if (origin === 'brujula') return { cls: 'brujula', label: 'Brújula' };
+    return { cls: 'cupo_libre', label: 'Cupo libre' };
+  }
+
+  function renderStats(summary) {
+    document.getElementById('statTotal').textContent = summary.totalInscritos;
+    const comisionesOk = summary.comisiones.filter(c => c.cumpleMinimo).length;
+    document.getElementById('statComisionesOk').textContent = comisionesOk + '/' + summary.comisiones.length;
+    const fallback = summary.participantes.filter(p =>
+      p.comisionOrigen !== 'preferencia_1' || p.partidoOrigen !== 'preferencia'
+    ).length;
+    document.getElementById('statFallback').textContent = fallback;
+    const partidosLlenos = summary.partidos.filter(p => p.pctLleno >= 100).length;
+    document.getElementById('statPartidosLlenos').textContent = partidosLlenos;
+  }
+
+  function renderComisiones(comisiones) {
+    const grid = document.getElementById('comisionesGrid');
+    grid.innerHTML = comisiones.map(c => `
+      <div class="card accent" style="--accent:${c.color};">
+        <h3>${c.title}</h3>
+        <p style="font-size:13px; color:#54637C;">
+          ${c.debate} en roles de debate (${c.comisarios} Comisarios · ${c.diputados} Diputados, ${c.comisariosPct}% Comisario)
+          + ${c.mesa} de mesa = <b>${c.total}</b> en total.
+        </p>
+        <div class="quiz-progress" style="margin-bottom:0;">
+          <div class="quiz-progress-bar" style="width:${Math.min(100, Math.round(c.total / 10 * 100))}%; background:${c.cumpleMinimo ? 'var(--teal)' : '#C0392B'};"></div>
+        </div>
+        <div class="card-foot">
+          <span class="tag">${c.cumpleMinimo ? '✓ Cumple el mínimo' : 'Faltan ' + c.faltan + ' para el mínimo'}</span>
+        </div>
+      </div>`).join('');
+  }
+
+  function renderPartidos(partidos) {
+    const grid = document.getElementById('partidosGrid');
+    grid.innerHTML = partidos.map(p => `
+      <div class="card accent" style="--accent:${p.color};">
+        <h3>${p.title}</h3>
+        <p style="font-size:13px; color:#54637C;">${p.asignados} de ${p.cupo} cupos asignados.</p>
+        <div class="quiz-progress" style="margin-bottom:0;">
+          <div class="quiz-progress-bar" style="width:${Math.min(100, p.pctLleno)}%; background:${p.pctLleno >= 100 ? '#C0392B' : 'var(--gold-star)'};"></div>
+        </div>
+        <div class="card-foot"><span class="tag">${p.pctLleno}% del cupo</span></div>
+      </div>`).join('');
+  }
+
+  function renderDetailTable(participantes) {
+    const tbody = document.getElementById('detailTableBody');
+    tbody.innerHTML = participantes.map(p => {
+      const co = comisionOriginInfo(p.comisionOrigen);
+      const po = partidoOriginInfo(p.partidoOrigen);
+      return `<tr>
+        <td>${p.nombre || ''}</td>
+        <td>${p.institucion || ''}</td>
+        <td>${p.rol || ''}</td>
+        <td>${p.comision || ''}</td>
+        <td><span class="sim-origin ${co.cls}">${co.label}</span></td>
+        <td>${p.partido || ''}</td>
+        <td><span class="sim-origin ${po.cls}">${po.label}</span></td>
+      </tr>`;
+    }).join('');
+  }
+
+  async function runSimulation(creds) {
+    const mesaCount = Number(document.getElementById('mesaCountInput').value) || 0;
+    const res = await fetch(EUROMODELO_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ form: 'simulate', staffEmail: creds.email, staffKey: creds.key, mesaCount }),
+    });
+    return res.json();
+  }
+
+  async function loadSimulation(creds) {
+    const errEl = document.getElementById('simError');
+    errEl.style.display = 'none';
+    try {
+      const result = await runSimulation(creds);
+      if (!result || !result.ok) return { ok: false };
+      const summary = result.summary;
+      document.getElementById('simMeta').textContent =
+        'Última actualización: ' + new Date().toLocaleString('es-CO') + ' · ' + summary.totalInscritos + ' inscritos con formulario completo';
+      renderStats(summary);
+      renderComisiones(summary.comisiones);
+      renderPartidos(summary.partidos);
+      renderDetailTable(summary.participantes);
+      return { ok: true };
+    } catch (e) {
+      console.error('No se pudo cargar la simulación:', e);
+      errEl.style.display = 'block';
+      return { ok: false };
+    }
+  }
+
+  function showContent() {
+    document.getElementById('simGate').style.display = 'none';
+    document.getElementById('simContent').style.display = 'block';
+  }
+
+  async function attemptEntry(creds) {
+    const result = await loadSimulation(creds);
+    if (result.ok) {
+      sessionStorage.setItem(SIM_KEY_STORAGE, JSON.stringify(creds));
+      showContent();
+    } else {
+      document.getElementById('simGateError').style.display = 'block';
+    }
+  }
+
+  function readGateInputs() {
+    return {
+      email: document.getElementById('staffEmailInput').value.trim(),
+      key: document.getElementById('staffKeyInput').value.trim(),
+    };
+  }
+
+  document.getElementById('simGateBtn').addEventListener('click', () => {
+    document.getElementById('simGateError').style.display = 'none';
+    attemptEntry(readGateInputs());
+  });
+  ['staffEmailInput', 'staffKeyInput'].forEach(id => {
+    document.getElementById(id).addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('simGateBtn').click();
+    });
+  });
+  document.getElementById('simRefreshBtn').addEventListener('click', () => {
+    const saved = sessionStorage.getItem(SIM_KEY_STORAGE);
+    if (saved) loadSimulation(JSON.parse(saved));
+  });
+
+  const savedCredsRaw = sessionStorage.getItem(SIM_KEY_STORAGE);
+  if (savedCredsRaw) {
+    loadSimulation(JSON.parse(savedCredsRaw)).then(result => { if (result.ok) showContent(); });
+  }
+</script>
+</body>
+</html>

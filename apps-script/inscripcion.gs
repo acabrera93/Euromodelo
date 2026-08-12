@@ -1,5 +1,14 @@
 var NOTIFY_EMAILS_ = ['juan.ladino@fundacionrevel.net', 'juan.ovalle@fundacionrevel.net'];
 var SITE_URL_ = 'https://acabrera93.github.io/Euromodelo/';
+// Acceso simple al endpoint de simulación (solo lectura, no escribe en la Sheet): clave
+// compartida + lista de correos autorizados. No es autenticación real, es un filtro básico.
+var STAFF_KEY_ = 'euromodelo2026';
+var STAFF_AUTHORIZED_EMAILS_ = [
+  'juan.ladino@fundacionrevel.net',
+  'juan.ovalle@fundacionrevel.net',
+  'alejandro.cabrera@fundacionrevel.net',
+  'andres.dewasseige@fundacionrevel.net'
+];
 
 var FIELD_LABELS_ = {
   enviado: 'Fecha de envío',
@@ -328,6 +337,242 @@ function handleUpdateBrujula_(sheet, headers, data) {
   return jsonOut_({ ok: true });
 }
 
+// ---------- Simulación de asignación de rol / comisión / partido ----------
+// Corre bajo demanda, de solo lectura: nunca escribe en la Sheet. Pensada para reusarse más
+// adelante como la asignación FINAL real (agregando un modo que sí persista los resultados),
+// una vez cierren las inscripciones y se sepa el número definitivo de participantes.
+var SIM_MIN_PER_COMISION_ = 10;
+
+var SIM_COMISIONES_ = [
+  { code: 'CLJ', title: 'Asuntos Constitucionales, Libertades Civiles, Justicia e Igualdad de Género', color: '#6B2D8C' },
+  { code: 'EXT', title: 'Asuntos Exteriores, Derechos Humanos, Seguridad y Defensa', color: '#1E3D73' },
+  { code: 'ECO', title: 'Asuntos Presupuestarios, Económicos y Monetarios', color: '#C9A227' },
+  { code: 'CED', title: 'Cultura, Educación y Desarrollo Regional', color: '#2E7D6B' },
+  { code: 'EAS', title: 'Empleo, Asuntos Sociales y Comercio Internacional', color: '#E07B39' },
+  { code: 'IIE', title: 'Industria, Investigación y Energía', color: '#4E8CC7' },
+  { code: 'MAS', title: 'Medio Ambiente, Agricultura, Desarrollo Rural y Salud Pública', color: '#3E9142' }
+];
+
+// Escaños reales del Parlamento Europeo, usados para escalar el cupo de partido al número de
+// inscritos actual. Códigos/títulos alineados con los que ya usa perfil.html (no con
+// partidos.html, que todavía usa códigos viejos para las mismas 7 bancadas).
+var SIM_PARTIDOS_ = [
+  { code: 'PPE', title: 'PPE — Partido Popular Europeo', color: '#2D5FA8', seats: 188 },
+  { code: 'S&D', title: 'S&D — Alianza Progresista Socialista Demócrata', color: '#E33241', seats: 136 },
+  { code: 'Patriots', title: 'Patriots — Patriotas por Europa', color: '#142850', seats: 84 },
+  { code: 'ECR', title: 'ECR Group — Grupo de los Conservadores y Reformistas Europeos', color: '#4E8CC7', seats: 78 },
+  { code: 'Renew', title: 'Renew Europe — Renovar Europa', color: '#F2B705', seats: 77 },
+  { code: 'Greens/EFA', title: 'The Greens/EFA — Los Verdes/Alianza Libre Europea', color: '#3E9142', seats: 53 },
+  { code: 'The Left', title: 'The Left — Izquierda Unitaria Europea/Verde Nórdica', color: '#8C1D2B', seats: 46 }
+];
+
+function assignPartido_(record, cap, count) {
+  var preferido = record.partido;
+  var brujula = record.resultado_brujula_partido;
+
+  if (preferido && count[preferido] !== undefined && count[preferido] < cap[preferido]) {
+    count[preferido]++;
+    return { partido: preferido, origen: 'preferencia' };
+  }
+  if (brujula && brujula !== preferido && count[brujula] !== undefined && count[brujula] < cap[brujula]) {
+    count[brujula]++;
+    return { partido: brujula, origen: 'brujula' };
+  }
+  // Ninguna de las dos tiene cupo: se asigna al partido con más cupo libre restante.
+  var best = null, bestFree = -1;
+  SIM_PARTIDOS_.forEach(function(p) {
+    var free = cap[p.title] - count[p.title];
+    if (free > bestFree) { bestFree = free; best = p.title; }
+  });
+  if (best) count[best]++;
+  return { partido: best || preferido || '', origen: 'cupo_libre' };
+}
+
+// Elige, entre las comisiones con superávit sobre el mínimo, al mejor candidato para mover hacia
+// targetTitle: primero por afinidad (2ª/3ª opción o resultado de la Brújula de Comisión), luego
+// por orden de llegada (se mueve a quien llegó más tarde, protegiendo a los primeros), y por
+// último con un desempate suave por colegio (se prioriza no amontonar el mismo colegio).
+function pickCandidateForRepair_(assignments, totals, targetTitle) {
+  var pool = assignments.filter(function(a) {
+    var surplus = (totals[a.comision] || 0) - SIM_MIN_PER_COMISION_;
+    return a.comision !== targetTitle && surplus > 0;
+  });
+  if (pool.length === 0) return null;
+
+  function affinityScore(a) {
+    if (a.comisionPrefs[1] === targetTitle) return 3; // 2ª opción
+    if (a.comisionPrefs[2] === targetTitle) return 2; // 3ª opción
+    if (a.comisionBrujula === targetTitle) return 1; // Brújula de Comisión
+    return 0;
+  }
+
+  var targetSchoolCount = {};
+  assignments.forEach(function(a) {
+    if (a.comision === targetTitle) {
+      targetSchoolCount[a.institucion] = (targetSchoolCount[a.institucion] || 0) + 1;
+    }
+  });
+
+  pool.sort(function(a, b) {
+    var diff = affinityScore(b) - affinityScore(a);
+    if (diff !== 0) return diff;
+    var da = new Date(a.enviado).getTime() || 0;
+    var db = new Date(b.enviado).getTime() || 0;
+    if (db !== da) return db - da; // llegó más tarde primero (protege a los que llegaron antes)
+    var ca = targetSchoolCount[a.institucion] || 0;
+    var cb = targetSchoolCount[b.institucion] || 0;
+    return ca - cb; // colegio menos representado en destino, primero
+  });
+
+  return pool[0];
+}
+
+function repairComisionMinimums_(assignments, mesaCount) {
+  function computeTotals() {
+    var totals = {};
+    SIM_COMISIONES_.forEach(function(c) { totals[c.title] = mesaCount; });
+    assignments.forEach(function(a) { totals[a.comision] = (totals[a.comision] || mesaCount) + 1; });
+    return totals;
+  }
+
+  var totals = computeTotals();
+  var under = SIM_COMISIONES_.filter(function(c) { return (totals[c.title] || 0) < SIM_MIN_PER_COMISION_; });
+  under.sort(function(a, b) { return (totals[a.title] || 0) - (totals[b.title] || 0); }); // más urgente primero
+
+  under.forEach(function(target) {
+    var needed = SIM_MIN_PER_COMISION_ - (totals[target.title] || 0);
+    for (var i = 0; i < needed; i++) {
+      var candidate = pickCandidateForRepair_(assignments, totals, target.title);
+      if (!candidate) break; // no hay más candidatos disponibles: queda por debajo del mínimo
+      var origenAnterior = candidate.comision;
+      totals[origenAnterior] = (totals[origenAnterior] || 0) - 1;
+      candidate.comision = target.title;
+      candidate.comisionOrigen = origenAnterior === candidate.comisionPrefs[1] ? 'reparacion_desde_preferencia_2'
+        : origenAnterior === candidate.comisionPrefs[2] ? 'reparacion_desde_preferencia_3'
+        : 'reparacion';
+      totals[target.title] = (totals[target.title] || 0) + 1;
+    }
+  });
+}
+
+function buildSimulationSummary_(assignments, partidoCap, partidoCount, totalN, mesaCount) {
+  var comisionSummary = SIM_COMISIONES_.map(function(c) {
+    var members = assignments.filter(function(a) { return a.comision === c.title; });
+    var comisarios = members.filter(function(a) { return a.rol === 'Comisario'; }).length;
+    var diputados = members.length - comisarios;
+    var totalConMesa = members.length + mesaCount;
+    return {
+      code: c.code, title: c.title, color: c.color,
+      debate: members.length, mesa: mesaCount, total: totalConMesa,
+      comisarios: comisarios, diputados: diputados,
+      comisariosPct: members.length > 0 ? Math.round(comisarios / members.length * 100) : 0,
+      cumpleMinimo: totalConMesa >= SIM_MIN_PER_COMISION_,
+      faltan: Math.max(0, SIM_MIN_PER_COMISION_ - totalConMesa),
+    };
+  });
+
+  var partidoSummary = SIM_PARTIDOS_.map(function(p) {
+    var cupo = partidoCap[p.title] || 0;
+    var asignados = partidoCount[p.title] || 0;
+    return {
+      code: p.code, title: p.title, color: p.color,
+      cupo: cupo, asignados: asignados,
+      pctLleno: cupo > 0 ? Math.round(asignados / cupo * 100) : 0,
+    };
+  });
+
+  var participantes = assignments.map(function(a) {
+    return {
+      nombre: a.nombre, institucion: a.institucion,
+      rol: a.rol, comision: a.comision, comisionOrigen: a.comisionOrigen,
+      partido: a.partido, partidoOrigen: a.partidoOrigen,
+    };
+  });
+
+  return { totalInscritos: totalN, comisiones: comisionSummary, partidos: partidoSummary, participantes: participantes };
+}
+
+function runAssignmentSimulation_(records, mesaCount) {
+  // Solo entran quienes ya completaron la inscripción (tienen rol_opcion1).
+  var participants = records.filter(function(r) { return r.rol_opcion1; });
+
+  // Orden de llegada = fecha de envío de la inscripción.
+  participants.sort(function(a, b) {
+    var da = new Date(a.enviado).getTime() || 0;
+    var db = new Date(b.enviado).getTime() || 0;
+    return da - db;
+  });
+
+  var totalN = participants.length;
+
+  // Cupo proporcional a escaños reales, por método de "mayor resto" (Hamilton): así la suma de
+  // los cupos siempre da exactamente totalN, sin que el redondeo simple deje a alguien sin
+  // partido posible o haga que uno termine por encima del 100% solo por el redondeo.
+  var totalSeats = SIM_PARTIDOS_.reduce(function(s, p) { return s + p.seats; }, 0);
+  var partidoCap = {}, partidoCount = {};
+  if (totalN > 0) {
+    var exactShares = SIM_PARTIDOS_.map(function(p) {
+      var exact = p.seats / totalSeats * totalN;
+      return { title: p.title, floor: Math.floor(exact), remainder: exact - Math.floor(exact) };
+    });
+    var assignedSoFar = exactShares.reduce(function(s, x) { return s + x.floor; }, 0);
+    var remaining = totalN - assignedSoFar;
+    exactShares.sort(function(a, b) { return b.remainder - a.remainder; });
+    exactShares.forEach(function(x, i) {
+      partidoCap[x.title] = x.floor + (i < remaining ? 1 : 0);
+    });
+  } else {
+    SIM_PARTIDOS_.forEach(function(p) { partidoCap[p.title] = 0; });
+  }
+  SIM_PARTIDOS_.forEach(function(p) { partidoCount[p.title] = 0; });
+
+  // Pasada 1: asignación directa. Sin tope de rol/comisión por ahora ("no hay máximo por el
+  // momento"), así que rol y comisión son siempre la 1ª preferencia; solo partido tiene cupo real.
+  var assignments = participants.map(function(p) {
+    var partidoResult = assignPartido_(p, partidoCap, partidoCount);
+    return {
+      email: p.email, nombre: p.nombre_completo, institucion: p.institucion_educativa, enviado: p.enviado,
+      rol: p.rol_opcion1,
+      comision: p.comision_opcion1,
+      comisionOrigen: 'preferencia_1',
+      comisionPrefs: [p.comision_opcion1, p.comision_opcion2, p.comision_opcion3],
+      comisionBrujula: p.resultado_brujula_comision,
+      partido: partidoResult.partido,
+      partidoOrigen: partidoResult.origen,
+    };
+  });
+
+  // Pasada 2: repara el mínimo de 10 por comisión (incluyendo mesa directiva) moviendo gente de
+  // comisiones con superávit hacia las que están por debajo.
+  repairComisionMinimums_(assignments, mesaCount);
+
+  return buildSimulationSummary_(assignments, partidoCap, partidoCount, totalN, mesaCount);
+}
+
+function handleSimulate_(sheet, headers, data) {
+  var email = (data.staffEmail || '').toString().trim().toLowerCase();
+  var authorized = STAFF_AUTHORIZED_EMAILS_.some(function(e) { return e.toLowerCase() === email; });
+  if (!authorized || (data.staffKey || '').toString() !== STAFF_KEY_) {
+    return jsonOut_({ ok: false, error: 'unauthorized' });
+  }
+  var mesaCount = Number(data.mesaCount);
+  if (!isFinite(mesaCount) || mesaCount < 0) mesaCount = 2;
+
+  var lastRow = sheet.getLastRow();
+  var records = [];
+  if (lastRow >= 2) {
+    var values = sheet.getRange(2, 1, lastRow - 1, headers.length).getValues();
+    records = values.map(function(row) {
+      var record = {};
+      headers.forEach(function(h, i) { record[h] = row[i]; });
+      return record;
+    });
+  }
+
+  var summary = runAssignmentSimulation_(records, mesaCount);
+  return jsonOut_({ ok: true, summary: summary });
+}
+
 function doPost(e) {
   var data = JSON.parse(e.postData.contents);
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -342,6 +587,7 @@ function doPost(e) {
   if (data.form === 'forgot_password') return handleForgotPassword_(sheet, headers, data);
   if (data.form === 'update_password') return handleUpdatePassword_(sheet, headers, data);
   if (data.form === 'update_brujula') return handleUpdateBrujula_(sheet, headers, data);
+  if (data.form === 'simulate') return handleSimulate_(sheet, headers, data);
 
   var isPre = data.form === 'preinscripcion';
 
