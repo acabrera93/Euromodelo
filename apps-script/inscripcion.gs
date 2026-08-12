@@ -93,31 +93,71 @@ function sendNotificationEmail_(isPre, data, canonicalHeaders, sheetUrl) {
   });
 }
 
+// Busca, en la columna ref_code, la fila que coincide con el código dado.
+// Devuelve el número de fila en la Sheet (1-indexado) o -1 si no la encuentra.
+function findRowByRefCode_(sheet, headers, refCode) {
+  if (!refCode) return -1;
+  var refColIdx = headers.indexOf('ref_code');
+  if (refColIdx === -1) return -1;
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return -1;
+  var values = sheet.getRange(2, refColIdx + 1, lastRow - 1, 1).getValues();
+  for (var i = 0; i < values.length; i++) {
+    if (values[i][0] === refCode) return i + 2;
+  }
+  return -1;
+}
+
+var INSCRIPCION_FIELDS_ = [
+  'rol_opcion1', 'rol_opcion2', 'rol_opcion3',
+  'comision_opcion1', 'comision_opcion2', 'comision_opcion3',
+  'partido'
+];
+
 function doPost(e) {
   var data = JSON.parse(e.postData.contents);
   var isPre = data.form === 'preinscripcion';
 
-  var canonicalHeaders = isPre
-    ? ['enviado', 'ref_code', 'email', 'nombre_completo', 'tipo_documento', 'numero_documento',
-       'telefono', 'ciudad', 'institucion_educativa', 'autoriza_datos', 'es_menor', 'autoriza_imagen']
-    : ['enviado', 'ref_code', 'email', 'nombre_completo', 'tipo_documento', 'numero_documento',
-       'telefono', 'ciudad', 'institucion_educativa',
-       'rol_opcion1', 'rol_opcion2', 'rol_opcion3',
-       'comision_opcion1', 'comision_opcion2', 'comision_opcion3',
-       'partido', 'autoriza_datos', 'es_menor', 'autoriza_imagen'];
+  // Una sola pestaña para todo: la preinscripción crea la fila con los campos
+  // de inscripción en blanco; la inscripción completa esa misma fila (por ref_code)
+  // en lugar de crear una fila nueva.
+  var canonicalHeaders = [
+    'enviado', 'ref_code', 'email', 'nombre_completo', 'tipo_documento', 'numero_documento',
+    'telefono', 'ciudad', 'institucion_educativa', 'autoriza_datos', 'es_menor', 'autoriza_imagen',
+    'rol_opcion1', 'rol_opcion2', 'rol_opcion3',
+    'comision_opcion1', 'comision_opcion2', 'comision_opcion3', 'partido'
+  ];
 
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = isPre
-    ? findOrCreateSheet_(ss, ['preinscripciones', 'preinscripcion', 'preinscripción'], 'preinscripciones')
-    : findOrCreateSheet_(ss, ['inscripciones', 'inscripcion', 'inscripción'], 'inscripciones');
-
+  var sheet = findOrCreateSheet_(ss, ['preinscripciones', 'preinscripcion', 'preinscripción'], 'preinscripciones');
   var headers = getHeaders_(sheet, canonicalHeaders);
 
-  var row = headers.map(function(columnName) { return data[columnName] || ''; });
-  var targetRow = sheet.getLastRow() + 1;
-  var range = sheet.getRange(targetRow, 1, 1, row.length);
-  range.setNumberFormat('@'); // fuerza texto plano: evita que Sheets convierta documentos/teléfonos en número o fórmula
-  range.setValues([row]);
+  if (isPre) {
+    var row = headers.map(function(columnName) { return data[columnName] || ''; });
+    var targetRow = sheet.getLastRow() + 1;
+    var range = sheet.getRange(targetRow, 1, 1, row.length);
+    range.setNumberFormat('@'); // fuerza texto plano: evita que Sheets convierta documentos/teléfonos en número o fórmula
+    range.setValues([row]);
+  } else {
+    var existingRow = findRowByRefCode_(sheet, headers, data.ref_code);
+    if (existingRow !== -1) {
+      INSCRIPCION_FIELDS_.forEach(function(field) {
+        var colIdx = headers.indexOf(field);
+        if (colIdx === -1) return;
+        var cell = sheet.getRange(existingRow, colIdx + 1);
+        cell.setNumberFormat('@');
+        cell.setValue(data[field] || '');
+      });
+    } else {
+      // No se encontró la fila de preinscripción original (caso raro): se agrega como fila nueva
+      // para no perder los datos de la inscripción.
+      var row2 = headers.map(function(columnName) { return data[columnName] || ''; });
+      var targetRow2 = sheet.getLastRow() + 1;
+      var range2 = sheet.getRange(targetRow2, 1, 1, row2.length);
+      range2.setNumberFormat('@');
+      range2.setValues([row2]);
+    }
+  }
 
   try {
     var sheetUrl = ss.getUrl() + '#gid=' + sheet.getSheetId();

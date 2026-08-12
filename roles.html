@@ -22,23 +22,6 @@
       <a href="mesas-postulacion.html">Mesas Directivas</a>
       <a href="galeria.html">Galería</a>
     </nav>
-    <div class="auth-area" id="authArea">
-      <button class="btn-ghost-sm" id="loginBtn">Iniciar sesión</button>
-      <div class="login-panel" id="loginPanel">
-        <h4>Iniciar sesión</h4>
-        <p class="login-note">Piloto: usa el usuario y la contraseña generados al finalizar tu preinscripción.</p>
-        <form id="loginForm">
-          <input type="text" name="username" placeholder="Usuario" required>
-          <input type="password" name="password" placeholder="Contraseña" required>
-          <button type="submit">Entrar</button>
-        </form>
-        <p id="loginError" style="display:none; color:#C0392B; font-size:12px; margin-top:8px;">Usuario o contraseña incorrectos.</p>
-        <div class="login-links">
-          <a href="preinscripcion.html">Preinscribirme</a>
-          <a href="inscripcion.html">Ir a inscripción</a>
-        </div>
-      </div>
-    </div>
     <button class="menu-toggle" id="menuToggle" aria-label="Abrir menú">&#9776;</button>
   </div>
 </header>
@@ -161,7 +144,7 @@
             <div class="result-icon" style="background:${r.color}">${r.code}</div>
             <h3>¡Tu perfil es: ${r.title}!</h3>
             <p>${r.desc}</p>
-            <a class="btn-primary" href="inscripcion.html?rol=${encodeURIComponent(r.title)}">Inscribirme como ${r.title} &rarr;</a><br>
+            <a class="btn-primary" href="perfil.html?rol=${encodeURIComponent(r.title)}">Inscribirme como ${r.title} &rarr;</a><br>
             <button class="quiz-restart" id="quizRestartBtn">Volver a intentar</button>
           </div>`;
         document.getElementById('quizRestartBtn').addEventListener('click', startRoleQuiz);

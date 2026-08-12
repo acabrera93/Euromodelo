@@ -22,33 +22,26 @@
       <a href="mesas-postulacion.html">Mesas Directivas</a>
       <a href="galeria.html">Galería</a>
     </nav>
-    <div class="auth-area" id="authArea">
-      <button class="btn-ghost-sm" id="loginBtn">Iniciar sesión</button>
-      <div class="login-panel" id="loginPanel">
-        <h4>Iniciar sesión</h4>
-        <p class="login-note">Piloto: usa el usuario y la contraseña generados al finalizar tu preinscripción.</p>
-        <form id="loginForm">
-          <input type="text" name="username" placeholder="Usuario" required>
-          <input type="password" name="password" placeholder="Contraseña" required>
-          <button type="submit">Entrar</button>
-        </form>
-        <p id="loginError" style="display:none; color:#C0392B; font-size:12px; margin-top:8px;">Usuario o contraseña incorrectos.</p>
-        <div class="login-links">
-          <a href="preinscripcion.html">Preinscribirme</a>
-          <a href="inscripcion.html">Ir a inscripción</a>
-        </div>
-      </div>
-    </div>
     <button class="menu-toggle" id="menuToggle" aria-label="Abrir menú">&#9776;</button>
   </div>
 </header>
 
 <div id="perfilLoggedOut" style="display:none;">
   <div class="section-inner">
-    <div class="container" style="max-width:560px; text-align:center;">
-      <h2>Aún no has iniciado sesión</h2>
-      <p style="color:#4A5A73; margin-bottom:var(--space-3);">Inicia sesión desde el botón "Iniciar sesión" en la parte superior, con el usuario y la contraseña que recibiste en tu preinscripción.</p>
-      <a class="btn-primary" href="preinscripcion.html">Ir a preinscripción</a>
+    <div class="container" style="max-width:420px;">
+      <div class="section-head" style="text-align:center;">
+        <h2>Inicia sesión</h2>
+        <p>Usa el usuario y la contraseña que recibiste al finalizar tu preinscripción.</p>
+      </div>
+      <form class="form-card" id="loginFormPerfil">
+        <div class="field full"><label>Usuario</label><input required type="text" name="username"></div>
+        <div class="field full"><label>Contraseña</label><input required type="password" name="password"></div>
+        <p id="loginErrorPerfil" style="display:none; color:#C0392B; font-size:13px; margin:0 0 var(--space-2);">Usuario o contraseña incorrectos.</p>
+        <div class="form-submit-row">
+          <span class="form-note">¿Aún no tienes usuario? <a href="preinscripcion.html">Preinscríbete</a>.</span>
+          <button class="btn-primary" type="submit">Entrar</button>
+        </div>
+      </form>
     </div>
   </div>
 </div>
@@ -71,11 +64,73 @@
   <div class="section-inner">
     <div class="container" style="max-width:760px;">
       <div id="pfNoInscripcion" style="display:none;">
-        <div class="form-card" style="text-align:center;">
-          <h3 style="color:var(--navy-deep); margin-top:0;">Aún no has completado tu inscripción</h3>
-          <p style="color:#4A5A73;">Elige tus tres opciones de rol, tus tres opciones de comisión y tu bancada de preferencia.</p>
-          <a class="btn-primary" href="inscripcion.html">Completar inscripción &rarr;</a>
-        </div>
+        <form class="form-card" id="insForm">
+          <div class="section-head" style="margin-bottom:var(--space-2);">
+            <h3 style="font-size:16px; color:var(--navy-deep); font-family:'Fraunces',serif;">Completa tu inscripción</h3>
+            <p style="font-size:13px;">Elige tus tres opciones de rol, tus tres opciones de comisión y tu bancada de preferencia.</p>
+          </div>
+
+          <div class="section-head" style="margin-bottom:var(--space-2);">
+            <h3 style="font-size:15px; color:var(--navy-deep); font-family:'Fraunces',serif;">Tus tres opciones de rol</h3>
+            <p style="font-size:13px;">Es importante que selecciones roles diferentes en cada opción. Si repites una selección, se descartará automáticamente.</p>
+          </div>
+          <div class="form-grid">
+            <div class="field"><label>Opción 1 de rol</label><select name="rol1" id="rol1" class="rol-select"><option value="">Selecciona una opción</option><option>Comisario</option>
+<option>Europarlamentario</option>
+<option>Primer Ministro</option></select></div>
+            <div class="field"><label>Opción 2 de rol</label><select name="rol2" id="rol2" class="rol-select"><option value="">Selecciona una opción</option><option>Comisario</option>
+<option>Europarlamentario</option>
+<option>Primer Ministro</option></select></div>
+            <div class="field full"><label>Opción 3 de rol</label><select name="rol3" id="rol3" class="rol-select"><option value="">Selecciona una opción</option><option>Comisario</option>
+<option>Europarlamentario</option>
+<option>Primer Ministro</option></select></div>
+          </div>
+          <p class="field-warning" id="rolWarning">Esa opción de rol ya fue seleccionada — se descartó automáticamente. Elige una diferente.</p>
+
+          <div class="section-head" style="margin:var(--space-3) 0 var(--space-2);">
+            <h3 style="font-size:15px; color:var(--navy-deep); font-family:'Fraunces',serif;">Tus tres opciones de comisión</h3>
+            <p style="font-size:13px;">Igual que con los roles: elige comisiones diferentes en cada opción.</p>
+          </div>
+          <div class="form-grid">
+            <div class="field"><label>Opción 1 de comisión</label><select name="comision1" id="comision1" class="comision-select"><option value="">Selecciona una opción</option><option>Asuntos Constitucionales, Libertades Civiles, Justicia e Igualdad de Género</option>
+<option>Asuntos Exteriores, Derechos Humanos, Seguridad y Defensa</option>
+<option>Asuntos Presupuestarios, Económicos y Monetarios</option>
+<option>Cultura, Educación y Desarrollo Regional</option>
+<option>Empleo, Asuntos Sociales y Comercio Internacional</option>
+<option>Industria, Investigación y Energía</option>
+<option>Medio Ambiente, Agricultura, Desarrollo Rural y Salud Pública</option></select></div>
+            <div class="field"><label>Opción 2 de comisión</label><select name="comision2" id="comision2" class="comision-select"><option value="">Selecciona una opción</option><option>Asuntos Constitucionales, Libertades Civiles, Justicia e Igualdad de Género</option>
+<option>Asuntos Exteriores, Derechos Humanos, Seguridad y Defensa</option>
+<option>Asuntos Presupuestarios, Económicos y Monetarios</option>
+<option>Cultura, Educación y Desarrollo Regional</option>
+<option>Empleo, Asuntos Sociales y Comercio Internacional</option>
+<option>Industria, Investigación y Energía</option>
+<option>Medio Ambiente, Agricultura, Desarrollo Rural y Salud Pública</option></select></div>
+            <div class="field full"><label>Opción 3 de comisión</label><select name="comision3" id="comision3" class="comision-select"><option value="">Selecciona una opción</option><option>Asuntos Constitucionales, Libertades Civiles, Justicia e Igualdad de Género</option>
+<option>Asuntos Exteriores, Derechos Humanos, Seguridad y Defensa</option>
+<option>Asuntos Presupuestarios, Económicos y Monetarios</option>
+<option>Cultura, Educación y Desarrollo Regional</option>
+<option>Empleo, Asuntos Sociales y Comercio Internacional</option>
+<option>Industria, Investigación y Energía</option>
+<option>Medio Ambiente, Agricultura, Desarrollo Rural y Salud Pública</option></select></div>
+          </div>
+          <p class="field-warning" id="comisionWarning">Esa comisión ya fue seleccionada — se descartó automáticamente. Elige una diferente.</p>
+
+          <div class="section-head" style="margin:var(--space-3) 0 var(--space-2);">
+            <h3 style="font-size:15px; color:var(--navy-deep); font-family:'Fraunces',serif;">Partido político</h3>
+            <p style="font-size:13px;">Selección única.</p>
+          </div>
+          <div class="field full">
+            <label>Bancada de preferencia</label>
+            <div class="party-grid" id="partyGrid"></div>
+            <input type="hidden" name="partido" id="partido" required>
+          </div>
+
+          <div class="form-submit-row">
+            <span class="form-note">La asignación final de rol, comisión y bancada será confirmada por el staff del Euromodelo Joven.</span>
+            <button class="btn-primary" type="submit">Enviar inscripción</button>
+          </div>
+        </form>
       </div>
 
       <div id="pfInscripcionData" style="display:none;">
@@ -116,9 +171,147 @@
   const detailModal = createModalController('detailModal');
 </script>
 <script>
+  const EUROMODELO_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbztpSnDRFqR1JAvh4jmNyLcUo05Ur3PoRckFeavmP6PqezdYTW0QNTz172gG20U6vYsPg/exec';
+
+  // Coloca los archivos de logo (SVG/PNG/WEBP) en assets/partidos/ con estos nombres exactos.
+  const PARTIDOS = [
+    {code:'PPE', title:'PPE — Partido Popular Europeo', color:'#2D5FA8', logo:'assets/partidos/ppe.webp'},
+    {code:'Patriots', title:'Patriots — Patriotas por Europa', color:'#142850', logo:'assets/partidos/patriots.svg'},
+    {code:'ECR', title:'ECR Group — Grupo de los Conservadores y Reformistas Europeos', color:'#4E8CC7', logo:'assets/partidos/ecr.png'},
+    {code:'Renew', title:'Renew Europe — Renovar Europa', color:'#F2B705', logo:'assets/partidos/renew.webp'},
+    {code:'Greens/EFA', title:'The Greens/EFA — Los Verdes/Alianza Libre Europea', color:'#3E9142', logo:'assets/partidos/greens_efa.webp'},
+    {code:'S&D', title:'S&D — Alianza Progresista Socialista Demócrata', color:'#E33241', logo:'assets/partidos/sd.png'},
+    {code:'The Left', title:'The Left — Izquierda Unitaria Europea/Verde Nórdica', color:'#8C1D2B', logo:'assets/partidos/the_left.png'},
+  ];
+
+  function refCode(prefix){
+    return prefix + '-' + Math.random().toString(36).slice(2,7).toUpperCase();
+  }
+
+  function setupNoDuplicateGroup(selector, warningId) {
+    const selects = Array.from(document.querySelectorAll(selector));
+    const warningEl = document.getElementById(warningId);
+    selects.forEach(sel => {
+      sel.addEventListener('change', () => {
+        const val = sel.value;
+        if (!val) return;
+        const dupCount = selects.filter(s => s.value === val).length;
+        if (dupCount > 1) {
+          sel.value = '';
+          warningEl.classList.add('show');
+          setTimeout(() => warningEl.classList.remove('show'), 4000);
+        }
+      });
+    });
+  }
+
+  function initInscripcionForm(user) {
+    const partyGrid = document.getElementById('partyGrid');
+    const partidoInput = document.getElementById('partido');
+    PARTIDOS.forEach(p => {
+      const label = document.createElement('label');
+      label.className = 'party-pick';
+      label.innerHTML = `
+        <input type="radio" name="partidoPick" value="${p.title}">
+        <img src="${p.logo}" alt="${p.title}" loading="lazy" onerror="this.style.display='none';">
+        <span class="p-name">${p.title}</span>`;
+      partyGrid.appendChild(label);
+    });
+    partyGrid.addEventListener('change', (e) => {
+      if (e.target.name !== 'partidoPick') return;
+      partidoInput.value = e.target.value;
+      partyGrid.querySelectorAll('.party-pick').forEach(pick => {
+        pick.classList.toggle('checked', pick.querySelector('input').checked);
+      });
+    });
+
+    const params = new URLSearchParams(window.location.search);
+    const prefRol = params.get('rol');
+    const prefPartido = params.get('partido');
+    if (prefRol) {
+      const r1 = document.getElementById('rol1');
+      if (r1 && !r1.value) r1.value = prefRol;
+    }
+    if (prefPartido) {
+      const match = PARTIDOS.find(p => p.title.indexOf(prefPartido) === 0 || p.title === prefPartido || p.code === prefPartido);
+      if (match) {
+        const radio = partyGrid.querySelector(`input[value="${match.title}"]`);
+        if (radio) { radio.checked = true; radio.dispatchEvent(new Event('change', { bubbles: true })); }
+      }
+    }
+
+    setupNoDuplicateGroup('.rol-select', 'rolWarning');
+    setupNoDuplicateGroup('.comision-select', 'comisionWarning');
+
+    document.getElementById('insForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const fd = new FormData(form);
+      const data = {
+        rol1: fd.get('rol1'), rol2: fd.get('rol2'), rol3: fd.get('rol3'),
+        comision1: fd.get('comision1'), comision2: fd.get('comision2'), comision3: fd.get('comision3'),
+        partido: fd.get('partido'),
+        enviado: new Date().toISOString(),
+      };
+      if (!form.checkValidity() || !data.rol1 || !data.rol2 || !data.rol3 || !data.comision1 || !data.comision2 || !data.comision3 || !data.partido) {
+        form.reportValidity();
+        alert('Completa las tres opciones de rol, las tres opciones de comisión y tu partido antes de enviar.');
+        return;
+      }
+      const code = user.refCode || refCode('INSC');
+
+      saveInscripcion(user.username, data);
+
+      // Envío al backend real (Google Sheets + notificación por correo al staff).
+      // Los datos personales vienen del perfil creado en la preinscripción; aquí solo se agregan
+      // las preferencias de rol, comisión y partido.
+      try{
+        fetch(EUROMODELO_SCRIPT_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: {'Content-Type': 'text/plain;charset=utf-8'},
+          body: JSON.stringify({
+            form: 'inscripcion',
+            enviado: data.enviado,
+            ref_code: code,
+            email: user.email || '',
+            nombre_completo: user.nombre || '',
+            tipo_documento: user.tipoDocumento || '',
+            numero_documento: user.numDocumento || '',
+            telefono: user.telefono ? ('+57 ' + user.telefono) : '',
+            ciudad: user.ciudad || '',
+            institucion_educativa: user.institucion || '',
+            rol_opcion1: data.rol1, rol_opcion2: data.rol2, rol_opcion3: data.rol3,
+            comision_opcion1: data.comision1, comision_opcion2: data.comision2, comision_opcion3: data.comision3,
+            partido: data.partido,
+            autoriza_datos: user.autorizaDatos || '',
+            es_menor: user.esMenor || '',
+            autoriza_imagen: user.autorizaImagen || '',
+          }),
+        });
+      }catch(err){
+        console.error('No se pudo enviar la inscripción al backend:', err);
+      }
+
+      window.location.reload();
+    });
+  }
+</script>
+<script>
   const user = currentUserData();
   if (!user) {
     document.getElementById('perfilLoggedOut').style.display = 'block';
+    const loginFormPerfil = document.getElementById('loginFormPerfil');
+    loginFormPerfil.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const fd = new FormData(loginFormPerfil);
+      const ok = loginUser(fd.get('username').trim(), fd.get('password').trim());
+      if (ok) {
+        window.location.reload();
+      } else {
+        document.getElementById('loginErrorPerfil').style.display = 'block';
+      }
+    });
   } else {
     document.getElementById('perfilLoggedIn').style.display = 'block';
     document.getElementById('pfNombre').textContent = user.nombre || user.username;
@@ -146,6 +339,7 @@
       document.getElementById('pfPartido').textContent = ins.partido;
     } else {
       document.getElementById('pfNoInscripcion').style.display = 'block';
+      initInscripcionForm(user);
     }
 
     document.getElementById('pfLogoutBtn').addEventListener('click', () => {

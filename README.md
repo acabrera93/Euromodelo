@@ -16,8 +16,8 @@ mesas-postulacion.html      Postulación a Mesas Directivas
 mesas-votacion.html         Votación de Mesas Directivas (ciudad > comisión > candidatos)
 galeria.html                Galería "20 Años, Mil Historias"
 preinscripcion.html         Formulario de preinscripción (genera usuario/contraseña)
-inscripcion.html            Formulario de inscripción (requiere login)
-perfil.html                 Landing del estudiante tras iniciar sesión
+perfil.html                 Área personal del estudiante: al iniciar sesión, si aún no se ha
+                             inscrito ve ahí mismo el formulario de rol/comisión/partido
 
 assets/
   styles.css                 Hoja de estilos compartida (tokens de color, tipografía, componentes)
@@ -30,13 +30,16 @@ assets/
 El sitio usa **localStorage del navegador** (no una base de datos ni un backend real).
 Esto significa que:
 
-- Los usuarios generados en `preinscripcion.html` y las inscripciones de `inscripcion.html`
-  solo existen en el navegador de cada estudiante — no hay un panel centralizado donde el
-  staff pueda ver todos los registros.
+- El login (usuario/contraseña) sigue siendo local al navegador de cada estudiante — sirve
+  para saber quién está inscribiéndose y mostrarle su perfil, pero no es un sistema de
+  autenticación seguro.
+- Tanto la preinscripción como la inscripción (rol/comisión/partido, completada dentro de
+  `perfil.html` una vez el estudiante inicia sesión) sí se envían a un backend real: un Google
+  Apps Script (`apps-script/inscripcion.gs`) que las guarda en una Google Sheet y notifica por
+  correo al staff.
 - Es un **piloto funcional para validar el flujo** (preinscripción → credenciales → login →
-  inscripción → perfil), no la solución definitiva. Antes de producción, esto debe
-  conectarse a un backend real (base de datos + autenticación segura) para que el staff
-  pueda consultar y administrar las inscripciones desde un solo lugar.
+  completar inscripción en el perfil), no la solución definitiva. Las contraseñas en texto
+  plano en localStorage son aceptables para el piloto, no para producción.
 - Las contraseñas se generan y almacenan en texto plano en el navegador. Aceptable para un
   piloto; no aceptable para producción.
 
@@ -46,7 +49,8 @@ Esto significa que:
    ícono de cámara) en todos los espacios donde antes había un ícono de texto (M1, CO, EP,
    PPE, etc.) y en el encabezado de cada página. Reemplazar por `<img>` cuando haya fotos.
 2. **Google Forms**: los botones "Preinscripción" e "Inscripción" del Inicio ya NO apuntan
-   a Google Forms — ahora son subpáginas propias (`preinscripcion.html` / `inscripcion.html`).
+   a Google Forms — Preinscripción es `preinscripcion.html`, e Inscripción lleva a `perfil.html`
+   (pide iniciar sesión y ahí mismo se completa el formulario de rol/comisión/partido).
 3. **Handbook**: el botón "Descargar Handbook (PDF)" en Inicio está pendiente de vincular
    al archivo real.
 4. **Campus Euromodelo**: cada capacitación abre un popup con dos botones ("Léelo a tu
