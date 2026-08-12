@@ -14,19 +14,44 @@
     <a href="index.html" class="brand"><img src="assets/logo.png" class="brand-logo" alt="Euromodelo Joven - Fundación Revel"></a>
     <nav class="links" id="navLinks">
       <a href="index.html" class="active">Inicio</a>
-      <a href="campus.html">Campus Euromodelo - Capacitaciones</a>
+      <div class="nav-dropdown">
+        <button type="button" class="nav-dropdown-toggle" id="navDropdownToggle">Euromodelo Joven 2026 <span class="caret">&#9662;</span></button>
+        <div class="nav-dropdown-menu" id="navDropdownMenu">
+          <a href="campus.html">Campus Euromodelo - Capacitaciones</a>
+          <a href="roles.html">Roles</a>
+          <a href="comisiones.html">Comisiones</a>
+          <a href="partidos.html">Partidos Políticos</a>
+          <a href="mesas-postulacion.html">Mesas Directivas</a>
+        </div>
+      </div>
       <a href="mentes.html">Grandes Mentes</a>
-      <a href="roles.html">Roles</a>
-      <a href="comisiones.html">Comisiones</a>
-      <a href="partidos.html">Partidos Políticos</a>
-      <a href="mesas-postulacion.html">Mesas Directivas</a>
       <a href="galeria.html">Galería</a>
     </nav>
+    <div class="auth-area" id="authArea">
+      <button class="btn-ghost-sm" id="loginBtn">Iniciar sesión</button>
+      <div class="login-panel" id="loginPanel">
+        <h4>Iniciar sesión</h4>
+        <p class="login-note">Piloto: usa el usuario y la contraseña generados al finalizar tu preinscripción.</p>
+        <form id="loginForm">
+          <input type="text" name="username" placeholder="Usuario" required>
+          <input type="password" name="password" placeholder="Contraseña" required>
+          <button type="submit">Entrar</button>
+        </form>
+        <p id="loginError" style="display:none; color:#C0392B; font-size:12px; margin-top:8px;">Usuario o contraseña incorrectos.</p>
+        <div class="login-links">
+          <a href="preinscripcion.html">Preinscribirme</a>
+          <a href="perfil.html">Mi perfil</a>
+        </div>
+      </div>
+    </div>
     <button class="menu-toggle" id="menuToggle" aria-label="Abrir menú">&#9776;</button>
   </div>
 </header>
 
 <section class="hero">
+  <div class="star-ring" aria-hidden="true">
+    <div class="dots" id="dotsRing"></div>
+  </div>
   <div class="container hero-grid">
     <div>
       <span class="eyebrow">Programa académico internacional sobre Europa</span>
@@ -43,6 +68,10 @@
     </div>
   </div>
 </section>
+
+<div class="photo-marquee">
+  <div class="photo-marquee-track" id="photoMarqueeTrack"></div>
+</div>
 
 <div class="stat-strip">
   <div class="container">
@@ -61,7 +90,7 @@
     </div>
     <div class="grid-cards">
       <div class="card">
-        <div class="photo-placeholder ph-sq"><span class="ph-icon">&#128247;</span><span class="ph-label">CE</span></div>
+        <div class="card-photo"><img src="assets/campus_euromodelo.jpeg" alt="Campus Euromodelo" loading="lazy"></div>
         <h3>Campus Euromodelo</h3>
         <p>Módulos formativos sobre instituciones europeas, partidos políticos y procedimiento legislativo, para llegar preparado a cada sesión.</p>
         <div class="card-foot"><a class="link-btn" href="campus.html">Explorar módulos &rarr;</a></div>
@@ -96,6 +125,38 @@
   document.getElementById('downloadHandbookBtn').addEventListener('click', () => {
     alert('El staff debe vincular aquí el enlace de descarga del Handbook 2026 en PDF.');
   });
+</script>
+<script>
+  // Círculo de estrellas decorativo, detrás del texto del hero.
+  const dotsRing = document.getElementById('dotsRing');
+  const R = 132;
+  for (let i = 0; i < 12; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'dot';
+    const angle = (i / 12) * 2 * Math.PI;
+    dot.style.transform = `translate(${140 + R * Math.sin(angle)}px, ${140 - R * Math.cos(angle)}px)`;
+    dotsRing.appendChild(dot);
+  }
+</script>
+<script>
+  // Galería horizontal en loop, debajo del hero: fotos de Euromodelo Nacional.
+  function driveImg(id, w){ return 'https://lh3.googleusercontent.com/d/' + id + '=w' + w; }
+  const MEMORIAS_NACIONAL = [
+    '1uGqC-Kdsxlei3PtBJmk4undGLqpJuZP5',
+    '1GMg6tbOk6-qAXQnf2_NWS073ZhvBW-mk',
+    '1GJT8nJRBZoZDfAo73LGa2LxLAZvXU96i',
+    '1_OpY-au5wAnnPrZRaTOxpr4T1WZ1qp16',
+    '1sLlYbEfbKKcMTH3CjmsDkk5sk0PqDzcD',
+    '1VE5-08GuoOuRTPAD-54fcX6xYnQ0Gg3J',
+    '1hU-l5dnzIkuForjx18ERR2rgefptRTyq',
+  ];
+  const marqueeTrack = document.getElementById('photoMarqueeTrack');
+  if (MEMORIAS_NACIONAL.length) {
+    const marqueePhotos = MEMORIAS_NACIONAL.concat(MEMORIAS_NACIONAL);
+    marqueeTrack.innerHTML = marqueePhotos.map(id =>
+      `<img src="${driveImg(id, 400)}" alt="Euromodelo Nacional" loading="lazy">`
+    ).join('');
+  }
 </script>
 </body>
 </html>

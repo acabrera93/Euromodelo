@@ -15,6 +15,31 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
+/* ---------- Header: menú desplegable "Euromodelo Joven 2026" ---------- */
+document.addEventListener('DOMContentLoaded', () => {
+  const toggle = document.getElementById('navDropdownToggle');
+  const menu = document.getElementById('navDropdownMenu');
+  if (!toggle || !menu) return;
+  toggle.setAttribute('aria-expanded', 'false');
+  toggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const open = menu.classList.toggle('open');
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+  document.addEventListener('click', (e) => {
+    if (menu.classList.contains('open') && !menu.contains(e.target) && e.target !== toggle) {
+      menu.classList.remove('open');
+      toggle.setAttribute('aria-expanded', 'false');
+    }
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      menu.classList.remove('open');
+      toggle.setAttribute('aria-expanded', 'false');
+    }
+  });
+});
+
 /* ---------- Modal genérico (fábrica de controladores) ---------- */
 function createModalController(id) {
   const el = document.getElementById(id);
