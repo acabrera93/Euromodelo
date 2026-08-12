@@ -174,6 +174,30 @@ async function loginUser(usernameOrEmail, password) {
 function logoutUser() {
   localStorage.removeItem(AUTH_CURRENT_KEY);
 }
+// A diferencia de loginUser, siempre consulta el backend (no usa el atajo local):
+// sirve para refrescar el perfil con datos que solo vive en la Sheet, como el rol,
+// la comisión o el partido ya asignados por el staff.
+async function refreshUserFromServer(username) {
+  const users = getUsers();
+  const local = users[username];
+  if (!local || !local.password) return null;
+  try {
+    const res = await fetch(EUROMODELO_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ form: 'login', email: username, password: local.password }),
+    });
+    const result = await res.json();
+    if (result && result.ok && result.user) {
+      users[username] = { ...local, ...result.user };
+      saveUsers(users);
+      return { username, ...users[username] };
+    }
+  } catch (e) {
+    console.error('No se pudo actualizar el perfil desde el backend:', e);
+  }
+  return null;
+}
 function currentUsername() {
   return localStorage.getItem(AUTH_CURRENT_KEY);
 }
@@ -188,6 +212,25 @@ function saveInscripcion(username, inscripcionData) {
   if (users[username]) {
     users[username].inscripcion = inscripcionData;
     saveUsers(users);
+  }
+}
+// Repetir la Brújula Legislativa desde el área personal reemplaza el resultado anterior,
+// tanto local como en la Sheet.
+function updateBrujulaResult(username, refCode, resultado) {
+  const users = getUsers();
+  if (users[username] && users[username].inscripcion) {
+    users[username].inscripcion = { ...users[username].inscripcion, resultadoBrujula: resultado };
+    saveUsers(users);
+  }
+  try {
+    fetch(EUROMODELO_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ form: 'update_brujula', ref_code: refCode, resultado_brujula: resultado }),
+    });
+  } catch (e) {
+    console.error('No se pudo sincronizar el resultado de la Brújula Legislativa:', e);
   }
 }
 function changePassword(username, newPassword) {

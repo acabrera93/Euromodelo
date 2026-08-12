@@ -111,6 +111,16 @@
           </div>
 
           <div class="section-head" style="margin-bottom:var(--space-2);">
+            <h3 style="font-size:15px; color:var(--navy-deep); font-family:'Fraunces',serif;">Brújula Legislativa</h3>
+            <p style="font-size:13px;">Antes de continuar, completa este test rápido de 5 preguntas. Es obligatorio para enviar tu inscripción.</p>
+          </div>
+          <div class="field full" style="margin-bottom:var(--space-3);">
+            <button type="button" class="btn-solid" id="openInsQuizBtn" style="background:var(--navy-deep); color:var(--white);">&#129517; Hacer la Brújula Legislativa</button>
+            <p id="brujulaResultText" style="font-size:13px; color:var(--teal); font-weight:600; margin-top:10px; display:none;">&#10003; Tu resultado: <span id="brujulaResultValue"></span> · <a href="#" id="retakeInsQuizLink">Volver a hacer el test</a></p>
+            <input type="hidden" name="resultadoBrujula" id="resultadoBrujula" required>
+          </div>
+
+          <div class="section-head" style="margin-bottom:var(--space-2);">
             <h3 style="font-size:15px; color:var(--navy-deep); font-family:'Fraunces',serif;">Tus opciones de rol</h3>
             <p style="font-size:13px;">Elige tu primera y segunda opción de rol (deben ser diferentes). Como solo existen tres roles, el que no elijas queda automáticamente como tu tercera opción.</p>
           </div>
@@ -176,16 +186,21 @@
         </div>
         <div class="grid-cards">
           <div class="card">
-            <h3>Opciones de rol</h3>
+            <h3 id="pfRolesTitle">Opciones de rol</h3>
             <ul class="role-bullets" id="pfRoles" style="--accent:var(--gold-star);"></ul>
           </div>
           <div class="card">
-            <h3>Opciones de comisión</h3>
+            <h3 id="pfComisionesTitle">Opciones de comisión</h3>
             <ul class="role-bullets" id="pfComisiones" style="--accent:var(--blue-slate);"></ul>
           </div>
           <div class="card">
-            <h3>Bancada de preferencia</h3>
+            <h3 id="pfPartidoTitle">Bancada de preferencia</h3>
             <p id="pfPartido" style="font-weight:600; color:var(--blue-revel);"></p>
+          </div>
+          <div class="card">
+            <h3>Brújula Legislativa</h3>
+            <p id="pfBrujula" style="font-weight:600; color:var(--blue-revel);"></p>
+            <div class="card-foot"><a href="#" id="retakeBrujulaLinkProfile" class="link-btn">Volver a hacer el test &rarr;</a></div>
           </div>
         </div>
       </div>
@@ -194,6 +209,12 @@
         <button class="btn-ghost" id="pfLogoutBtn" style="border-color:var(--blue-slate); color:var(--blue-revel);">Cerrar sesión</button>
       </div>
     </div>
+  </div>
+</div>
+<div class="modal-overlay" id="quizModal">
+  <div class="modal-card">
+    <button class="modal-close" aria-label="Cerrar">&#10005;</button>
+    <div class="quiz-body"></div>
   </div>
 </div>
 <div class="modal-overlay" id="forcePasswordModal">
@@ -234,6 +255,26 @@
   ];
 
   const ROLES = ['Comisario', 'Europarlamentario', 'Primer Ministro'];
+
+  /* ---- Brújula Legislativa (test de rol) ---- */
+  const rolesInfo = {
+    CO: {code:'CO', title:'Comisario', color:'#C9A227', desc:'Es el rol base del Euromodelo Joven. Su función es crear una propuesta legislativa que será debatida en comisión y, en caso de ser seleccionada, en plenaria. El comisario deberá exponer su propuesta y responder las preguntas que se le formulen. Representa a una bancada política dentro de la Comisión Europea.'},
+    EP: {code:'EP', title:'Europarlamentario', color:'#1E3D73', desc:'Es el rol más numeroso dentro del Euromodelo Joven. Su participación es la más relevante de cara al desarrollo del debate: formulan preguntas para discutir la propuesta y crean las enmiendas que serán votadas, además de votar las propuestas legislativas de los comisarios. Representan los ideales de un partido político del Parlamento Europeo.'},
+    PM: {code:'PM', title:'Primer Ministro', color:'#3E6E9E', desc:'Es el segundo rol participante en el debate. Sus intervenciones aportan al desarrollo del debate, formulan preguntas para discutir las propuestas y su función especial es votar las enmiendas propuestas por los europarlamentarios y las propuestas legislativas de los comisarios. Representan los intereses de un Estado miembro de la Unión Europea.'},
+  };
+  const quizQuestions = [
+    {q:'En un trabajo en grupo, normalmente tú...', options:[{label:'Propones la idea inicial y la defiendes ante los demás', value:'CO'},{label:'Haces preguntas y buscas mejorar la propuesta de otros', value:'EP'},{label:'Te preocupas por representar los intereses de todo el grupo', value:'PM'}]},
+    {q:'Tu mayor fortaleza es...', options:[{label:'Crear y argumentar propuestas propias', value:'CO'},{label:'El pensamiento crítico y detectar fallas en un argumento', value:'EP'},{label:'La negociación y la defensa de intereses ajenos', value:'PM'}]},
+    {q:'En un debate, preferirías...', options:[{label:'Exponer tu propia propuesta ante todos', value:'CO'},{label:'Formular preguntas incómodas y proponer cambios', value:'EP'},{label:'Representar la postura de tu país o región', value:'PM'}]},
+    {q:'Tus amigos te describirían como alguien...', options:[{label:'Creativo/a e iniciador/a de proyectos', value:'CO'},{label:'Analítico/a y curioso/a', value:'EP'},{label:'Diplomático/a y buen/a negociador/a', value:'PM'}]},
+    {q:'Si tuvieras que elegir una película, elegirías una...', options:[{label:'Donde el protagonista lidera un cambio desde cero', value:'CO'},{label:'De juicio, investigación o misterio a resolver', value:'EP'},{label:'De diplomacia y negociación internacional', value:'PM'}]},
+  ];
+  const quizModal = createModalController('quizModal');
+  function tallyQuizWinner(answers) {
+    const tally = {CO: 0, EP: 0, PM: 0};
+    answers.forEach(a => tally[a]++);
+    return Object.keys(tally).reduce((a, b) => tally[a] >= tally[b] ? a : b);
+  }
 
   function refCode(prefix){
     return prefix + '-' + Math.random().toString(36).slice(2,7).toUpperCase();
@@ -294,6 +335,38 @@
     setupNoDuplicateGroup('.rol-select', 'rolWarning');
     setupNoDuplicateGroup('.comision-select', 'comisionWarning');
 
+    function startInsQuiz() {
+      initQuiz({
+        modalId: 'quizModal',
+        questions: quizQuestions,
+        onFinish: (answers, body) => {
+          const r = rolesInfo[tallyQuizWinner(answers)];
+          document.getElementById('resultadoBrujula').value = r.title;
+          document.getElementById('brujulaResultValue').textContent = r.title;
+          document.getElementById('brujulaResultText').style.display = 'block';
+          body.innerHTML = `
+            <div class="quiz-result">
+              <div class="result-icon" style="background:${r.color}">${r.code}</div>
+              <h3>¡Tu resultado es: ${r.title}!</h3>
+              <p>${r.desc}</p>
+              <button class="btn-primary" id="quizContinueBtn" type="button">Continuar con mi inscripción</button><br>
+              <button class="quiz-restart" id="quizRestartBtn">Volver a intentar</button>
+            </div>`;
+          document.getElementById('quizRestartBtn').addEventListener('click', startInsQuiz);
+          document.getElementById('quizContinueBtn').addEventListener('click', () => quizModal.close());
+        },
+      });
+    }
+    document.getElementById('openInsQuizBtn').addEventListener('click', () => {
+      quizModal.open();
+      startInsQuiz();
+    });
+    document.getElementById('retakeInsQuizLink').addEventListener('click', (e) => {
+      e.preventDefault();
+      quizModal.open();
+      startInsQuiz();
+    });
+
     document.getElementById('insForm').addEventListener('submit', (e) => {
       e.preventDefault();
       const form = e.target;
@@ -306,11 +379,12 @@
         rol3: ROLES.find(r => r !== rol1 && r !== rol2) || '',
         comision1: fd.get('comision1'), comision2: fd.get('comision2'), comision3: fd.get('comision3'),
         partido: fd.get('partido'),
+        resultadoBrujula: fd.get('resultadoBrujula'),
         enviado: new Date().toISOString(),
       };
-      if (!form.checkValidity() || !data.rol1 || !data.rol2 || data.rol1 === data.rol2 || !data.comision1 || !data.comision2 || !data.comision3 || !data.partido) {
+      if (!form.checkValidity() || !data.rol1 || !data.rol2 || data.rol1 === data.rol2 || !data.comision1 || !data.comision2 || !data.comision3 || !data.partido || !data.resultadoBrujula) {
         form.reportValidity();
-        alert('Completa tus dos opciones de rol (diferentes entre sí), las tres opciones de comisión y tu partido antes de enviar.');
+        alert('Completa tus dos opciones de rol (diferentes entre sí), las tres opciones de comisión, tu partido y la Brújula Legislativa antes de enviar.');
         return;
       }
       const code = user.refCode || refCode('INSC');
@@ -339,6 +413,7 @@
             rol_opcion1: data.rol1, rol_opcion2: data.rol2, rol_opcion3: data.rol3,
             comision_opcion1: data.comision1, comision_opcion2: data.comision2, comision_opcion3: data.comision3,
             partido: data.partido,
+            resultado_brujula: data.resultadoBrujula,
             autoriza_datos: user.autorizaDatos || '',
             es_menor: user.esMenor || '',
             autoriza_imagen: user.autorizaImagen || '',
@@ -397,29 +472,101 @@
     document.getElementById('pfNombre').textContent = user.nombre || user.username;
     document.getElementById('pfMeta').textContent = (user.institucion || 'Institución por confirmar') + ' · ' + (user.ciudad || 'Ciudad por confirmar');
 
-    const badges = [];
-    badges.push(`<span class="profile-badge"><b>Usuario</b>${user.username}</span>`);
-    badges.push(`<span class="profile-badge"><b>Ciudad</b>${user.ciudad || 'Por confirmar'}</span>`);
-    if (user.inscripcion) {
-      badges.push(`<span class="profile-badge"><b>Rol 1</b>${user.inscripcion.rol1}</span>`);
-      badges.push(`<span class="profile-badge"><b>Comisión 1</b>${user.inscripcion.comision1}</span>`);
-      badges.push(`<span class="profile-badge"><b>Bancada</b>${user.inscripcion.partido}</span>`);
-    } else {
-      badges.push(`<span class="profile-badge">Inscripción pendiente</span>`);
-    }
-    document.getElementById('pfBadges').innerHTML = badges.join('');
+    // Se mantiene actualizado con el último `u` renderizado, para que el botón de
+    // repetir la Brújula Legislativa siempre use los datos más recientes (username, refCode).
+    let currentProfileUser = user;
 
+    // Pinta los badges y la tarjeta "Tu inscripción". Se llama al cargar (con los datos
+    // en caché local) y de nuevo si el backend trae rol/comisión/partido ya asignados
+    // por el staff, para que reemplacen las preferencias sin recargar la página.
+    function renderInscripcionSummary(u) {
+      currentProfileUser = u;
+      const badges = [];
+      badges.push(`<span class="profile-badge"><b>Usuario</b>${u.username}</span>`);
+      badges.push(`<span class="profile-badge"><b>Ciudad</b>${u.ciudad || 'Por confirmar'}</span>`);
+      if (u.inscripcion) {
+        badges.push(`<span class="profile-badge"><b>Rol</b>${u.rolAsignado || u.inscripcion.rol1}</span>`);
+        badges.push(`<span class="profile-badge"><b>Comisión</b>${u.comisionAsignada || u.inscripcion.comision1}</span>`);
+        badges.push(`<span class="profile-badge"><b>Bancada</b>${u.partidoAsignado || u.inscripcion.partido}</span>`);
+      } else {
+        badges.push(`<span class="profile-badge">Inscripción pendiente</span>`);
+      }
+      document.getElementById('pfBadges').innerHTML = badges.join('');
+
+      if (u.inscripcion) {
+        document.getElementById('pfInscripcionData').style.display = 'block';
+        const ins = u.inscripcion;
+
+        if (u.rolAsignado) {
+          document.getElementById('pfRolesTitle').textContent = 'Rol asignado';
+          document.getElementById('pfRoles').innerHTML = `<li class="assigned">${u.rolAsignado}</li>`;
+        } else {
+          document.getElementById('pfRolesTitle').textContent = 'Opciones de rol';
+          document.getElementById('pfRoles').innerHTML =
+            `<li>Opción 1: ${ins.rol1}</li><li>Opción 2: ${ins.rol2}</li><li>Opción 3: ${ins.rol3}</li>`;
+        }
+
+        if (u.comisionAsignada) {
+          document.getElementById('pfComisionesTitle').textContent = 'Comisión asignada';
+          document.getElementById('pfComisiones').innerHTML = `<li class="assigned">${u.comisionAsignada}</li>`;
+        } else {
+          document.getElementById('pfComisionesTitle').textContent = 'Opciones de comisión';
+          document.getElementById('pfComisiones').innerHTML =
+            `<li>Opción 1: ${ins.comision1}</li><li>Opción 2: ${ins.comision2}</li><li>Opción 3: ${ins.comision3}</li>`;
+        }
+
+        if (u.partidoAsignado) {
+          document.getElementById('pfPartidoTitle').textContent = 'Bancada asignada';
+          document.getElementById('pfPartido').textContent = u.partidoAsignado;
+        } else {
+          document.getElementById('pfPartidoTitle').textContent = 'Bancada de preferencia';
+          document.getElementById('pfPartido').textContent = ins.partido;
+        }
+
+        document.getElementById('pfBrujula').textContent = ins.resultadoBrujula || 'Aún no realizada';
+      } else {
+        document.getElementById('pfNoInscripcion').style.display = 'block';
+        initInscripcionForm(u);
+      }
+    }
+
+    renderInscripcionSummary(user);
     if (user.inscripcion) {
-      document.getElementById('pfInscripcionData').style.display = 'block';
-      const ins = user.inscripcion;
-      document.getElementById('pfRoles').innerHTML =
-        `<li>Opción 1: ${ins.rol1}</li><li>Opción 2: ${ins.rol2}</li><li>Opción 3: ${ins.rol3}</li>`;
-      document.getElementById('pfComisiones').innerHTML =
-        `<li>Opción 1: ${ins.comision1}</li><li>Opción 2: ${ins.comision2}</li><li>Opción 3: ${ins.comision3}</li>`;
-      document.getElementById('pfPartido').textContent = ins.partido;
-    } else {
-      document.getElementById('pfNoInscripcion').style.display = 'block';
-      initInscripcionForm(user);
+      // Refresco silencioso: si el staff ya cargó rol/comisión/partido en la Sheet,
+      // esta llamada los trae y actualiza la vista sin recargar.
+      refreshUserFromServer(user.username).then(refreshed => {
+        if (refreshed) renderInscripcionSummary(refreshed);
+      });
+    }
+
+    function startProfileQuiz() {
+      initQuiz({
+        modalId: 'quizModal',
+        questions: quizQuestions,
+        onFinish: (answers, body) => {
+          const r = rolesInfo[tallyQuizWinner(answers)];
+          // Repetir el test reemplaza el resultado anterior, local y en la Sheet.
+          updateBrujulaResult(currentProfileUser.username, currentProfileUser.refCode, r.title);
+          document.getElementById('pfBrujula').textContent = r.title;
+          body.innerHTML = `
+            <div class="quiz-result">
+              <div class="result-icon" style="background:${r.color}">${r.code}</div>
+              <h3>¡Tu nuevo resultado es: ${r.title}!</h3>
+              <p>${r.desc}</p>
+              <button class="btn-primary" id="quizCloseBtn2" type="button">Cerrar</button><br>
+              <button class="quiz-restart" id="quizRestartBtn2">Volver a intentar</button>
+            </div>`;
+          document.getElementById('quizRestartBtn2').addEventListener('click', startProfileQuiz);
+          document.getElementById('quizCloseBtn2').addEventListener('click', () => quizModal.close());
+        },
+      });
+    }
+    if (user.inscripcion) {
+      document.getElementById('retakeBrujulaLinkProfile').addEventListener('click', (e) => {
+        e.preventDefault();
+        quizModal.open();
+        startProfileQuiz();
+      });
     }
 
     document.getElementById('pfLogoutBtn').addEventListener('click', () => {
