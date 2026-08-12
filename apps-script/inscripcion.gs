@@ -40,13 +40,21 @@ function findOrCreateSheet_(ss, candidateNames, fallbackName) {
 // Lee la fila 1 como cabeceras reales; si la hoja está vacía, la inicializa con canonicalHeaders.
 // Así, si alguien reordena las columnas manualmente en la Sheet, los datos se siguen ubicando
 // según el nombre de cada columna y no según una posición fija.
+// Si la hoja ya existe pero le faltan columnas de canonicalHeaders (p.ej. porque venía de una
+// versión anterior del script), las agrega al final en vez de ignorarlas.
 function getHeaders_(sheet, canonicalHeaders) {
   if (sheet.getLastRow() === 0) {
     sheet.appendRow(canonicalHeaders);
     return canonicalHeaders;
   }
   var lastCol = sheet.getLastColumn();
-  return sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var missing = canonicalHeaders.filter(function(h) { return headers.indexOf(h) === -1; });
+  if (missing.length > 0) {
+    sheet.getRange(1, headers.length + 1, 1, missing.length).setValues([missing]);
+    headers = headers.concat(missing);
+  }
+  return headers;
 }
 
 function escapeHtml_(s) {
