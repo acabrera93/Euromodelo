@@ -294,6 +294,29 @@ function requestPasswordReset(email) {
   }
 }
 
+/* ---------- Botones con estado de carga ----------
+   Se usa en cualquier botón que dispare una espera real (fetch con respuesta leída, o una
+   navegación a otra página): reemplaza el contenido del botón por un spinner + texto, y lo
+   deshabilita para evitar doble click. clearButtonLoading lo devuelve a su estado original —
+   no hace falta llamarla si la acción termina en una navegación (el botón se queda "cargando"
+   hasta que la página siguiente reemplaza todo). -------------------------------------------- */
+function setButtonLoading(btn, loadingText) {
+  if (!btn || btn.dataset.loading === 'true') return;
+  btn.dataset.loading = 'true';
+  btn.dataset.originalHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.classList.add('btn-loading');
+  btn.innerHTML = '<span class="btn-spinner"></span>' + (loadingText || 'Cargando…');
+}
+function clearButtonLoading(btn) {
+  if (!btn || btn.dataset.loading !== 'true') return;
+  btn.disabled = false;
+  btn.classList.remove('btn-loading');
+  if (btn.dataset.originalHtml !== undefined) btn.innerHTML = btn.dataset.originalHtml;
+  delete btn.dataset.loading;
+  delete btn.dataset.originalHtml;
+}
+
 /* ---------- Header: panel de inicio de sesión ---------- */
 function initLoginPanel() {
   const loginBtn = document.getElementById('loginBtn');
@@ -334,19 +357,18 @@ function initLoginPanel() {
       const username = fd.get('username').trim();
       const password = fd.get('password').trim();
       const submitBtn = loginForm.querySelector('button[type="submit"]');
-      if (submitBtn) submitBtn.disabled = true;
+      if (submitBtn) setButtonLoading(submitBtn);
       const ok = await loginUser(username, password);
       if (ok) {
-        if (submitBtn) submitBtn.disabled = false;
         window.location.href = 'perfil.html';
         return;
       }
       const isAdmin = await attemptAdminLogin(username, password);
-      if (submitBtn) submitBtn.disabled = false;
       if (isAdmin) {
         window.location.href = 'admin.html';
         return;
       }
+      if (submitBtn) clearButtonLoading(submitBtn);
       const errEl = document.getElementById('loginError');
       if (errEl) errEl.style.display = 'block';
     });

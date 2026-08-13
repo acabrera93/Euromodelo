@@ -407,9 +407,12 @@
       const errEl = document.getElementById('adminForcePasswordError');
       if (p1 !== p2) { errEl.style.display = 'block'; return; }
       errEl.style.display = 'none';
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      setButtonLoading(submitBtn);
       const creds = getCreds();
       await apiCall({ form: 'admin_update_password', email: creds.email, newPassword: p1 });
       sessionStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify({ email: creds.email, password: p1 }));
+      clearButtonLoading(submitBtn);
       modal.close();
     });
   }
@@ -419,14 +422,18 @@
     const email = document.getElementById('adminEmailInput').value.trim();
     const password = document.getElementById('adminPasswordInput').value.trim();
     document.getElementById('adminGateError').style.display = 'none';
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    setButtonLoading(submitBtn);
     const result = await apiCall({ form: 'admin_login', email, password });
     if (!result || !result.ok) {
+      clearButtonLoading(submitBtn);
       document.getElementById('adminGateError').style.display = 'block';
       return;
     }
     sessionStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify({ email, password }));
     showContent();
     await loadParticipants();
+    clearButtonLoading(submitBtn);
     if (result.mustChangePassword) openForcePasswordModal();
   });
 
@@ -443,12 +450,19 @@
   document.getElementById('adminForgotForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = document.getElementById('adminForgotEmailInput').value.trim();
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    setButtonLoading(submitBtn);
     await apiCall({ form: 'admin_forgot_password', email });
+    clearButtonLoading(submitBtn);
     document.getElementById('adminForgotForm').style.display = 'none';
     document.getElementById('adminForgotSent').style.display = 'block';
   });
 
-  document.getElementById('adminRefreshBtn').addEventListener('click', () => loadParticipants());
+  document.getElementById('adminRefreshBtn').addEventListener('click', async (e) => {
+    setButtonLoading(e.target);
+    await loadParticipants();
+    clearButtonLoading(e.target);
+  });
   ['filterSearch', 'filterComision', 'filterRol', 'filterColegio'].forEach(id => {
     document.getElementById(id).addEventListener('input', renderTable);
     document.getElementById(id).addEventListener('change', renderTable);
@@ -462,9 +476,10 @@
     el.textContent = text;
   }
 
-  document.getElementById('applyAssignmentBtn').addEventListener('click', async () => {
+  document.getElementById('applyAssignmentBtn').addEventListener('click', async (e) => {
     const sure = confirm('¿Sortear rol, comisión y partido para los participantes que todavía no tienen asignación manual? No se tocará a quienes ya fueron asignados a mano.');
     if (!sure) return;
+    setButtonLoading(e.target, 'Sorteando…');
     const mesaCount = Number(document.getElementById('mesaCountInput').value) || 0;
     const creds = getCreds();
     const result = await apiCall({ form: 'admin_apply_assignment', adminEmail: creds.email, adminPassword: creds.password, mesaCount });
@@ -474,11 +489,13 @@
     } else {
       showAssignmentMsg('No se pudo correr el sorteo. Intenta de nuevo.', true);
     }
+    clearButtonLoading(e.target);
   });
 
-  document.getElementById('undoAssignmentBtn').addEventListener('click', async () => {
+  document.getElementById('undoAssignmentBtn').addEventListener('click', async (e) => {
     const sure = confirm('¿Deshacer el último sorteo automático? Esto vacía rol/comisión/partido de los participantes que fueron asignados en esa corrida.');
     if (!sure) return;
+    setButtonLoading(e.target, 'Deshaciendo…');
     const creds = getCreds();
     const result = await apiCall({ form: 'admin_undo_assignment', adminEmail: creds.email, adminPassword: creds.password });
     if (result && result.ok) {
@@ -489,6 +506,7 @@
     } else {
       showAssignmentMsg('No se pudo deshacer. Intenta de nuevo.', true);
     }
+    clearButtonLoading(e.target);
   });
 
   document.getElementById('propuestasTableBody').addEventListener('click', async (e) => {
@@ -505,11 +523,14 @@
       ref_code: refCode, propuesta_comentario: comentario,
     };
     if (action === 'aprobar') payload.propuesta_estado = 'Aprobada';
+    setButtonLoading(e.target);
     const result = await apiCall(payload);
     if (result && result.ok) {
       record.propuesta_comentario = comentario;
       if (action === 'aprobar') record.propuesta_estado = 'Aprobada';
       renderPropuestas();
+    } else {
+      clearButtonLoading(e.target);
     }
   });
 
@@ -530,6 +551,7 @@
       const comision = tr.querySelector('.editComision').value;
       const partido = tr.querySelector('.editPartido').value;
       const creds = getCreds();
+      setButtonLoading(e.target);
       const result = await apiCall({
         form: 'admin_update_assignment', adminEmail: creds.email, adminPassword: creds.password,
         ref_code: refCode, rol_asignado: rol, comision_asignada: comision, partido_asignado: partido,
@@ -542,11 +564,14 @@
         tr.outerHTML = rowHtml(record);
         renderStats();
         renderColegios();
+      } else {
+        clearButtonLoading(e.target);
       }
     } else if (action === 'borrar') {
       const sure = confirm('¿Borrar la asignación de rol, comisión y partido de este participante? Podrá volver a asignarse a mano o quedar disponible para el próximo sorteo automático.');
       if (!sure) return;
       const creds = getCreds();
+      setButtonLoading(e.target);
       const result = await apiCall({
         form: 'admin_update_assignment', adminEmail: creds.email, adminPassword: creds.password,
         ref_code: refCode, rol_asignado: '', comision_asignada: '', partido_asignado: '',
@@ -559,6 +584,8 @@
         tr.outerHTML = rowHtml(record);
         renderStats();
         renderColegios();
+      } else {
+        clearButtonLoading(e.target);
       }
     }
   });
@@ -643,8 +670,10 @@
   async function loadSimulacion() {
     const creds = getCreds();
     if (!creds) return;
+    const btn = document.getElementById('simRefreshBtn');
     const errEl = document.getElementById('simError');
     errEl.style.display = 'none';
+    setButtonLoading(btn);
     try {
       const mesaCount = Number(document.getElementById('mesaCountInput').value) || 0;
       const result = await apiCall({ form: 'admin_simulate', adminEmail: creds.email, adminPassword: creds.password, mesaCount });
@@ -659,6 +688,8 @@
     } catch (e) {
       console.error('No se pudo cargar la simulación:', e);
       errEl.style.display = 'block';
+    } finally {
+      clearButtonLoading(btn);
     }
   }
 

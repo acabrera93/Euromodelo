@@ -728,6 +728,8 @@
         return;
       }
       const code = user.refCode || refCode('INSC');
+      const submitBtn = form.querySelector('button[type="submit"]');
+      setButtonLoading(submitBtn, 'Enviando…');
 
       saveInscripcion(user.username, data);
 
@@ -780,19 +782,18 @@
       const username = fd.get('username').trim();
       const password = fd.get('password').trim();
       const submitBtn = loginFormPerfil.querySelector('button[type="submit"]');
-      submitBtn.disabled = true;
+      setButtonLoading(submitBtn);
       const ok = await loginUser(username, password);
       if (ok) {
-        submitBtn.disabled = false;
         window.location.reload();
         return;
       }
       const isAdmin = await attemptAdminLogin(username, password);
-      submitBtn.disabled = false;
       if (isAdmin) {
         window.location.href = 'admin.html';
         return;
       }
+      clearButtonLoading(submitBtn);
       document.getElementById('loginErrorPerfil').style.display = 'block';
     });
 
@@ -973,6 +974,7 @@
     }
 
     document.getElementById('pfPropuestaUploadBtn').addEventListener('click', () => {
+      const uploadBtn = document.getElementById('pfPropuestaUploadBtn');
       const input = document.getElementById('pfPropuestaFileInput');
       const errEl = document.getElementById('pfPropuestaError');
       errEl.style.display = 'none';
@@ -981,6 +983,7 @@
       if (file.type !== 'application/pdf') { errEl.textContent = 'El archivo debe ser un PDF.'; errEl.style.display = 'block'; return; }
       if (file.size > PROPUESTA_MAX_BYTES) { errEl.textContent = 'El archivo supera el tamaño máximo de 8MB.'; errEl.style.display = 'block'; return; }
 
+      setButtonLoading(uploadBtn, 'Subiendo…');
       const reader = new FileReader();
       reader.onload = () => {
         const fileBase64 = reader.result.split(',')[1] || '';
@@ -992,16 +995,19 @@
           .then(res => res.json())
           .then(result => {
             if (!result || !result.ok) {
+              clearButtonLoading(uploadBtn);
               errEl.textContent = 'No se pudo subir la propuesta. Intenta de nuevo.';
               errEl.style.display = 'block';
               return;
             }
             refreshUserFromServer(currentProfileUser.username).then(refreshed => {
+              clearButtonLoading(uploadBtn);
               if (refreshed) renderPropuestaSections(refreshed);
             });
           })
           .catch(err => {
             console.error('No se pudo subir la propuesta:', err);
+            clearButtonLoading(uploadBtn);
             errEl.textContent = 'No se pudo subir la propuesta. Intenta de nuevo.';
             errEl.style.display = 'block';
           });
