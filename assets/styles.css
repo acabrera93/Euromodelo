@@ -445,6 +445,15 @@ footer .container{display:flex; justify-content:space-between; flex-wrap:wrap; g
 .sim-origin.brujula{background:var(--gold-star); color:var(--navy-deep);}
 .sim-origin.cupo_libre, .sim-origin.reparacion{background:#C0392B;}
 
+/* ---- Panel de administración: pestañas ---- */
+.admin-tabs{display:flex; gap:8px; margin-bottom:var(--space-4); flex-wrap:wrap; border-bottom:1px solid var(--line);}
+.admin-tab-btn{
+  background:none; border:none; border-bottom:3px solid transparent; padding:10px 4px; margin-bottom:-1px;
+  font-size:14px; font-weight:600; color:var(--blue-slate); cursor:pointer; font-family:inherit;
+}
+.admin-tab-btn:hover{color:var(--blue-revel);}
+.admin-tab-btn.active{color:var(--navy-deep); border-bottom-color:var(--gold-star);}
+
 /* ---- Panel de administración: filtros y edición de fila ---- */
 .admin-filters{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:var(--space-3);}
 .admin-filters input[type="text"], .admin-filters select{
@@ -462,6 +471,17 @@ footer .container{display:flex; justify-content:space-between; flex-wrap:wrap; g
 }
 .admin-row-btn:hover{background:var(--blue-pale);}
 .admin-row-btn.save{background:var(--teal); border-color:var(--teal); color:var(--white);}
+.admin-row-btn.danger{border-color:#C0392B; color:#C0392B;}
+.admin-row-btn.danger:hover{background:#FBEAE8;}
+
+/* ---- Panel de administración: origen de la asignación ---- */
+.origen-badge{
+  display:inline-block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.03em;
+  padding:3px 9px; border-radius:20px; color:var(--white); background:var(--blue-slate);
+}
+.origen-badge.manual{background:var(--gold-star); color:var(--navy-deep);}
+.origen-badge.automatica{background:var(--teal);}
+.origen-badge.sin-asignar{background:var(--blue-pale); color:var(--blue-slate);}
 
 /* ---- Panel de administración: propuestas de comisarios ---- */
 .propuesta-badge{

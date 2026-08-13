@@ -40,7 +40,8 @@ var FIELD_LABELS_ = {
   tipo: 'Tipo de cuenta',
   propuesta_url: 'Propuesta legislativa (PDF)',
   propuesta_estado: 'Estado de la propuesta',
-  propuesta_comentario: 'Comentario del staff sobre la propuesta'
+  propuesta_comentario: 'Comentario del staff sobre la propuesta',
+  asignacion_origen: 'Origen de la asignación'
 };
 
 function normalizeName_(s) {
@@ -272,7 +273,11 @@ var CANONICAL_HEADERS_ = [
   // Propuesta legislativa del comisario: URL del PDF en Drive, estado ('' | 'Pendiente' |
   // 'Aprobada') y comentario del staff. Una nueva subida reemplaza url/estado/comentario
   // anteriores (mismo criterio que repetir una brújula).
-  'propuesta_url', 'propuesta_estado', 'propuesta_comentario'
+  'propuesta_url', 'propuesta_estado', 'propuesta_comentario',
+  // '' | 'Manual' | 'Automática'. Se recalcula cada vez que rol_asignado/comision_asignada/
+  // partido_asignado cambian, desde handleUpdateAssignment_ (Manual) o handleApplyAssignment_
+  // (Automática); se limpia junto con esos tres campos al borrar o deshacer.
+  'asignacion_origen'
 ];
 
 var INSCRIPCION_FIELDS_ = [
@@ -621,7 +626,102 @@ function handleUpdateAssignment_(sheet, headers, ss, data) {
     cell.setNumberFormat('@');
     cell.setValue(data[field] || '');
   });
+
+  // Si el payload trae rol/comisión/partido, es una edición de fila de participante (Guardar o
+  // Borrar), no una revisión de propuesta: se recalcula el origen de la asignación.
+  if (data.rol_asignado !== undefined || data.comision_asignada !== undefined || data.partido_asignado !== undefined) {
+    var origenIdx = headers.indexOf('asignacion_origen');
+    if (origenIdx !== -1) {
+      var tieneAsignacion = data.rol_asignado || data.comision_asignada || data.partido_asignado;
+      var origenCell = sheet.getRange(rowNum, origenIdx + 1);
+      origenCell.setNumberFormat('@');
+      origenCell.setValue(tieneAsignacion ? 'Manual' : '');
+    }
+  }
+
   return jsonOut_({ ok: true });
+}
+
+// ---------- Sorteo automático de rol/comisión/partido (aplica el resultado a la Sheet) ----------
+// Reusa runAssignmentSimulation_ (el mismo algoritmo que la vista previa "Simulación y sorteo"
+// del panel de admin), pero esta vez SÍ escribe en la Sheet. Respeta cualquier asignación
+// manual existente: solo toca a quienes tienen
+// rol_asignado/comision_asignada/partido_asignado en blanco los tres. Guarda qué filas tocó (por
+// email) en PropertiesService para poder deshacer esta corrida con handleUndoAssignment_.
+var LAST_ASSIGNMENT_BACKUP_KEY_ = 'LAST_ASSIGNMENT_BACKUP_';
+
+function handleApplyAssignment_(sheet, headers, ss, data) {
+  if (!verifyAdminCredentials_(ss, data.adminEmail, data.adminPassword)) return jsonOut_({ ok: false });
+
+  var mesaCount = Number(data.mesaCount);
+  if (!isFinite(mesaCount) || mesaCount < 0) mesaCount = 2;
+
+  var lastRow = sheet.getLastRow();
+  var records = [];
+  if (lastRow >= 2) {
+    var values = sheet.getRange(2, 1, lastRow - 1, headers.length).getValues();
+    records = values.map(function(row) {
+      var record = {};
+      headers.forEach(function(h, i) { record[h] = row[i]; });
+      return record;
+    });
+  }
+
+  var summary = runAssignmentSimulation_(records, mesaCount);
+  var rolIdx = headers.indexOf('rol_asignado');
+  var comIdx = headers.indexOf('comision_asignada');
+  var parIdx = headers.indexOf('partido_asignado');
+  var origenIdx = headers.indexOf('asignacion_origen');
+
+  var touchedEmails = [];
+  var applied = 0, skipped = 0;
+
+  summary.participantes.forEach(function(p) {
+    var rowNum = findRowByColumn_(sheet, headers, 'email', p.email, true);
+    if (rowNum === -1) return;
+    var currentRol = rolIdx !== -1 ? sheet.getRange(rowNum, rolIdx + 1).getValue() : '';
+    var currentCom = comIdx !== -1 ? sheet.getRange(rowNum, comIdx + 1).getValue() : '';
+    var currentPar = parIdx !== -1 ? sheet.getRange(rowNum, parIdx + 1).getValue() : '';
+    if (currentRol || currentCom || currentPar) { skipped++; return; }
+
+    if (rolIdx !== -1) { var c1 = sheet.getRange(rowNum, rolIdx + 1); c1.setNumberFormat('@'); c1.setValue(p.rol); }
+    if (comIdx !== -1) { var c2 = sheet.getRange(rowNum, comIdx + 1); c2.setNumberFormat('@'); c2.setValue(p.comision); }
+    if (parIdx !== -1) { var c3 = sheet.getRange(rowNum, parIdx + 1); c3.setNumberFormat('@'); c3.setValue(p.partido); }
+    if (origenIdx !== -1) { var c4 = sheet.getRange(rowNum, origenIdx + 1); c4.setNumberFormat('@'); c4.setValue('Automática'); }
+    touchedEmails.push(p.email);
+    applied++;
+  });
+
+  PropertiesService.getScriptProperties().setProperty(LAST_ASSIGNMENT_BACKUP_KEY_, JSON.stringify(touchedEmails));
+  return jsonOut_({ ok: true, applied: applied, skipped: skipped });
+}
+
+function handleUndoAssignment_(sheet, headers, ss, data) {
+  if (!verifyAdminCredentials_(ss, data.adminEmail, data.adminPassword)) return jsonOut_({ ok: false });
+
+  var props = PropertiesService.getScriptProperties();
+  var raw = props.getProperty(LAST_ASSIGNMENT_BACKUP_KEY_);
+  if (!raw) return jsonOut_({ ok: false, error: 'nothing_to_undo' });
+
+  var emails = JSON.parse(raw);
+  var rolIdx = headers.indexOf('rol_asignado');
+  var comIdx = headers.indexOf('comision_asignada');
+  var parIdx = headers.indexOf('partido_asignado');
+  var origenIdx = headers.indexOf('asignacion_origen');
+
+  var restored = 0;
+  emails.forEach(function(email) {
+    var rowNum = findRowByColumn_(sheet, headers, 'email', email, true);
+    if (rowNum === -1) return;
+    if (rolIdx !== -1) { var c1 = sheet.getRange(rowNum, rolIdx + 1); c1.setNumberFormat('@'); c1.setValue(''); }
+    if (comIdx !== -1) { var c2 = sheet.getRange(rowNum, comIdx + 1); c2.setNumberFormat('@'); c2.setValue(''); }
+    if (parIdx !== -1) { var c3 = sheet.getRange(rowNum, parIdx + 1); c3.setNumberFormat('@'); c3.setValue(''); }
+    if (origenIdx !== -1) { var c4 = sheet.getRange(rowNum, origenIdx + 1); c4.setNumberFormat('@'); c4.setValue(''); }
+    restored++;
+  });
+
+  props.deleteProperty(LAST_ASSIGNMENT_BACKUP_KEY_);
+  return jsonOut_({ ok: true, restored: restored });
 }
 
 // ---------- Simulación de asignación de rol / comisión / partido ----------
@@ -770,7 +870,7 @@ function buildSimulationSummary_(assignments, partidoCap, partidoCount, totalN, 
 
   var participantes = assignments.map(function(a) {
     return {
-      nombre: a.nombre, institucion: a.institucion,
+      email: a.email, nombre: a.nombre, institucion: a.institucion,
       rol: a.rol, comision: a.comision, comisionOrigen: a.comisionOrigen,
       partido: a.partido, partidoOrigen: a.partidoOrigen,
     };
@@ -836,10 +936,8 @@ function runAssignmentSimulation_(records, mesaCount) {
   return buildSimulationSummary_(assignments, partidoCap, partidoCount, totalN, mesaCount);
 }
 
-function handleSimulate_(sheet, headers, data) {
-  var email = (data.staffEmail || '').toString().trim().toLowerCase();
-  var authorized = STAFF_AUTHORIZED_EMAILS_.some(function(e) { return e.toLowerCase() === email; });
-  if (!authorized || (data.staffKey || '').toString() !== STAFF_KEY_) {
+function handleSimulate_(sheet, headers, ss, data) {
+  if (!verifyAdminCredentials_(ss, data.adminEmail, data.adminPassword)) {
     return jsonOut_({ ok: false, error: 'unauthorized' });
   }
   var mesaCount = Number(data.mesaCount);
@@ -877,12 +975,14 @@ function doPost(e) {
   if (data.form === 'list_students') return handleListStudents_(sheet, headers, data);
   if (data.form === 'upload_propuesta') return handleUploadPropuesta_(sheet, headers, data);
   if (data.form === 'list_comision_propuestas') return handleListComisionPropuestas_(sheet, headers, data);
-  if (data.form === 'simulate') return handleSimulate_(sheet, headers, data);
+  if (data.form === 'admin_simulate') return handleSimulate_(sheet, headers, ss, data);
   if (data.form === 'admin_login') return handleAdminLogin_(ss, data);
   if (data.form === 'admin_forgot_password') return handleAdminForgotPassword_(ss, data);
   if (data.form === 'admin_update_password') return handleAdminUpdatePassword_(ss, data);
   if (data.form === 'admin_list_participants') return handleListParticipants_(sheet, headers, ss, data);
   if (data.form === 'admin_update_assignment') return handleUpdateAssignment_(sheet, headers, ss, data);
+  if (data.form === 'admin_apply_assignment') return handleApplyAssignment_(sheet, headers, ss, data);
+  if (data.form === 'admin_undo_assignment') return handleUndoAssignment_(sheet, headers, ss, data);
 
   var isPre = data.form === 'preinscripcion';
 

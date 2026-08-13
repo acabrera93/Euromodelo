@@ -777,15 +777,23 @@
     loginFormPerfil.addEventListener('submit', async (e) => {
       e.preventDefault();
       const fd = new FormData(loginFormPerfil);
+      const username = fd.get('username').trim();
+      const password = fd.get('password').trim();
       const submitBtn = loginFormPerfil.querySelector('button[type="submit"]');
       submitBtn.disabled = true;
-      const ok = await loginUser(fd.get('username').trim(), fd.get('password').trim());
-      submitBtn.disabled = false;
+      const ok = await loginUser(username, password);
       if (ok) {
+        submitBtn.disabled = false;
         window.location.reload();
-      } else {
-        document.getElementById('loginErrorPerfil').style.display = 'block';
+        return;
       }
+      const isAdmin = await attemptAdminLogin(username, password);
+      submitBtn.disabled = false;
+      if (isAdmin) {
+        window.location.href = 'admin.html';
+        return;
+      }
+      document.getElementById('loginErrorPerfil').style.display = 'block';
     });
 
     const forgotLinkPerfil = document.getElementById('forgotPasswordLinkPerfil');

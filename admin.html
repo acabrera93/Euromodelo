@@ -64,43 +64,103 @@
       </div>
       <p id="adminError" style="display:none; color:#C0392B; font-size:13px; margin:0 0 var(--space-3);">No se pudo cargar la información. Intenta de nuevo.</p>
 
-      <div class="stat-strip" style="margin-bottom:var(--space-5);">
-        <div class="container">
-          <div class="stat"><div class="n" id="statTotalParticipantes">0</div><div class="l">Participantes registrados</div></div>
-          <div class="stat"><div class="n" id="statTotalColegios">0</div><div class="l">Colegios distintos</div></div>
-          <div class="stat"><div class="n" id="statConAsignacion">0</div><div class="l">Con rol/comisión ya asignados a mano</div></div>
-          <div class="stat"><div class="n" id="statMostrando">0</div><div class="l">Mostrando en la tabla (según filtros)</div></div>
+      <div class="admin-tabs">
+        <button type="button" class="admin-tab-btn active" data-tab="participantes">Participantes</button>
+        <button type="button" class="admin-tab-btn" data-tab="simulacion">Simulación y sorteo</button>
+        <button type="button" class="admin-tab-btn" data-tab="propuestas">Propuestas de comisarios</button>
+      </div>
+
+      <div class="admin-tab-panel" id="tab-participantes">
+        <div class="stat-strip" style="margin-bottom:var(--space-5);">
+          <div class="container">
+            <div class="stat"><div class="n" id="statTotalParticipantes">0</div><div class="l">Participantes registrados</div></div>
+            <div class="stat"><div class="n" id="statTotalColegios">0</div><div class="l">Colegios distintos</div></div>
+            <div class="stat"><div class="n" id="statConAsignacion">0</div><div class="l">Con rol/comisión ya asignados a mano</div></div>
+            <div class="stat"><div class="n" id="statMostrando">0</div><div class="l">Mostrando en la tabla (según filtros)</div></div>
+          </div>
+        </div>
+
+        <div class="section-head"><h2 style="font-size:20px;">Participantes</h2></div>
+        <div class="admin-filters">
+          <input type="text" id="filterSearch" placeholder="Buscar por nombre o correo...">
+          <select id="filterComision"><option value="">Todas las comisiones</option></select>
+          <select id="filterRol"><option value="">Todos los roles</option></select>
+          <select id="filterColegio"><option value="">Todos los colegios</option></select>
+        </div>
+        <div class="sim-table-wrap" style="margin-bottom:var(--space-5);">
+          <table class="sim-table" id="participantsTable">
+            <thead><tr><th>Nombre</th><th>Colegio</th><th>Rol</th><th>Comisión</th><th>Partido</th><th>Origen</th><th></th></tr></thead>
+            <tbody id="participantsTableBody"></tbody>
+          </table>
+        </div>
+
+        <div class="section-head"><h2 style="font-size:20px;">Agrupado por colegio</h2></div>
+        <div class="grid-cards" id="colegiosGrid"></div>
+      </div>
+
+      <div class="admin-tab-panel" id="tab-simulacion" style="display:none;">
+        <div class="form-card" style="margin-bottom:var(--space-5);">
+          <div class="section-head" style="margin-bottom:var(--space-2);">
+            <h3 style="font-size:16px; color:var(--navy-deep); font-family:'Fraunces',serif;">Asignación automática de rol, comisión y partido</h3>
+            <p style="font-size:13px;">Escribe el resultado del sorteo directamente en la Sheet. Nunca toca a quien ya tiene una asignación puesta a mano.</p>
+          </div>
+          <div class="form-submit-row" style="justify-content:flex-start; gap:16px; flex-wrap:wrap;">
+            <label style="font-size:13px; display:flex; align-items:center; gap:8px;">Mesa directiva por comisión
+              <input type="number" id="mesaCountInput" value="2" min="0" style="width:56px; border:1px solid var(--line); border-radius:8px; padding:6px 8px; font-family:inherit;">
+            </label>
+            <button class="btn-primary" id="applyAssignmentBtn" type="button">Sortear automáticamente</button>
+            <button class="btn-ghost" id="undoAssignmentBtn" type="button" style="border-color:var(--blue-slate); color:var(--blue-revel);">Deshacer último sorteo</button>
+          </div>
+          <p id="assignmentResultMsg" style="display:none; font-size:13px; margin-top:10px;"></p>
+        </div>
+
+        <div class="section-head" style="margin-bottom:var(--space-2);">
+          <h2 style="font-size:20px;">Vista previa de la simulación</h2>
+          <p>Cómo quedaría el rol, la comisión y el partido de cada inscrito si se asignara ahora mismo, según las reglas acordadas. Usa la misma mesa directiva de arriba; no escribe nada hasta que uses "Sortear automáticamente".</p>
+        </div>
+        <div class="form-submit-row" style="margin-bottom:var(--space-3); flex-wrap:wrap; gap:12px;">
+          <span class="form-note" id="simMeta">—</span>
+          <button class="btn-primary" id="simRefreshBtn" type="button">Actualizar vista previa</button>
+        </div>
+        <p id="simError" style="display:none; color:#C0392B; font-size:13px; margin:0 0 var(--space-3);">No se pudo cargar la simulación. Intenta de nuevo.</p>
+
+        <div class="stat-strip" style="margin-bottom:var(--space-5);">
+          <div class="container">
+            <div class="stat"><div class="n" id="statTotal">0</div><div class="l">Inscritos con formulario completo</div></div>
+            <div class="stat"><div class="n" id="statComisionesOk">0/7</div><div class="l">Comisiones que cumplen el mínimo de 10</div></div>
+            <div class="stat"><div class="n" id="statFallback">0</div><div class="l">Asignaciones que no fueron su 1ª opción</div></div>
+            <div class="stat"><div class="n" id="statPartidosLlenos">0</div><div class="l">Partidos en su cupo máximo</div></div>
+          </div>
+        </div>
+
+        <div class="section-head"><h2 style="font-size:20px;">Comisiones</h2><p>Mínimo de 10 personas en total (roles de debate + mesa directiva).</p></div>
+        <div class="grid-cards" id="comisionesGrid" style="margin-bottom:var(--space-5);"></div>
+
+        <div class="section-head"><h2 style="font-size:20px;">Partidos</h2><p>Cupo proporcional a los escaños reales del Parlamento Europeo, escalado a los inscritos actuales.</p></div>
+        <div class="grid-cards" id="partidosGrid" style="margin-bottom:var(--space-5);"></div>
+
+        <div class="section-head"><h2 style="font-size:20px;">Detalle por participante</h2></div>
+        <div class="sim-table-wrap">
+          <table class="sim-table" id="detailTable">
+            <thead><tr><th>Nombre</th><th>Colegio</th><th>Rol</th><th>Comisión</th><th>Origen comisión</th><th>Partido</th><th>Origen partido</th></tr></thead>
+            <tbody id="detailTableBody"></tbody>
+          </table>
         </div>
       </div>
 
-      <div class="section-head"><h2 style="font-size:20px;">Participantes</h2></div>
-      <div class="admin-filters">
-        <input type="text" id="filterSearch" placeholder="Buscar por nombre o correo...">
-        <select id="filterComision"><option value="">Todas las comisiones</option></select>
-        <select id="filterRol"><option value="">Todos los roles</option></select>
-        <select id="filterColegio"><option value="">Todos los colegios</option></select>
+      <div class="admin-tab-panel" id="tab-propuestas" style="display:none;">
+        <div class="section-head"><h2 style="font-size:20px;">Propuestas de comisarios</h2></div>
+        <div class="admin-filters">
+          <select id="propuestaFilterComision"><option value="">Todas las comisiones</option></select>
+        </div>
+        <div class="sim-table-wrap">
+          <table class="sim-table" id="propuestasTable">
+            <thead><tr><th>Nombre</th><th>Comisión</th><th>PDF</th><th>Estado</th><th>Comentario</th><th></th></tr></thead>
+            <tbody id="propuestasTableBody"></tbody>
+          </table>
+        </div>
+        <p id="propuestasEmpty" style="display:none; font-size:13.5px; color:var(--blue-slate); margin-top:var(--space-2);">Aún no hay propuestas subidas.</p>
       </div>
-      <div class="sim-table-wrap" style="margin-bottom:var(--space-5);">
-        <table class="sim-table" id="participantsTable">
-          <thead><tr><th>Nombre</th><th>Colegio</th><th>Rol</th><th>Comisión</th><th>Partido</th><th></th></tr></thead>
-          <tbody id="participantsTableBody"></tbody>
-        </table>
-      </div>
-
-      <div class="section-head"><h2 style="font-size:20px;">Agrupado por colegio</h2></div>
-      <div class="grid-cards" id="colegiosGrid"></div>
-
-      <div class="section-head" style="margin-top:var(--space-5);"><h2 style="font-size:20px;">Propuestas de comisarios</h2></div>
-      <div class="admin-filters">
-        <select id="propuestaFilterComision"><option value="">Todas las comisiones</option></select>
-      </div>
-      <div class="sim-table-wrap">
-        <table class="sim-table" id="propuestasTable">
-          <thead><tr><th>Nombre</th><th>Comisión</th><th>PDF</th><th>Estado</th><th>Comentario</th><th></th></tr></thead>
-          <tbody id="propuestasTableBody"></tbody>
-        </table>
-      </div>
-      <p id="propuestasEmpty" style="display:none; font-size:13.5px; color:var(--blue-slate); margin-top:var(--space-2);">Aún no hay propuestas subidas.</p>
     </div>
 
   </div>
@@ -178,14 +238,26 @@
     select.value = current;
   }
 
+  function origenBadge(r) {
+    const origen = r.asignacion_origen || '';
+    if (!origen) return '<span class="origen-badge sin-asignar">Sin asignar</span>';
+    const cls = origen === 'Manual' ? 'manual' : 'automatica';
+    return `<span class="origen-badge ${cls}">${origen}</span>`;
+  }
+
   function rowHtml(r) {
+    const tieneAsignacion = r.rol_asignado || r.comision_asignada || r.partido_asignado;
     return `<tr data-ref-code="${r.ref_code || ''}">
       <td>${r.nombre_completo || ''}</td>
       <td>${r.institucion_educativa || ''}</td>
       <td>${displayRol(r)}</td>
       <td>${displayComision(r)}</td>
       <td>${displayPartido(r)}</td>
-      <td><button class="admin-row-btn" data-action="edit">Editar</button></td>
+      <td>${origenBadge(r)}</td>
+      <td>
+        <button class="admin-row-btn" data-action="edit">Editar</button>
+        ${tieneAsignacion ? '<button class="admin-row-btn danger" data-action="borrar">Borrar</button>' : ''}
+      </td>
     </tr>`;
   }
 
@@ -195,6 +267,7 @@
       <td><select class="editRol">${optionsHtml(ROLES, displayRol(r))}</select></td>
       <td><select class="editComision">${optionsHtml(COMISIONES, displayComision(r))}</select></td>
       <td><select class="editPartido">${optionsHtml(PARTIDOS, displayPartido(r))}</select></td>
+      <td>${origenBadge(r)}</td>
       <td>
         <button class="admin-row-btn save" data-action="save">Guardar</button>
         <button class="admin-row-btn" data-action="cancel">Cancelar</button>
@@ -382,6 +455,42 @@
   });
   document.getElementById('propuestaFilterComision').addEventListener('change', renderPropuestas);
 
+  function showAssignmentMsg(text, isError) {
+    const el = document.getElementById('assignmentResultMsg');
+    el.style.display = 'block';
+    el.style.color = isError ? '#C0392B' : 'var(--teal)';
+    el.textContent = text;
+  }
+
+  document.getElementById('applyAssignmentBtn').addEventListener('click', async () => {
+    const sure = confirm('¿Sortear rol, comisión y partido para los participantes que todavía no tienen asignación manual? No se tocará a quienes ya fueron asignados a mano.');
+    if (!sure) return;
+    const mesaCount = Number(document.getElementById('mesaCountInput').value) || 0;
+    const creds = getCreds();
+    const result = await apiCall({ form: 'admin_apply_assignment', adminEmail: creds.email, adminPassword: creds.password, mesaCount });
+    if (result && result.ok) {
+      showAssignmentMsg(`Se asignaron ${result.applied} participantes (${result.skipped} ya tenían asignación manual y no se tocaron).`, false);
+      await loadParticipants();
+    } else {
+      showAssignmentMsg('No se pudo correr el sorteo. Intenta de nuevo.', true);
+    }
+  });
+
+  document.getElementById('undoAssignmentBtn').addEventListener('click', async () => {
+    const sure = confirm('¿Deshacer el último sorteo automático? Esto vacía rol/comisión/partido de los participantes que fueron asignados en esa corrida.');
+    if (!sure) return;
+    const creds = getCreds();
+    const result = await apiCall({ form: 'admin_undo_assignment', adminEmail: creds.email, adminPassword: creds.password });
+    if (result && result.ok) {
+      showAssignmentMsg(`Se revirtieron ${result.restored} asignaciones.`, false);
+      await loadParticipants();
+    } else if (result && result.error === 'nothing_to_undo') {
+      showAssignmentMsg('No hay ninguna asignación automática reciente para deshacer.', false);
+    } else {
+      showAssignmentMsg('No se pudo deshacer. Intenta de nuevo.', true);
+    }
+  });
+
   document.getElementById('propuestasTableBody').addEventListener('click', async (e) => {
     const action = e.target.dataset.action;
     if (!action) return;
@@ -429,12 +538,131 @@
         record.rol_asignado = rol;
         record.comision_asignada = comision;
         record.partido_asignado = partido;
+        record.asignacion_origen = 'Manual';
+        tr.outerHTML = rowHtml(record);
+        renderStats();
+        renderColegios();
+      }
+    } else if (action === 'borrar') {
+      const sure = confirm('¿Borrar la asignación de rol, comisión y partido de este participante? Podrá volver a asignarse a mano o quedar disponible para el próximo sorteo automático.');
+      if (!sure) return;
+      const creds = getCreds();
+      const result = await apiCall({
+        form: 'admin_update_assignment', adminEmail: creds.email, adminPassword: creds.password,
+        ref_code: refCode, rol_asignado: '', comision_asignada: '', partido_asignado: '',
+      });
+      if (result && result.ok) {
+        record.rol_asignado = '';
+        record.comision_asignada = '';
+        record.partido_asignado = '';
+        record.asignacion_origen = '';
         tr.outerHTML = rowHtml(record);
         renderStats();
         renderColegios();
       }
     }
   });
+
+  document.querySelectorAll('.admin-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.admin-tab-panel').forEach(p => { p.style.display = p.id === 'tab-' + btn.dataset.tab ? 'block' : 'none'; });
+      document.querySelectorAll('.admin-tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+    });
+  });
+
+  // ---------- Simulación (vista previa, dentro del panel de admin) ----------
+  function comisionOriginInfo(origin) {
+    if (origin === 'preferencia_1') return { cls: 'preferencia', label: '1ª opción' };
+    if (origin === 'reparacion_desde_preferencia_2') return { cls: 'brujula', label: 'Reparación (2ª opción)' };
+    if (origin === 'reparacion_desde_preferencia_3') return { cls: 'brujula', label: 'Reparación (3ª opción)' };
+    return { cls: 'reparacion', label: 'Reparación' };
+  }
+  function partidoOriginInfo(origin) {
+    if (origin === 'preferencia') return { cls: 'preferencia', label: 'Preferencia' };
+    if (origin === 'brujula') return { cls: 'brujula', label: 'Brújula' };
+    return { cls: 'cupo_libre', label: 'Cupo libre' };
+  }
+
+  function renderSimStats(summary) {
+    document.getElementById('statTotal').textContent = summary.totalInscritos;
+    const comisionesOk = summary.comisiones.filter(c => c.cumpleMinimo).length;
+    document.getElementById('statComisionesOk').textContent = comisionesOk + '/' + summary.comisiones.length;
+    const fallback = summary.participantes.filter(p =>
+      p.comisionOrigen !== 'preferencia_1' || p.partidoOrigen !== 'preferencia'
+    ).length;
+    document.getElementById('statFallback').textContent = fallback;
+    const partidosLlenos = summary.partidos.filter(p => p.pctLleno >= 100).length;
+    document.getElementById('statPartidosLlenos').textContent = partidosLlenos;
+  }
+
+  function renderSimComisiones(comisiones) {
+    document.getElementById('comisionesGrid').innerHTML = comisiones.map(c => `
+      <div class="card accent" style="--accent:${c.color};">
+        <h3>${c.title}</h3>
+        <p style="font-size:13px; color:#54637C;">
+          ${c.debate} en roles de debate (${c.comisarios} Comisarios · ${c.diputados} Diputados, ${c.comisariosPct}% Comisario)
+          + ${c.mesa} de mesa = <b>${c.total}</b> en total.
+        </p>
+        <div class="quiz-progress" style="margin-bottom:0;">
+          <div class="quiz-progress-bar" style="width:${Math.min(100, Math.round(c.total / 10 * 100))}%; background:${c.cumpleMinimo ? 'var(--teal)' : '#C0392B'};"></div>
+        </div>
+        <div class="card-foot">
+          <span class="tag">${c.cumpleMinimo ? '✓ Cumple el mínimo' : 'Faltan ' + c.faltan + ' para el mínimo'}</span>
+        </div>
+      </div>`).join('');
+  }
+
+  function renderSimPartidos(partidos) {
+    document.getElementById('partidosGrid').innerHTML = partidos.map(p => `
+      <div class="card accent" style="--accent:${p.color};">
+        <h3>${p.title}</h3>
+        <p style="font-size:13px; color:#54637C;">${p.asignados} de ${p.cupo} cupos asignados.</p>
+        <div class="quiz-progress" style="margin-bottom:0;">
+          <div class="quiz-progress-bar" style="width:${Math.min(100, p.pctLleno)}%; background:${p.pctLleno >= 100 ? '#C0392B' : 'var(--gold-star)'};"></div>
+        </div>
+        <div class="card-foot"><span class="tag">${p.pctLleno}% del cupo</span></div>
+      </div>`).join('');
+  }
+
+  function renderSimDetailTable(participantes) {
+    document.getElementById('detailTableBody').innerHTML = participantes.map(p => {
+      const co = comisionOriginInfo(p.comisionOrigen);
+      const po = partidoOriginInfo(p.partidoOrigen);
+      return `<tr>
+        <td>${p.nombre || ''}</td>
+        <td>${p.institucion || ''}</td>
+        <td>${p.rol || ''}</td>
+        <td>${p.comision || ''}</td>
+        <td><span class="sim-origin ${co.cls}">${co.label}</span></td>
+        <td>${p.partido || ''}</td>
+        <td><span class="sim-origin ${po.cls}">${po.label}</span></td>
+      </tr>`;
+    }).join('');
+  }
+
+  async function loadSimulacion() {
+    const creds = getCreds();
+    if (!creds) return;
+    const errEl = document.getElementById('simError');
+    errEl.style.display = 'none';
+    try {
+      const mesaCount = Number(document.getElementById('mesaCountInput').value) || 0;
+      const result = await apiCall({ form: 'admin_simulate', adminEmail: creds.email, adminPassword: creds.password, mesaCount });
+      if (!result || !result.ok) { errEl.style.display = 'block'; return; }
+      const summary = result.summary;
+      document.getElementById('simMeta').textContent =
+        'Última actualización: ' + new Date().toLocaleString('es-CO') + ' · ' + summary.totalInscritos + ' inscritos con formulario completo';
+      renderSimStats(summary);
+      renderSimComisiones(summary.comisiones);
+      renderSimPartidos(summary.partidos);
+      renderSimDetailTable(summary.participantes);
+    } catch (e) {
+      console.error('No se pudo cargar la simulación:', e);
+      errEl.style.display = 'block';
+    }
+  }
+
+  document.getElementById('simRefreshBtn').addEventListener('click', loadSimulacion);
 
   populateFilterOptions();
   const savedCreds = getCreds();

@@ -171,6 +171,29 @@ async function loginUser(usernameOrEmail, password) {
   }
   return false;
 }
+// Se intenta solo cuando loginUser ya falló: el mismo botón de "Iniciar sesión" de los
+// participantes sirve también para el staff con cuenta de administrador. Si el correo/contraseña
+// coincide con una cuenta admin (pestaña "admins" en la Sheet), guarda las credenciales bajo la
+// misma clave de sessionStorage que ya usa admin.html, para que su auto-login la reconozca sin
+// pedir la clave otra vez al llegar ahí.
+const ADMIN_CREDS_STORAGE_KEY = 'euromodelo_admin_creds';
+async function attemptAdminLogin(email, password) {
+  try {
+    const res = await fetch(EUROMODELO_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ form: 'admin_login', email, password }),
+    });
+    const result = await res.json();
+    if (result && result.ok) {
+      sessionStorage.setItem(ADMIN_CREDS_STORAGE_KEY, JSON.stringify({ email, password }));
+      return true;
+    }
+  } catch (e) {
+    console.error('No se pudo verificar como administrador:', e);
+  }
+  return false;
+}
 function logoutUser() {
   localStorage.removeItem(AUTH_CURRENT_KEY);
 }
@@ -308,16 +331,24 @@ function initLoginPanel() {
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const fd = new FormData(loginForm);
+      const username = fd.get('username').trim();
+      const password = fd.get('password').trim();
       const submitBtn = loginForm.querySelector('button[type="submit"]');
       if (submitBtn) submitBtn.disabled = true;
-      const ok = await loginUser(fd.get('username').trim(), fd.get('password').trim());
-      if (submitBtn) submitBtn.disabled = false;
-      const errEl = document.getElementById('loginError');
+      const ok = await loginUser(username, password);
       if (ok) {
+        if (submitBtn) submitBtn.disabled = false;
         window.location.href = 'perfil.html';
-      } else if (errEl) {
-        errEl.style.display = 'block';
+        return;
       }
+      const isAdmin = await attemptAdminLogin(username, password);
+      if (submitBtn) submitBtn.disabled = false;
+      if (isAdmin) {
+        window.location.href = 'admin.html';
+        return;
+      }
+      const errEl = document.getElementById('loginError');
+      if (errEl) errEl.style.display = 'block';
     });
   }
 
