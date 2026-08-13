@@ -36,7 +36,8 @@ var FIELD_LABELS_ = {
   autoriza_imagen: 'Autoriza derechos de imagen',
   rol_asignado: 'Rol asignado',
   comision_asignada: 'Comisión asignada',
-  partido_asignado: 'Partido asignado'
+  partido_asignado: 'Partido asignado',
+  tipo: 'Tipo de cuenta'
 };
 
 function normalizeName_(s) {
@@ -136,8 +137,12 @@ function loginButtonHtml_() {
 
 // ---------- Correo al participante: confirmación de preinscripción ----------
 function sendParticipantWelcomeEmail_(data) {
+  var isProfesor = (data.tipo || '').toString() === 'Profesor';
+  var introText = isProfesor
+    ? 'Hola <b>' + escapeHtml_(data.nombre_completo || '') + '</b>, gracias por registrarte como profesor acompañante en el <b>XX Euromodelo Joven 2026</b>. Guarda tus credenciales: con ellas podrás iniciar sesión y ver el listado de estudiantes inscritos de tu colegio.'
+    : 'Hola <b>' + escapeHtml_(data.nombre_completo || '') + '</b>, gracias por preinscribirte al <b>XX Euromodelo Joven 2026</b>. Guarda tus credenciales: las necesitarás para iniciar sesión y completar tu inscripción.';
   var body =
-    '<p style="color:#3A4A63; font-size:14.5px; line-height:1.6; margin:0 0 18px;">Hola <b>' + escapeHtml_(data.nombre_completo || '') + '</b>, gracias por preinscribirte al <b>XX Euromodelo Joven 2026</b>. Guarda tus credenciales: las necesitarás para iniciar sesión y completar tu inscripción.</p>' +
+    '<p style="color:#3A4A63; font-size:14.5px; line-height:1.6; margin:0 0 18px;">' + introText + '</p>' +
     credentialsCardHtml_(data.email || '', data.password || '') +
     loginButtonHtml_() +
     '<p style="color:#8695AC; font-size:12px; line-height:1.6; margin:22px 0 0; text-align:center;">Si no reconoces esta preinscripción, puedes ignorar este correo.</p>';
@@ -228,6 +233,7 @@ function mapRecordToUser_(record) {
     rolAsignado: record.rol_asignado || '',
     comisionAsignada: record.comision_asignada || '',
     partidoAsignado: record.partido_asignado || '',
+    tipo: record.tipo || 'Estudiante',
   };
   if (record.rol_opcion1) {
     user.inscripcion = {
@@ -253,7 +259,10 @@ var CANONICAL_HEADERS_ = [
   'resultado_brujula', 'resultado_brujula_comision', 'resultado_brujula_partido',
   // Estas tres columnas quedan en blanco al enviar el formulario: el staff las completa
   // manualmente en la Sheet una vez define la asignación final de cada participante.
-  'rol_asignado', 'comision_asignada', 'partido_asignado'
+  'rol_asignado', 'comision_asignada', 'partido_asignado',
+  // 'Estudiante' | 'Profesor'. En blanco en filas anteriores a este cambio: mapRecordToUser_
+  // las trata como 'Estudiante' por defecto, sin necesidad de migrar la Sheet.
+  'tipo'
 ];
 
 var INSCRIPCION_FIELDS_ = [
@@ -335,6 +344,45 @@ function handleUpdateBrujula_(sheet, headers, data) {
     }
   }
   return jsonOut_({ ok: true });
+}
+
+// ---------- Cuentas de profesor: listar estudiantes de su colegio ----------
+// Los profesores viven en la misma pestaña "preinscripciones" que los estudiantes (columna
+// `tipo`), así que reusan tal cual handleLogin_/handleForgotPassword_/handleUpdatePassword_.
+// Esta es la única función propia que necesitan: sin sesión (como el resto del proyecto),
+// reenvían su email/password en cada llamada y se validan aquí mismo.
+function handleListStudents_(sheet, headers, data) {
+  var email = (data.email || '').toString().trim().toLowerCase();
+  var password = (data.password || '').toString();
+  var rowNum = findRowByColumn_(sheet, headers, 'email', email, true);
+  if (rowNum === -1) return jsonOut_({ ok: false });
+
+  var rowValues = sheet.getRange(rowNum, 1, 1, headers.length).getValues()[0];
+  var record = {};
+  headers.forEach(function(h, i) { record[h] = rowValues[i]; });
+
+  if ((record.password || '').toString() !== password) return jsonOut_({ ok: false });
+  if ((record.tipo || '').toString() !== 'Profesor') return jsonOut_({ ok: false });
+
+  var institucion = (record.institucion_educativa || '').toString().trim().toLowerCase();
+  var lastRow = sheet.getLastRow();
+  var students = [];
+  if (lastRow >= 2) {
+    var values = sheet.getRange(2, 1, lastRow - 1, headers.length).getValues();
+    values.forEach(function(row) {
+      var r = {};
+      headers.forEach(function(h, i) { r[h] = row[i]; });
+      if ((r.tipo || '').toString() === 'Profesor') return;
+      if ((r.institucion_educativa || '').toString().trim().toLowerCase() !== institucion) return;
+      students.push({
+        nombre: r.nombre_completo || '',
+        rol: r.rol_asignado || r.rol_opcion1 || '',
+        comision: r.comision_asignada || r.comision_opcion1 || '',
+        partido: r.partido_asignado || r.partido || '',
+      });
+    });
+  }
+  return jsonOut_({ ok: true, institucion: record.institucion_educativa || '', students: students });
 }
 
 // ---------- Panel de administración: login individual de staff ----------
@@ -728,6 +776,7 @@ function doPost(e) {
   if (data.form === 'forgot_password') return handleForgotPassword_(sheet, headers, data);
   if (data.form === 'update_password') return handleUpdatePassword_(sheet, headers, data);
   if (data.form === 'update_brujula') return handleUpdateBrujula_(sheet, headers, data);
+  if (data.form === 'list_students') return handleListStudents_(sheet, headers, data);
   if (data.form === 'simulate') return handleSimulate_(sheet, headers, data);
   if (data.form === 'admin_login') return handleAdminLogin_(ss, data);
   if (data.form === 'admin_forgot_password') return handleAdminForgotPassword_(ss, data);

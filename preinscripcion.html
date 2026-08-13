@@ -66,10 +66,17 @@
 <div class="section-inner">
   <div class="container" style="max-width:720px;">
     <form class="form-card" id="preForm">
+      <div class="field full">
+        <label>¿Te inscribes como estudiante o como profesor?</label>
+        <div class="radio-row" id="preTipoCuenta">
+          <label><input type="radio" name="tipoCuenta" value="Estudiante" required checked> Estudiante</label>
+          <label><input type="radio" name="tipoCuenta" value="Profesor" required> Profesor</label>
+        </div>
+      </div>
       <div class="form-grid">
         <div class="field full"><label>Correo electrónico</label><input required type="email" name="email"></div>
-        <div class="field full"><label>Nombre del estudiante</label><input required type="text" name="nombre"></div>
-        <div class="field">
+        <div class="field full"><label>Nombre completo</label><input required type="text" name="nombre"></div>
+        <div class="field student-only-field">
           <label>Tipo de documento de identidad</label>
           <select required name="tipoDocumento">
             <option value="">Selecciona una opción</option>
@@ -79,7 +86,7 @@
             <option>Otro</option>
           </select>
         </div>
-        <div class="field"><label>Número de documento</label><input required type="text" name="numDocumento"></div>
+        <div class="field student-only-field"><label>Número de documento</label><input required type="text" name="numDocumento"></div>
         <div class="field">
           <label>Número de teléfono</label>
           <div class="phone-row">
@@ -87,7 +94,7 @@
             <input required type="text" inputmode="numeric" pattern="[0-9]{7,10}" name="telefono" placeholder="3001234567" style="flex:1;">
           </div>
         </div>
-        <div class="field">
+        <div class="field student-only-field">
           <label>Ciudad</label>
           <select required name="ciudad">
             <option value="">Selecciona una ciudad</option>
@@ -107,7 +114,7 @@
           <label><input type="radio" name="autorizaDatos" value="No" required> No</label>
         </div>
       </div>
-      <div class="field full">
+      <div class="field full student-only-field">
         <label>¿Eres menor de edad?</label>
         <div class="radio-row" id="preEsMenor">
           <label><input type="radio" name="esMenor" value="Sí" required> Sí</label>
@@ -115,7 +122,7 @@
         </div>
       </div>
 
-      <div class="field full" id="preMenorSection" style="display:none;">
+      <div class="field full student-only-field" id="preMenorSection" style="display:none;">
         <p class="legal-box">Actuando en representación de mi hijo participante del Euromodelo Joven 2026, autorizo el uso de sus derechos de imagen que le reconoce la Constitución, la Ley y las demás normas.</p>
         <label>Autorización de imagen</label>
         <div class="radio-row">
@@ -141,7 +148,7 @@
           <div class="cred-item"><div class="cred-label">Contraseña</div><div class="cred-value" id="credPassword"></div></div>
         </div>
       </div>
-      <a class="btn-primary" href="perfil.html" style="display:inline-block; margin-top:var(--space-3);">Continuar a mi inscripción &rarr;</a>
+      <a class="btn-primary" href="perfil.html" id="preSuccessCta" style="display:inline-block; margin-top:var(--space-3);">Continuar a mi inscripción &rarr;</a>
     </div>
   </div>
 </div>
@@ -165,6 +172,28 @@
     section.querySelectorAll('input[name="autorizaImagen"]').forEach(inp => inp.required = esMenor);
   });
 
+  // Los profesores solo llenan correo/nombre/teléfono/colegio (+ consentimiento de datos):
+  // se ocultan y des-obligan los campos exclusivos de estudiante.
+  document.getElementById('preTipoCuenta').addEventListener('change', (e) => {
+    if (e.target.name !== 'tipoCuenta') return;
+    const esProfesor = e.target.value === 'Profesor';
+    document.querySelectorAll('.student-only-field').forEach(el => {
+      if (el.id === 'preMenorSection') return; // se recalcula aparte, según esMenor
+      el.style.display = esProfesor ? 'none' : '';
+      el.querySelectorAll('input, select').forEach(inp => { inp.required = !esProfesor; });
+    });
+    const menorSection = document.getElementById('preMenorSection');
+    if (esProfesor) {
+      menorSection.style.display = 'none';
+      menorSection.querySelectorAll('input[name="autorizaImagen"]').forEach(inp => inp.required = false);
+    } else {
+      const esMenorChecked = document.querySelector('input[name="esMenor"]:checked');
+      const esMenor = !!esMenorChecked && esMenorChecked.value === 'Sí';
+      menorSection.style.display = esMenor ? 'block' : 'none';
+      menorSection.querySelectorAll('input[name="autorizaImagen"]').forEach(inp => inp.required = esMenor);
+    }
+  });
+
   function refCode(prefix){
     return prefix + '-' + Math.random().toString(36).slice(2,7).toUpperCase();
   }
@@ -174,17 +203,19 @@
     e.preventDefault();
     const fd = new FormData(preForm);
     const preRefCode = refCode('PRE');
+    const tipoCuenta = fd.get('tipoCuenta') || 'Estudiante';
     const data = {
+      tipo: tipoCuenta,
       nombre: fd.get('nombre').trim(),
-      tipoDocumento: fd.get('tipoDocumento'),
-      numDocumento: fd.get('numDocumento').trim(),
-      ciudad: fd.get('ciudad'),
+      tipoDocumento: fd.get('tipoDocumento') || '',
+      numDocumento: (fd.get('numDocumento') || '').trim(),
+      ciudad: fd.get('ciudad') || '',
       institucion: fd.get('institucion').trim(),
       email: fd.get('email').trim().toLowerCase(),
       telefono: fd.get('telefono').trim(),
       autorizacion: true,
       autorizaDatos: fd.get('autorizaDatos'),
-      esMenor: fd.get('esMenor'),
+      esMenor: fd.get('esMenor') || '',
       autorizaImagen: fd.get('autorizaImagen') || '',
       refCode: preRefCode,
     };
@@ -200,6 +231,7 @@
           form: 'preinscripcion',
           enviado: new Date().toISOString(),
           ref_code: preRefCode,
+          tipo: data.tipo,
           email: data.email,
           password: creds.password,
           nombre_completo: data.nombre,
@@ -209,7 +241,7 @@
           ciudad: data.ciudad,
           institucion_educativa: data.institucion,
           autoriza_datos: fd.get('autorizaDatos'),
-          es_menor: fd.get('esMenor'),
+          es_menor: fd.get('esMenor') || '',
           autoriza_imagen: fd.get('autorizaImagen') || '',
         }),
       });
@@ -221,6 +253,9 @@
     document.getElementById('preSuccess').classList.add('show');
     document.getElementById('credUsername').textContent = creds.username;
     document.getElementById('credPassword').textContent = creds.password;
+    if (tipoCuenta === 'Profesor') {
+      document.getElementById('preSuccessCta').textContent = 'Continuar a mi perfil →';
+    }
   });
 </script>
 </body>

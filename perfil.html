@@ -200,6 +200,20 @@
         </form>
       </div>
 
+      <div id="pfProfesorView" style="display:none;">
+        <div class="section-head">
+          <h2 style="font-size:20px;">Estudiantes de <span id="pfProfesorColegio"></span></h2>
+          <p style="font-size:13px;">Listado de estudiantes inscritos de tu colegio, con su rol, comisión y bancada (asignados por el staff, o su preferencia mientras la asignación final no esté lista).</p>
+        </div>
+        <p id="pfNoStudents" style="display:none; font-size:13.5px; color:var(--blue-slate);">Aún no hay estudiantes inscritos de tu colegio.</p>
+        <div class="sim-table-wrap" id="pfStudentsTableWrap" style="display:none;">
+          <table class="sim-table">
+            <thead><tr><th>Nombre</th><th>Rol</th><th>Comisión</th><th>Bancada</th></tr></thead>
+            <tbody id="pfStudentsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
       <div id="pfInscripcionData" style="display:none;">
         <div class="section-head">
           <h2 style="font-size:20px;">Tu inscripción</h2>
@@ -773,7 +787,43 @@
   } else {
     document.getElementById('perfilLoggedIn').style.display = 'block';
     document.getElementById('pfNombre').textContent = user.nombre || user.username;
-    document.getElementById('pfMeta').textContent = (user.institucion || 'Institución por confirmar') + ' · ' + (user.ciudad || 'Ciudad por confirmar');
+    document.getElementById('pfMeta').textContent = user.tipo === 'Profesor'
+      ? (user.institucion || 'Institución por confirmar') + ' · Profesor'
+      : (user.institucion || 'Institución por confirmar') + ' · ' + (user.ciudad || 'Ciudad por confirmar');
+
+    function renderProfesorView(u) {
+      document.getElementById('pfBadges').innerHTML =
+        `<span class="profile-badge"><b>Usuario</b>${u.username}</span><span class="profile-badge">Profesor</span>`;
+      document.getElementById('pfProfesorView').style.display = 'block';
+      document.getElementById('pfProfesorColegio').textContent = u.institucion || 'tu colegio';
+      fetch(EUROMODELO_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ form: 'list_students', email: u.username, password: u.password, institucion: u.institucion || '' }),
+      })
+        .then(res => res.json())
+        .then(result => {
+          if (!result || !result.ok) return;
+          const students = result.students || [];
+          if (students.length === 0) {
+            document.getElementById('pfNoStudents').style.display = 'block';
+            return;
+          }
+          document.getElementById('pfStudentsTableWrap').style.display = 'block';
+          document.getElementById('pfStudentsTableBody').innerHTML = students.map(s => `
+            <tr>
+              <td>${s.nombre || ''}</td>
+              <td>${s.rol || 'Pendiente'}</td>
+              <td>${s.comision || 'Pendiente'}</td>
+              <td>${s.partido || 'Pendiente'}</td>
+            </tr>`).join('');
+        })
+        .catch(err => console.error('No se pudo cargar el listado de estudiantes:', err));
+    }
+
+    if (user.tipo === 'Profesor') {
+      renderProfesorView(user);
+    } else {
 
     // Se mantiene actualizado con el último `u` renderizado, para que el botón de
     // repetir la Brújula Legislativa siempre use los datos más recientes (username, refCode).
@@ -934,6 +984,8 @@
         startPartidoProfileQuiz();
       });
     }
+
+    } // fin de la rama estudiante (if user.tipo === 'Profesor' / else)
 
     document.getElementById('pfLogoutBtn').addEventListener('click', () => {
       logoutUser();
