@@ -89,6 +89,18 @@
 
       <div class="section-head"><h2 style="font-size:20px;">Agrupado por colegio</h2></div>
       <div class="grid-cards" id="colegiosGrid"></div>
+
+      <div class="section-head" style="margin-top:var(--space-5);"><h2 style="font-size:20px;">Propuestas de comisarios</h2></div>
+      <div class="admin-filters">
+        <select id="propuestaFilterComision"><option value="">Todas las comisiones</option></select>
+      </div>
+      <div class="sim-table-wrap">
+        <table class="sim-table" id="propuestasTable">
+          <thead><tr><th>Nombre</th><th>Comisión</th><th>PDF</th><th>Estado</th><th>Comentario</th><th></th></tr></thead>
+          <tbody id="propuestasTableBody"></tbody>
+        </table>
+      </div>
+      <p id="propuestasEmpty" style="display:none; font-size:13.5px; color:var(--blue-slate); margin-top:var(--space-2);">Aún no hay propuestas subidas.</p>
     </div>
 
   </div>
@@ -154,6 +166,8 @@
       '<option value="">Todas las comisiones</option>' + COMISIONES.map(c => `<option value="${c}">${c}</option>`).join('');
     document.getElementById('filterRol').innerHTML =
       '<option value="">Todos los roles</option>' + ROLES.map(r => `<option value="${r}">${r}</option>`).join('');
+    document.getElementById('propuestaFilterComision').innerHTML =
+      '<option value="">Todas las comisiones</option>' + COMISIONES.map(c => `<option value="${c}">${c}</option>`).join('');
   }
 
   function populateColegioFilter(records) {
@@ -239,11 +253,36 @@
       </div>`).join('');
   }
 
+  function propuestaRowHtml(r) {
+    const estado = r.propuesta_estado || 'Pendiente';
+    const badgeClass = estado === 'Aprobada' ? 'aprobada' : 'pendiente';
+    return `<tr data-ref-code="${r.ref_code || ''}">
+      <td>${r.nombre_completo || ''}</td>
+      <td>${r.comision_asignada || ''}</td>
+      <td><a href="${r.propuesta_url}" target="_blank">Ver PDF</a></td>
+      <td><span class="propuesta-badge ${badgeClass}">${estado}</span></td>
+      <td><textarea class="propuesta-comentario">${r.propuesta_comentario || ''}</textarea></td>
+      <td>
+        <button class="admin-row-btn" data-action="guardar-comentario">Guardar</button>
+        <button class="admin-row-btn save" data-action="aprobar">Aprobar</button>
+      </td>
+    </tr>`;
+  }
+
+  function renderPropuestas() {
+    const comisionFilter = document.getElementById('propuestaFilterComision').value;
+    const records = allRecords.filter(r => r.rol_asignado === 'Comisario' && r.propuesta_url
+      && (!comisionFilter || r.comision_asignada === comisionFilter));
+    document.getElementById('propuestasTableBody').innerHTML = records.map(propuestaRowHtml).join('');
+    document.getElementById('propuestasEmpty').style.display = records.length === 0 ? 'block' : 'none';
+  }
+
   function renderAll() {
     renderStats();
     populateColegioFilter(allRecords);
     renderTable();
     renderColegios();
+    renderPropuestas();
   }
 
   function getCreds() {
@@ -340,6 +379,29 @@
   ['filterSearch', 'filterComision', 'filterRol', 'filterColegio'].forEach(id => {
     document.getElementById(id).addEventListener('input', renderTable);
     document.getElementById(id).addEventListener('change', renderTable);
+  });
+  document.getElementById('propuestaFilterComision').addEventListener('change', renderPropuestas);
+
+  document.getElementById('propuestasTableBody').addEventListener('click', async (e) => {
+    const action = e.target.dataset.action;
+    if (!action) return;
+    const tr = e.target.closest('tr');
+    const refCode = tr.dataset.refCode;
+    const record = allRecords.find(r => r.ref_code === refCode);
+    if (!record) return;
+    const comentario = tr.querySelector('.propuesta-comentario').value;
+    const creds = getCreds();
+    const payload = {
+      form: 'admin_update_assignment', adminEmail: creds.email, adminPassword: creds.password,
+      ref_code: refCode, propuesta_comentario: comentario,
+    };
+    if (action === 'aprobar') payload.propuesta_estado = 'Aprobada';
+    const result = await apiCall(payload);
+    if (result && result.ok) {
+      record.propuesta_comentario = comentario;
+      if (action === 'aprobar') record.propuesta_estado = 'Aprobada';
+      renderPropuestas();
+    }
   });
 
   document.getElementById('participantsTableBody').addEventListener('click', async (e) => {

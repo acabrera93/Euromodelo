@@ -249,6 +249,31 @@
         </div>
       </div>
 
+      <div id="pfPropuestaComisario" class="form-card" style="display:none; margin-top:var(--space-4);">
+        <div class="section-head" style="margin-bottom:var(--space-2);">
+          <h3 style="font-size:16px; color:var(--navy-deep); font-family:'Fraunces',serif;">Tu propuesta legislativa</h3>
+          <p style="font-size:13px;">Sube tu propuesta en PDF (máximo 8MB). Al subir un nuevo archivo, reemplaza al anterior y vuelve a quedar pendiente de revisión.</p>
+        </div>
+        <p id="pfPropuestaEstado" style="font-size:13px; font-weight:600; display:none; margin-bottom:8px;"></p>
+        <p id="pfPropuestaLink" style="font-size:13px; display:none; margin-bottom:8px;"><a href="#" id="pfPropuestaLinkA" target="_blank">Ver PDF actual &rarr;</a></p>
+        <p id="pfPropuestaComentario" style="font-size:13px; color:var(--blue-slate); display:none; margin-bottom:12px;"></p>
+        <div class="field full">
+          <input type="file" id="pfPropuestaFileInput" accept="application/pdf">
+        </div>
+        <p id="pfPropuestaError" style="display:none; color:#C0392B; font-size:13px; margin:8px 0 0;"></p>
+        <div class="form-submit-row">
+          <button class="btn-primary" type="button" id="pfPropuestaUploadBtn">Subir propuesta</button>
+        </div>
+      </div>
+
+      <div id="pfComisionPropuestas" style="display:none; margin-top:var(--space-4);">
+        <div class="section-head">
+          <h2 style="font-size:20px;">Propuestas aprobadas de tu comisión</h2>
+        </div>
+        <p id="pfComisionPropuestasEmpty" style="display:none; font-size:13.5px; color:var(--blue-slate);">Aún no hay propuestas aprobadas en tu comisión.</p>
+        <ul class="role-bullets" id="pfComisionPropuestasList" style="--accent:var(--teal);"></ul>
+      </div>
+
       <div style="text-align:center; margin-top:var(--space-4);">
         <button class="btn-ghost" id="pfLogoutBtn" style="border-color:var(--blue-slate); color:var(--blue-revel);">Cerrar sesión</button>
       </div>
@@ -885,12 +910,104 @@
       }
     }
 
+    const PROPUESTA_MAX_BYTES = 8 * 1024 * 1024;
+
+    function renderPropuestaSections(u) {
+      if (u.rolAsignado === 'Comisario') {
+        document.getElementById('pfPropuestaComisario').style.display = 'block';
+        const estadoEl = document.getElementById('pfPropuestaEstado');
+        if (u.propuestaEstado) {
+          estadoEl.style.display = 'block';
+          estadoEl.textContent = 'Estado: ' + u.propuestaEstado;
+          estadoEl.style.color = u.propuestaEstado === 'Aprobada' ? 'var(--teal)' : 'var(--blue-slate)';
+        } else {
+          estadoEl.style.display = 'none';
+        }
+        const linkEl = document.getElementById('pfPropuestaLink');
+        if (u.propuestaUrl) {
+          linkEl.style.display = 'block';
+          document.getElementById('pfPropuestaLinkA').href = u.propuestaUrl;
+        } else {
+          linkEl.style.display = 'none';
+        }
+        const comentarioEl = document.getElementById('pfPropuestaComentario');
+        if (u.propuestaComentario) {
+          comentarioEl.style.display = 'block';
+          comentarioEl.textContent = 'Comentario del staff: ' + u.propuestaComentario;
+        } else {
+          comentarioEl.style.display = 'none';
+        }
+      }
+
+      if (u.comisionAsignada) {
+        document.getElementById('pfComisionPropuestas').style.display = 'block';
+        fetch(EUROMODELO_SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ form: 'list_comision_propuestas', email: u.username, password: u.password }),
+        })
+          .then(res => res.json())
+          .then(result => {
+            if (!result || !result.ok) return;
+            const proposals = result.proposals || [];
+            const listEl = document.getElementById('pfComisionPropuestasList');
+            const emptyEl = document.getElementById('pfComisionPropuestasEmpty');
+            if (proposals.length === 0) {
+              emptyEl.style.display = 'block';
+              listEl.innerHTML = '';
+            } else {
+              emptyEl.style.display = 'none';
+              listEl.innerHTML = proposals.map(p => `<li><a href="${p.url}" target="_blank">${p.nombre}</a></li>`).join('');
+            }
+          })
+          .catch(err => console.error('No se pudo cargar las propuestas de la comisión:', err));
+      }
+    }
+
+    document.getElementById('pfPropuestaUploadBtn').addEventListener('click', () => {
+      const input = document.getElementById('pfPropuestaFileInput');
+      const errEl = document.getElementById('pfPropuestaError');
+      errEl.style.display = 'none';
+      const file = input.files && input.files[0];
+      if (!file) { errEl.textContent = 'Elige un archivo PDF primero.'; errEl.style.display = 'block'; return; }
+      if (file.type !== 'application/pdf') { errEl.textContent = 'El archivo debe ser un PDF.'; errEl.style.display = 'block'; return; }
+      if (file.size > PROPUESTA_MAX_BYTES) { errEl.textContent = 'El archivo supera el tamaño máximo de 8MB.'; errEl.style.display = 'block'; return; }
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const fileBase64 = reader.result.split(',')[1] || '';
+        fetch(EUROMODELO_SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ form: 'upload_propuesta', email: currentProfileUser.username, password: currentProfileUser.password, fileBase64, fileName: file.name }),
+        })
+          .then(res => res.json())
+          .then(result => {
+            if (!result || !result.ok) {
+              errEl.textContent = 'No se pudo subir la propuesta. Intenta de nuevo.';
+              errEl.style.display = 'block';
+              return;
+            }
+            refreshUserFromServer(currentProfileUser.username).then(refreshed => {
+              if (refreshed) renderPropuestaSections(refreshed);
+            });
+          })
+          .catch(err => {
+            console.error('No se pudo subir la propuesta:', err);
+            errEl.textContent = 'No se pudo subir la propuesta. Intenta de nuevo.';
+            errEl.style.display = 'block';
+          });
+      };
+      reader.readAsDataURL(file);
+    });
+
     renderInscripcionSummary(user);
+    renderPropuestaSections(user);
     if (user.inscripcion) {
       // Refresco silencioso: si el staff ya cargó rol/comisión/partido en la Sheet,
       // esta llamada los trae y actualiza la vista sin recargar.
       refreshUserFromServer(user.username).then(refreshed => {
-        if (refreshed) renderInscripcionSummary(refreshed);
+        if (refreshed) { renderInscripcionSummary(refreshed); renderPropuestaSections(refreshed); }
       });
     }
 

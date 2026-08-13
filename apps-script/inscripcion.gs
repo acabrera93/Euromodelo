@@ -37,7 +37,10 @@ var FIELD_LABELS_ = {
   rol_asignado: 'Rol asignado',
   comision_asignada: 'Comisión asignada',
   partido_asignado: 'Partido asignado',
-  tipo: 'Tipo de cuenta'
+  tipo: 'Tipo de cuenta',
+  propuesta_url: 'Propuesta legislativa (PDF)',
+  propuesta_estado: 'Estado de la propuesta',
+  propuesta_comentario: 'Comentario del staff sobre la propuesta'
 };
 
 function normalizeName_(s) {
@@ -234,6 +237,9 @@ function mapRecordToUser_(record) {
     comisionAsignada: record.comision_asignada || '',
     partidoAsignado: record.partido_asignado || '',
     tipo: record.tipo || 'Estudiante',
+    propuestaUrl: record.propuesta_url || '',
+    propuestaEstado: record.propuesta_estado || '',
+    propuestaComentario: record.propuesta_comentario || '',
   };
   if (record.rol_opcion1) {
     user.inscripcion = {
@@ -262,7 +268,11 @@ var CANONICAL_HEADERS_ = [
   'rol_asignado', 'comision_asignada', 'partido_asignado',
   // 'Estudiante' | 'Profesor'. En blanco en filas anteriores a este cambio: mapRecordToUser_
   // las trata como 'Estudiante' por defecto, sin necesidad de migrar la Sheet.
-  'tipo'
+  'tipo',
+  // Propuesta legislativa del comisario: URL del PDF en Drive, estado ('' | 'Pendiente' |
+  // 'Aprobada') y comentario del staff. Una nueva subida reemplaza url/estado/comentario
+  // anteriores (mismo criterio que repetir una brújula).
+  'propuesta_url', 'propuesta_estado', 'propuesta_comentario'
 ];
 
 var INSCRIPCION_FIELDS_ = [
@@ -383,6 +393,94 @@ function handleListStudents_(sheet, headers, data) {
     });
   }
   return jsonOut_({ ok: true, institucion: record.institucion_educativa || '', students: students });
+}
+
+// ---------- Propuestas legislativas de los comisarios ----------
+var PROPUESTAS_FOLDER_NAME_ = 'Propuestas Euromodelo Joven 2026';
+var PROPUESTA_MAX_BYTES_ = 8 * 1024 * 1024; // ~8MB, de sobra para un PDF de propuesta
+
+function findOrCreateFolder_(name) {
+  var folders = DriveApp.getFoldersByName(name);
+  if (folders.hasNext()) return folders.next();
+  return DriveApp.createFolder(name);
+}
+
+// El comisario reenvía sus propias credenciales (mismo criterio sin sesión de todo el proyecto).
+// Solo puede subir propuesta si su rol_asignado oficial (no la preferencia) es 'Comisario'.
+// Cada subida reemplaza la url/estado/comentario anteriores, igual que repetir una brújula.
+function handleUploadPropuesta_(sheet, headers, data) {
+  var email = (data.email || '').toString().trim().toLowerCase();
+  var password = (data.password || '').toString();
+  var rowNum = findRowByColumn_(sheet, headers, 'email', email, true);
+  if (rowNum === -1) return jsonOut_({ ok: false });
+
+  var rowValues = sheet.getRange(rowNum, 1, 1, headers.length).getValues()[0];
+  var record = {};
+  headers.forEach(function(h, i) { record[h] = rowValues[i]; });
+
+  if ((record.password || '').toString() !== password) return jsonOut_({ ok: false });
+  if ((record.rol_asignado || '').toString() !== 'Comisario') return jsonOut_({ ok: false, error: 'not_comisario' });
+
+  var fileBase64 = (data.fileBase64 || '').toString();
+  if (!fileBase64) return jsonOut_({ ok: false, error: 'no_file' });
+  var bytes;
+  try {
+    bytes = Utilities.base64Decode(fileBase64);
+  } catch (err) {
+    return jsonOut_({ ok: false, error: 'invalid_file' });
+  }
+  if (bytes.length > PROPUESTA_MAX_BYTES_) return jsonOut_({ ok: false, error: 'file_too_large' });
+
+  var fileName = 'Propuesta - ' + (record.nombre_completo || email) + ' (' + (record.ref_code || '') + ').pdf';
+  var blob = Utilities.newBlob(bytes, 'application/pdf', fileName);
+  var folder = findOrCreateFolder_(PROPUESTAS_FOLDER_NAME_);
+  var file = folder.createFile(blob);
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  var url = file.getUrl();
+
+  ['propuesta_url', 'propuesta_estado', 'propuesta_comentario'].forEach(function(field) {
+    var colIdx = headers.indexOf(field);
+    if (colIdx === -1) return;
+    var value = field === 'propuesta_url' ? url : (field === 'propuesta_estado' ? 'Pendiente' : '');
+    var cell = sheet.getRange(rowNum, colIdx + 1);
+    cell.setNumberFormat('@');
+    cell.setValue(value);
+  });
+
+  return jsonOut_({ ok: true, url: url, estado: 'Pendiente' });
+}
+
+// El participante reenvía sus propias credenciales; solo ve las propuestas ya aprobadas de su
+// propia comisión asignada (si todavía no tiene comisión asignada, la lista viene vacía).
+function handleListComisionPropuestas_(sheet, headers, data) {
+  var email = (data.email || '').toString().trim().toLowerCase();
+  var password = (data.password || '').toString();
+  var rowNum = findRowByColumn_(sheet, headers, 'email', email, true);
+  if (rowNum === -1) return jsonOut_({ ok: false });
+
+  var rowValues = sheet.getRange(rowNum, 1, 1, headers.length).getValues()[0];
+  var record = {};
+  headers.forEach(function(h, i) { record[h] = rowValues[i]; });
+  if ((record.password || '').toString() !== password) return jsonOut_({ ok: false });
+
+  var comision = (record.comision_asignada || '').toString();
+  if (!comision) return jsonOut_({ ok: true, comision: '', proposals: [] });
+
+  var lastRow = sheet.getLastRow();
+  var proposals = [];
+  if (lastRow >= 2) {
+    var values = sheet.getRange(2, 1, lastRow - 1, headers.length).getValues();
+    values.forEach(function(row) {
+      var r = {};
+      headers.forEach(function(h, i) { r[h] = row[i]; });
+      if ((r.rol_asignado || '').toString() !== 'Comisario') return;
+      if ((r.comision_asignada || '').toString() !== comision) return;
+      if ((r.propuesta_estado || '').toString() !== 'Aprobada') return;
+      if (!r.propuesta_url) return;
+      proposals.push({ nombre: r.nombre_completo || '', url: r.propuesta_url });
+    });
+  }
+  return jsonOut_({ ok: true, comision: comision, proposals: proposals });
 }
 
 // ---------- Panel de administración: login individual de staff ----------
@@ -508,7 +606,7 @@ function handleListParticipants_(sheet, headers, ss, data) {
   return jsonOut_({ ok: true, records: records });
 }
 
-var ADMIN_ASSIGNABLE_FIELDS_ = ['rol_asignado', 'comision_asignada', 'partido_asignado'];
+var ADMIN_ASSIGNABLE_FIELDS_ = ['rol_asignado', 'comision_asignada', 'partido_asignado', 'propuesta_estado', 'propuesta_comentario'];
 function handleUpdateAssignment_(sheet, headers, ss, data) {
   if (!verifyAdminCredentials_(ss, data.adminEmail, data.adminPassword)) return jsonOut_({ ok: false });
 
@@ -777,6 +875,8 @@ function doPost(e) {
   if (data.form === 'update_password') return handleUpdatePassword_(sheet, headers, data);
   if (data.form === 'update_brujula') return handleUpdateBrujula_(sheet, headers, data);
   if (data.form === 'list_students') return handleListStudents_(sheet, headers, data);
+  if (data.form === 'upload_propuesta') return handleUploadPropuesta_(sheet, headers, data);
+  if (data.form === 'list_comision_propuestas') return handleListComisionPropuestas_(sheet, headers, data);
   if (data.form === 'simulate') return handleSimulate_(sheet, headers, data);
   if (data.form === 'admin_login') return handleAdminLogin_(ss, data);
   if (data.form === 'admin_forgot_password') return handleAdminForgotPassword_(ss, data);
