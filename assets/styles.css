@@ -444,3 +444,21 @@ footer .container{display:flex; justify-content:space-between; flex-wrap:wrap; g
 .sim-origin.preferencia{background:var(--teal);}
 .sim-origin.brujula{background:var(--gold-star); color:var(--navy-deep);}
 .sim-origin.cupo_libre, .sim-origin.reparacion{background:#C0392B;}
+
+/* ---- Panel de administración: filtros y edición de fila ---- */
+.admin-filters{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:var(--space-3);}
+.admin-filters input[type="text"], .admin-filters select{
+  border:1px solid var(--line); border-radius:8px; padding:9px 12px; font-size:13px; font-family:inherit;
+  background:var(--white); color:var(--ink);
+}
+.admin-filters input[type="text"]{flex:1; min-width:200px;}
+.admin-edit-row td{background:var(--blue-pale);}
+.admin-edit-row select{
+  width:100%; border:1px solid var(--line); border-radius:8px; padding:6px 8px; font-size:12.5px; font-family:inherit;
+}
+.admin-row-btn{
+  background:none; border:1px solid var(--line); border-radius:6px; padding:4px 10px; font-size:12px;
+  font-weight:600; color:var(--blue-revel); cursor:pointer;
+}
+.admin-row-btn:hover{background:var(--blue-pale);}
+.admin-row-btn.save{background:var(--teal); border-color:var(--teal); color:var(--white);}

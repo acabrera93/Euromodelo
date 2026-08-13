@@ -337,6 +337,147 @@ function handleUpdateBrujula_(sheet, headers, data) {
   return jsonOut_({ ok: true });
 }
 
+// ---------- Panel de administración: login individual de staff ----------
+// Pestaña "admins" aparte (email/password/mustChangePassword), auto-sembrada la primera vez que
+// cada correo de STAFF_AUTHORIZED_EMAILS_ inicia sesión, con STAFF_KEY_ como contraseña inicial.
+// No hay sesiones ni tokens (mismo criterio que el resto del proyecto): cada acción de solo-admin
+// reenvía adminEmail/adminPassword y se valida contra esta pestaña en cada request.
+var ADMIN_HEADERS_ = ['email', 'password', 'mustChangePassword'];
+
+function isAuthorizedStaffEmail_(email) {
+  var target = (email || '').toString().trim().toLowerCase();
+  return STAFF_AUTHORIZED_EMAILS_.some(function(e) { return e.toLowerCase() === target; });
+}
+
+function ensureAdminSheet_(ss) {
+  var sheet = findOrCreateSheet_(ss, ['admins', 'administradores'], 'admins');
+  var headers = getHeaders_(sheet, ADMIN_HEADERS_);
+  return { sheet: sheet, headers: headers };
+}
+
+// Crea la fila de un correo autorizado la primera vez que se necesita (login o recuperación).
+// Devuelve el número de fila (1-indexado).
+function ensureAdminRow_(sheet, headers, email) {
+  var rowNum = findRowByColumn_(sheet, headers, 'email', email, true);
+  if (rowNum !== -1) return rowNum;
+  var row = headers.map(function(h) {
+    if (h === 'email') return email;
+    if (h === 'password') return STAFF_KEY_;
+    if (h === 'mustChangePassword') return 'true';
+    return '';
+  });
+  var targetRow = sheet.getLastRow() + 1;
+  var range = sheet.getRange(targetRow, 1, 1, row.length);
+  range.setNumberFormat('@');
+  range.setValues([row]);
+  return targetRow;
+}
+
+function readAdminRecord_(sheet, headers, rowNum) {
+  var rowValues = sheet.getRange(rowNum, 1, 1, headers.length).getValues()[0];
+  var record = {};
+  headers.forEach(function(h, i) { record[h] = rowValues[i]; });
+  return record;
+}
+
+function handleAdminLogin_(ss, data) {
+  var email = (data.email || '').toString().trim().toLowerCase();
+  if (!isAuthorizedStaffEmail_(email)) return jsonOut_({ ok: false });
+
+  var admin = ensureAdminSheet_(ss);
+  var rowNum = ensureAdminRow_(admin.sheet, admin.headers, email);
+  var record = readAdminRecord_(admin.sheet, admin.headers, rowNum);
+  var password = (data.password || '').toString();
+  if ((record.password || '').toString() !== password) return jsonOut_({ ok: false });
+
+  return jsonOut_({ ok: true, mustChangePassword: (record.mustChangePassword || '').toString() === 'true' });
+}
+
+function handleAdminForgotPassword_(ss, data) {
+  var email = (data.email || '').toString().trim().toLowerCase();
+  if (isAuthorizedStaffEmail_(email)) {
+    var admin = ensureAdminSheet_(ss);
+    var rowNum = ensureAdminRow_(admin.sheet, admin.headers, email);
+    var newPassword = randomPassword_();
+    var pwIdx = admin.headers.indexOf('password');
+    var mustChangeIdx = admin.headers.indexOf('mustChangePassword');
+    var pwCell = admin.sheet.getRange(rowNum, pwIdx + 1);
+    pwCell.setNumberFormat('@');
+    pwCell.setValue(newPassword);
+    admin.sheet.getRange(rowNum, mustChangeIdx + 1).setValue('true');
+    try {
+      sendPasswordResetEmail_(email, '', newPassword);
+    } catch (err) {
+      console.error('No se pudo enviar el correo de recuperación de admin: ' + err);
+    }
+  }
+  // Respuesta genérica siempre, para no revelar si el correo está autorizado.
+  return jsonOut_({ ok: true });
+}
+
+function handleAdminUpdatePassword_(ss, data) {
+  var email = (data.email || '').toString().trim().toLowerCase();
+  var newPassword = (data.newPassword || '').toString();
+  if (!isAuthorizedStaffEmail_(email) || !newPassword) return jsonOut_({ ok: false });
+
+  var admin = ensureAdminSheet_(ss);
+  var rowNum = findRowByColumn_(admin.sheet, admin.headers, 'email', email, true);
+  if (rowNum === -1) return jsonOut_({ ok: false });
+  var pwIdx = admin.headers.indexOf('password');
+  var mustChangeIdx = admin.headers.indexOf('mustChangePassword');
+  var pwCell = admin.sheet.getRange(rowNum, pwIdx + 1);
+  pwCell.setNumberFormat('@');
+  pwCell.setValue(newPassword);
+  admin.sheet.getRange(rowNum, mustChangeIdx + 1).setValue('false');
+  return jsonOut_({ ok: true });
+}
+
+function verifyAdminCredentials_(ss, email, password) {
+  email = (email || '').toString().trim().toLowerCase();
+  if (!isAuthorizedStaffEmail_(email)) return false;
+  var admin = ensureAdminSheet_(ss);
+  var rowNum = findRowByColumn_(admin.sheet, admin.headers, 'email', email, true);
+  if (rowNum === -1) return false;
+  var record = readAdminRecord_(admin.sheet, admin.headers, rowNum);
+  return (record.password || '').toString() === (password || '').toString();
+}
+
+// ---------- Panel de administración: listar y editar participantes ----------
+function handleListParticipants_(sheet, headers, ss, data) {
+  if (!verifyAdminCredentials_(ss, data.adminEmail, data.adminPassword)) return jsonOut_({ ok: false });
+
+  var lastRow = sheet.getLastRow();
+  var records = [];
+  if (lastRow >= 2) {
+    var values = sheet.getRange(2, 1, lastRow - 1, headers.length).getValues();
+    records = values.map(function(row) {
+      var record = {};
+      headers.forEach(function(h, i) { record[h] = row[i]; });
+      delete record.password; // nunca se envía al cliente
+      return record;
+    });
+  }
+  return jsonOut_({ ok: true, records: records });
+}
+
+var ADMIN_ASSIGNABLE_FIELDS_ = ['rol_asignado', 'comision_asignada', 'partido_asignado'];
+function handleUpdateAssignment_(sheet, headers, ss, data) {
+  if (!verifyAdminCredentials_(ss, data.adminEmail, data.adminPassword)) return jsonOut_({ ok: false });
+
+  var rowNum = findRowByColumn_(sheet, headers, 'ref_code', data.ref_code);
+  if (rowNum === -1) return jsonOut_({ ok: false, error: 'not_found' });
+
+  ADMIN_ASSIGNABLE_FIELDS_.forEach(function(field) {
+    if (data[field] === undefined) return;
+    var colIdx = headers.indexOf(field);
+    if (colIdx === -1) return;
+    var cell = sheet.getRange(rowNum, colIdx + 1);
+    cell.setNumberFormat('@');
+    cell.setValue(data[field] || '');
+  });
+  return jsonOut_({ ok: true });
+}
+
 // ---------- Simulación de asignación de rol / comisión / partido ----------
 // Corre bajo demanda, de solo lectura: nunca escribe en la Sheet. Pensada para reusarse más
 // adelante como la asignación FINAL real (agregando un modo que sí persista los resultados),
@@ -588,6 +729,11 @@ function doPost(e) {
   if (data.form === 'update_password') return handleUpdatePassword_(sheet, headers, data);
   if (data.form === 'update_brujula') return handleUpdateBrujula_(sheet, headers, data);
   if (data.form === 'simulate') return handleSimulate_(sheet, headers, data);
+  if (data.form === 'admin_login') return handleAdminLogin_(ss, data);
+  if (data.form === 'admin_forgot_password') return handleAdminForgotPassword_(ss, data);
+  if (data.form === 'admin_update_password') return handleAdminUpdatePassword_(ss, data);
+  if (data.form === 'admin_list_participants') return handleListParticipants_(sheet, headers, ss, data);
+  if (data.form === 'admin_update_assignment') return handleUpdateAssignment_(sheet, headers, ss, data);
 
   var isPre = data.form === 'preinscripcion';
 

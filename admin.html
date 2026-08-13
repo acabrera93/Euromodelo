@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Panel de administración — XX Euromodelo Joven 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<header class="site">
+  <div class="nav-row">
+    <a href="index.html" class="brand"><img src="assets/logo.png" class="brand-logo" alt="Euromodelo Joven - Fundación Revel"></a>
+    <span style="color:var(--white); font-weight:600; font-size:13.5px;">Panel de staff · Administración</span>
+  </div>
+</header>
+
+<div class="page-banner">
+  <div class="container" style="grid-template-columns:1fr;">
+    <div>
+      <h1>Panel de administración</h1>
+      <p>Busca, filtra y corrige la información de los participantes sin tener que abrir la Google Sheet directamente.</p>
+    </div>
+  </div>
+</div>
+
+<div class="section-inner">
+  <div class="container">
+
+    <div id="adminGate" class="form-card" style="max-width:420px; margin:0 auto;">
+      <div class="section-head" style="margin-bottom:var(--space-2);">
+        <h3 style="font-size:16px; color:var(--navy-deep); font-family:'Fraunces',serif;">Acceso de administrador</h3>
+        <p style="font-size:13px;">Ingresa tu correo y contraseña.</p>
+      </div>
+      <form id="adminLoginForm">
+        <div class="field full"><label>Correo</label><input required type="email" id="adminEmailInput"></div>
+        <div class="field full"><label>Contraseña</label><input required type="password" id="adminPasswordInput"></div>
+        <p id="adminGateError" style="display:none; color:#C0392B; font-size:13px; margin:0 0 var(--space-2);">Correo o contraseña incorrectos.</p>
+        <div class="form-submit-row" style="justify-content:space-between;">
+          <span class="form-note"><a href="#" id="adminForgotLink">¿Olvidaste tu contraseña?</a></span>
+          <button class="btn-primary" type="submit">Entrar</button>
+        </div>
+      </form>
+      <form id="adminForgotForm" style="display:none; margin-top:var(--space-2);">
+        <div class="section-head" style="margin-bottom:var(--space-2);">
+          <h3 style="font-size:15px; color:var(--navy-deep); font-family:'Fraunces',serif;">Recuperar contraseña</h3>
+          <p style="font-size:13px;">Te enviaremos una nueva contraseña a tu correo.</p>
+        </div>
+        <div class="field full"><label>Correo</label><input required type="email" id="adminForgotEmailInput"></div>
+        <div class="form-submit-row">
+          <span class="form-note"><a href="#" id="adminBackToLoginLink">&larr; Volver a iniciar sesión</a></span>
+          <button class="btn-primary" type="submit">Enviar nueva contraseña</button>
+        </div>
+      </form>
+      <p id="adminForgotSent" style="display:none; color:#2E7D6B; font-size:13.5px; text-align:center; margin-top:var(--space-2);">Si el correo está autorizado, te enviaremos una nueva contraseña en unos minutos.</p>
+    </div>
+
+    <div id="adminContent" style="display:none;">
+      <div class="form-submit-row" style="margin-bottom:var(--space-4); flex-wrap:wrap; gap:12px;">
+        <span class="form-note" id="adminMeta">—</span>
+        <button class="btn-primary" id="adminRefreshBtn" type="button">Actualizar</button>
+      </div>
+      <p id="adminError" style="display:none; color:#C0392B; font-size:13px; margin:0 0 var(--space-3);">No se pudo cargar la información. Intenta de nuevo.</p>
+
+      <div class="stat-strip" style="margin-bottom:var(--space-5);">
+        <div class="container">
+          <div class="stat"><div class="n" id="statTotalParticipantes">0</div><div class="l">Participantes registrados</div></div>
+          <div class="stat"><div class="n" id="statTotalColegios">0</div><div class="l">Colegios distintos</div></div>
+          <div class="stat"><div class="n" id="statConAsignacion">0</div><div class="l">Con rol/comisión ya asignados a mano</div></div>
+          <div class="stat"><div class="n" id="statMostrando">0</div><div class="l">Mostrando en la tabla (según filtros)</div></div>
+        </div>
+      </div>
+
+      <div class="section-head"><h2 style="font-size:20px;">Participantes</h2></div>
+      <div class="admin-filters">
+        <input type="text" id="filterSearch" placeholder="Buscar por nombre o correo...">
+        <select id="filterComision"><option value="">Todas las comisiones</option></select>
+        <select id="filterRol"><option value="">Todos los roles</option></select>
+        <select id="filterColegio"><option value="">Todos los colegios</option></select>
+      </div>
+      <div class="sim-table-wrap" style="margin-bottom:var(--space-5);">
+        <table class="sim-table" id="participantsTable">
+          <thead><tr><th>Nombre</th><th>Colegio</th><th>Rol</th><th>Comisión</th><th>Partido</th><th></th></tr></thead>
+          <tbody id="participantsTableBody"></tbody>
+        </table>
+      </div>
+
+      <div class="section-head"><h2 style="font-size:20px;">Agrupado por colegio</h2></div>
+      <div class="grid-cards" id="colegiosGrid"></div>
+    </div>
+
+  </div>
+</div>
+
+<div class="modal-overlay" id="adminForcePasswordModal">
+  <div class="modal-card">
+    <h3>Elige una nueva contraseña</h3>
+    <p class="modal-intro">Por seguridad, es tu primera vez en el panel de administración: elige una contraseña nueva para tu cuenta.</p>
+    <form class="form-card" id="adminForcePasswordForm" style="box-shadow:none; padding:0; margin-top:var(--space-2);">
+      <div class="field full"><label>Nueva contraseña</label><input required type="password" name="newPassword" minlength="6"></div>
+      <div class="field full"><label>Confirmar contraseña</label><input required type="password" name="confirmPassword" minlength="6"></div>
+      <p id="adminForcePasswordError" style="display:none; color:#C0392B; font-size:13px; margin:0 0 var(--space-2);">Las contraseñas no coinciden.</p>
+      <div class="form-submit-row" style="justify-content:flex-end;">
+        <button class="btn-primary" type="submit">Guardar contraseña</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<footer>
+  <div class="container">
+    <span>Fundación Revel — XX Euromodelo Joven 2026</span>
+    <span>Panel interno de staff</span>
+  </div>
+</footer>
+<script src="assets/main.js"></script>
+<script>
+  const ADMIN_STORAGE_KEY = 'euromodelo_admin_creds';
+
+  const ROLES = ['Comisario', 'Europarlamentario', 'Primer Ministro'];
+  const COMISIONES = [
+    'Asuntos Constitucionales, Libertades Civiles, Justicia e Igualdad de Género',
+    'Asuntos Exteriores, Derechos Humanos, Seguridad y Defensa',
+    'Asuntos Presupuestarios, Económicos y Monetarios',
+    'Cultura, Educación y Desarrollo Regional',
+    'Empleo, Asuntos Sociales y Comercio Internacional',
+    'Industria, Investigación y Energía',
+    'Medio Ambiente, Agricultura, Desarrollo Rural y Salud Pública',
+  ];
+  const PARTIDOS = [
+    'PPE — Partido Popular Europeo',
+    'Patriots — Patriotas por Europa',
+    'ECR Group — Grupo de los Conservadores y Reformistas Europeos',
+    'Renew Europe — Renovar Europa',
+    'The Greens/EFA — Los Verdes/Alianza Libre Europea',
+    'S&D — Alianza Progresista Socialista Demócrata',
+    'The Left — Izquierda Unitaria Europea/Verde Nórdica',
+  ];
+
+  let allRecords = [];
+
+  function displayRol(r) { return r.rol_asignado || r.rol_opcion1 || 'Pendiente'; }
+  function displayComision(r) { return r.comision_asignada || r.comision_opcion1 || 'Pendiente'; }
+  function displayPartido(r) { return r.partido_asignado || r.partido || 'Pendiente'; }
+
+  function optionsHtml(list, current) {
+    return list.map(v => `<option value="${v}" ${v === current ? 'selected' : ''}>${v}</option>`).join('');
+  }
+
+  function populateFilterOptions() {
+    document.getElementById('filterComision').innerHTML =
+      '<option value="">Todas las comisiones</option>' + COMISIONES.map(c => `<option value="${c}">${c}</option>`).join('');
+    document.getElementById('filterRol').innerHTML =
+      '<option value="">Todos los roles</option>' + ROLES.map(r => `<option value="${r}">${r}</option>`).join('');
+  }
+
+  function populateColegioFilter(records) {
+    const colegios = Array.from(new Set(records.map(r => r.institucion_educativa).filter(Boolean))).sort();
+    const select = document.getElementById('filterColegio');
+    const current = select.value;
+    select.innerHTML = '<option value="">Todos los colegios</option>' + colegios.map(c => `<option value="${c}">${c}</option>`).join('');
+    select.value = current;
+  }
+
+  function rowHtml(r) {
+    return `<tr data-ref-code="${r.ref_code || ''}">
+      <td>${r.nombre_completo || ''}</td>
+      <td>${r.institucion_educativa || ''}</td>
+      <td>${displayRol(r)}</td>
+      <td>${displayComision(r)}</td>
+      <td>${displayPartido(r)}</td>
+      <td><button class="admin-row-btn" data-action="edit">Editar</button></td>
+    </tr>`;
+  }
+
+  function editRowHtml(r) {
+    return `<tr class="admin-edit-row" data-ref-code="${r.ref_code || ''}">
+      <td colspan="2">${r.nombre_completo || ''}</td>
+      <td><select class="editRol">${optionsHtml(ROLES, displayRol(r))}</select></td>
+      <td><select class="editComision">${optionsHtml(COMISIONES, displayComision(r))}</select></td>
+      <td><select class="editPartido">${optionsHtml(PARTIDOS, displayPartido(r))}</select></td>
+      <td>
+        <button class="admin-row-btn save" data-action="save">Guardar</button>
+        <button class="admin-row-btn" data-action="cancel">Cancelar</button>
+      </td>
+    </tr>`;
+  }
+
+  function currentFilters() {
+    return {
+      search: document.getElementById('filterSearch').value.trim().toLowerCase(),
+      comision: document.getElementById('filterComision').value,
+      rol: document.getElementById('filterRol').value,
+      colegio: document.getElementById('filterColegio').value,
+    };
+  }
+
+  function filteredRecords() {
+    const f = currentFilters();
+    return allRecords.filter(r => {
+      if (f.search) {
+        const hay = ((r.nombre_completo || '') + ' ' + (r.email || '')).toLowerCase();
+        if (hay.indexOf(f.search) === -1) return false;
+      }
+      if (f.comision && displayComision(r) !== f.comision) return false;
+      if (f.rol && displayRol(r) !== f.rol) return false;
+      if (f.colegio && r.institucion_educativa !== f.colegio) return false;
+      return true;
+    });
+  }
+
+  function renderStats() {
+    document.getElementById('statTotalParticipantes').textContent = allRecords.length;
+    const colegios = new Set(allRecords.map(r => r.institucion_educativa).filter(Boolean));
+    document.getElementById('statTotalColegios').textContent = colegios.size;
+    const conAsignacion = allRecords.filter(r => r.rol_asignado || r.comision_asignada || r.partido_asignado).length;
+    document.getElementById('statConAsignacion').textContent = conAsignacion;
+  }
+
+  function renderTable() {
+    const records = filteredRecords();
+    document.getElementById('statMostrando').textContent = records.length;
+    document.getElementById('participantsTableBody').innerHTML = records.map(rowHtml).join('');
+  }
+
+  function renderColegios() {
+    const groups = {};
+    allRecords.forEach(r => {
+      const school = r.institucion_educativa || 'Sin colegio';
+      groups[school] = (groups[school] || 0) + 1;
+    });
+    const entries = Object.entries(groups).sort((a, b) => b[1] - a[1]);
+    document.getElementById('colegiosGrid').innerHTML = entries.map(([school, count]) => `
+      <div class="card">
+        <h3>${school}</h3>
+        <p style="font-size:13px; color:#54637C;">${count} estudiante${count === 1 ? '' : 's'} inscrito${count === 1 ? '' : 's'}.</p>
+      </div>`).join('');
+  }
+
+  function renderAll() {
+    renderStats();
+    populateColegioFilter(allRecords);
+    renderTable();
+    renderColegios();
+  }
+
+  function getCreds() {
+    const raw = sessionStorage.getItem(ADMIN_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  }
+
+  async function apiCall(payload) {
+    const res = await fetch(EUROMODELO_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload),
+    });
+    return res.json();
+  }
+
+  async function loadParticipants() {
+    const creds = getCreds();
+    if (!creds) return false;
+    const errEl = document.getElementById('adminError');
+    errEl.style.display = 'none';
+    try {
+      const result = await apiCall({ form: 'admin_list_participants', adminEmail: creds.email, adminPassword: creds.password });
+      if (!result || !result.ok) return false;
+      allRecords = result.records || [];
+      document.getElementById('adminMeta').textContent = 'Última actualización: ' + new Date().toLocaleString('es-CO');
+      renderAll();
+      return true;
+    } catch (e) {
+      console.error('No se pudo cargar la lista de participantes:', e);
+      errEl.style.display = 'block';
+      return false;
+    }
+  }
+
+  function showContent() {
+    document.getElementById('adminGate').style.display = 'none';
+    document.getElementById('adminContent').style.display = 'block';
+  }
+
+  function openForcePasswordModal() {
+    const modal = createModalController('adminForcePasswordModal');
+    modal.open();
+    document.getElementById('adminForcePasswordForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const p1 = fd.get('newPassword');
+      const p2 = fd.get('confirmPassword');
+      const errEl = document.getElementById('adminForcePasswordError');
+      if (p1 !== p2) { errEl.style.display = 'block'; return; }
+      errEl.style.display = 'none';
+      const creds = getCreds();
+      await apiCall({ form: 'admin_update_password', email: creds.email, newPassword: p1 });
+      sessionStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify({ email: creds.email, password: p1 }));
+      modal.close();
+    });
+  }
+
+  document.getElementById('adminLoginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('adminEmailInput').value.trim();
+    const password = document.getElementById('adminPasswordInput').value.trim();
+    document.getElementById('adminGateError').style.display = 'none';
+    const result = await apiCall({ form: 'admin_login', email, password });
+    if (!result || !result.ok) {
+      document.getElementById('adminGateError').style.display = 'block';
+      return;
+    }
+    sessionStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify({ email, password }));
+    showContent();
+    await loadParticipants();
+    if (result.mustChangePassword) openForcePasswordModal();
+  });
+
+  document.getElementById('adminForgotLink').addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('adminLoginForm').style.display = 'none';
+    document.getElementById('adminForgotForm').style.display = 'block';
+  });
+  document.getElementById('adminBackToLoginLink').addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('adminForgotForm').style.display = 'none';
+    document.getElementById('adminLoginForm').style.display = 'block';
+  });
+  document.getElementById('adminForgotForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('adminForgotEmailInput').value.trim();
+    await apiCall({ form: 'admin_forgot_password', email });
+    document.getElementById('adminForgotForm').style.display = 'none';
+    document.getElementById('adminForgotSent').style.display = 'block';
+  });
+
+  document.getElementById('adminRefreshBtn').addEventListener('click', () => loadParticipants());
+  ['filterSearch', 'filterComision', 'filterRol', 'filterColegio'].forEach(id => {
+    document.getElementById(id).addEventListener('input', renderTable);
+    document.getElementById(id).addEventListener('change', renderTable);
+  });
+
+  document.getElementById('participantsTableBody').addEventListener('click', async (e) => {
+    const action = e.target.dataset.action;
+    if (!action) return;
+    const tr = e.target.closest('tr');
+    const refCode = tr.dataset.refCode;
+    const record = allRecords.find(r => r.ref_code === refCode);
+    if (!record) return;
+
+    if (action === 'edit') {
+      tr.outerHTML = editRowHtml(record);
+    } else if (action === 'cancel') {
+      tr.outerHTML = rowHtml(record);
+    } else if (action === 'save') {
+      const rol = tr.querySelector('.editRol').value;
+      const comision = tr.querySelector('.editComision').value;
+      const partido = tr.querySelector('.editPartido').value;
+      const creds = getCreds();
+      const result = await apiCall({
+        form: 'admin_update_assignment', adminEmail: creds.email, adminPassword: creds.password,
+        ref_code: refCode, rol_asignado: rol, comision_asignada: comision, partido_asignado: partido,
+      });
+      if (result && result.ok) {
+        record.rol_asignado = rol;
+        record.comision_asignada = comision;
+        record.partido_asignado = partido;
+        tr.outerHTML = rowHtml(record);
+        renderStats();
+        renderColegios();
+      }
+    }
+  });
+
+  populateFilterOptions();
+  const savedCreds = getCreds();
+  if (savedCreds) {
+    showContent();
+    loadParticipants();
+  }
+</script>
+</body>
+</html>
