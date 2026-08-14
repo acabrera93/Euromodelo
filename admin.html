@@ -244,17 +244,6 @@
   function displayComision(r) { return r.comision_asignada || r.comision_opcion1 || 'Pendiente'; }
   function displayPartido(r) { return r.partido_asignado || r.partido || 'Pendiente'; }
 
-  // Para la celda de la tabla (a diferencia de displayRol/Comision/Partido, que devuelven el
-  // valor plano para filtrar y para preseleccionar el <select> al editar): si no hay asignación
-  // real todavía, se muestra la preferencia marcada como tal, para no confundirla con una
-  // asignación ya hecha — la columna Origen es la señal definitiva, pero esto evita tener que
-  // mirarla aparte.
-  function fieldCellHtml(asignado, preferencia) {
-    if (asignado) return asignado;
-    if (preferencia) return `${preferencia} <span class="pref-tag">(preferencia)</span>`;
-    return 'Pendiente';
-  }
-
   function optionsHtml(list, current) {
     return list.map(v => `<option value="${v}" ${v === current ? 'selected' : ''}>${v}</option>`).join('');
   }
@@ -288,9 +277,9 @@
     return `<tr data-ref-code="${r.ref_code || ''}">
       <td>${r.nombre_completo || ''}</td>
       <td>${r.institucion_educativa || ''}</td>
-      <td>${fieldCellHtml(r.rol_asignado, r.rol_opcion1)}</td>
-      <td>${fieldCellHtml(r.comision_asignada, r.comision_opcion1)}</td>
-      <td>${fieldCellHtml(r.partido_asignado, r.partido)}</td>
+      <td>${displayRol(r)}</td>
+      <td>${displayComision(r)}</td>
+      <td>${displayPartido(r)}</td>
       <td>${origenBadge(r)}</td>
       <td>
         <button class="admin-row-btn" data-action="edit">Editar</button>
