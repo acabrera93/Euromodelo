@@ -454,21 +454,62 @@ function buildHemiciclo(containerId, parties, onDotClick) {
   }
 }
 
-/* ---------- Quiz genérico (usado por roles.html y partidos.html) ----------
+/* ---------- Utilidades de aleatorización y desempate de brújulas ---------- */
+function shuffleArray(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/* Elige la categoría ganadora de un tally; en caso de empate, al azar
+   (nunca con un orden de prioridad fijo, para no sesgar el resultado
+   agregado del cohorte hacia una categoría en particular). */
+function pickQuizWinner(tally) {
+  const max = Math.max(...Object.values(tally));
+  const winners = Object.keys(tally).filter(k => tally[k] === max);
+  return winners[Math.floor(Math.random() * winners.length)];
+}
+
+/* ---------- Quiz genérico (usado por roles.html, comisiones.html y partidos.html) ----------
    config = {
-     modalId, title, emoji, questions: [{q, options:[{label, value}]}],
-     onFinish: (tally) => { ...renderResult... }
+     modalId, emoji, title, intro,
+     questions: [{q, options:[{label, value}]}],
+     shuffleQuestions: bool (opcional),
+     onFinish: (answers, body) => { ...renderResult... }
    }
+   Las opciones de cada pregunta (y, si se pide, el orden de las preguntas)
+   se mezclan de nuevo cada vez que el participante abre o reinicia el test.
    -------------------------------------------------------------------- */
 function initQuiz(config) {
   let current = 0;
-  const answers = [];
+  let answers = [];
+  let questions = [];
   const modal = document.getElementById(config.modalId);
   const body = modal.querySelector('.quiz-body');
 
+  function buildQuestions() {
+    let qs = config.questions.map(q => ({ q: q.q, options: shuffleArray(q.options) }));
+    if (config.shuffleQuestions) qs = shuffleArray(qs);
+    return qs;
+  }
+
+  function renderIntro() {
+    body.innerHTML = `
+      <div class="quiz-intro">
+        ${config.emoji ? `<div class="q-emoji">${config.emoji}</div>` : ''}
+        <p class="quiz-question">${config.title || ''}</p>
+        <p style="font-size:13.5px; color:#54637C; line-height:1.6; margin:0 0 18px;">${config.intro}</p>
+        <button class="btn-primary" id="quizStartBtn">Comenzar &rarr;</button>
+      </div>`;
+    document.getElementById('quizStartBtn').addEventListener('click', renderQuestion);
+  }
+
   function renderQuestion() {
-    const q = config.questions[current];
-    const pct = Math.round((current / config.questions.length) * 100);
+    const q = questions[current];
+    const pct = Math.round((current / questions.length) * 100);
     body.innerHTML = `
       <div class="quiz-progress"><div class="quiz-progress-bar" style="width:${pct}%"></div></div>
       <p class="quiz-question">${current + 1}. ${q.q}</p>
@@ -483,7 +524,7 @@ function initQuiz(config) {
       btn.addEventListener('click', () => {
         answers[current] = q.options[+btn.dataset.i].value;
         current++;
-        if (current >= config.questions.length) {
+        if (current >= questions.length) {
           renderResult();
         } else {
           renderQuestion();
@@ -500,8 +541,9 @@ function initQuiz(config) {
 
   function restart() {
     current = 0;
-    answers.length = 0;
-    renderQuestion();
+    answers = [];
+    questions = buildQuestions();
+    if (config.intro) renderIntro(); else renderQuestion();
   }
 
   config._restart = restart;

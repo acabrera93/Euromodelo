@@ -339,17 +339,47 @@
     PM: {code:'PM', title:'Primer Ministro', color:'#3E6E9E', desc:'Es el segundo rol participante en el debate. Sus intervenciones aportan al desarrollo del debate, formulan preguntas para discutir las propuestas y su función especial es votar las enmiendas propuestas por los europarlamentarios y las propuestas legislativas de los comisarios. Representan los intereses de un Estado miembro de la Unión Europea.'},
   };
   const quizQuestions = [
-    {q:'En un trabajo en grupo, normalmente tú...', options:[{label:'Propones la idea inicial y la defiendes ante los demás', value:'CO'},{label:'Haces preguntas y buscas mejorar la propuesta de otros', value:'EP'},{label:'Te preocupas por representar los intereses de todo el grupo', value:'PM'}]},
-    {q:'Tu mayor fortaleza es...', options:[{label:'Crear y argumentar propuestas propias', value:'CO'},{label:'El pensamiento crítico y detectar fallas en un argumento', value:'EP'},{label:'La negociación y la defensa de intereses ajenos', value:'PM'}]},
-    {q:'En un debate, preferirías...', options:[{label:'Exponer tu propia propuesta ante todos', value:'CO'},{label:'Formular preguntas incómodas y proponer cambios', value:'EP'},{label:'Representar la postura de tu país o región', value:'PM'}]},
-    {q:'Tus amigos te describirían como alguien...', options:[{label:'Creativo/a e iniciador/a de proyectos', value:'CO'},{label:'Analítico/a y curioso/a', value:'EP'},{label:'Diplomático/a y buen/a negociador/a', value:'PM'}]},
-    {q:'Si tuvieras que elegir una película, elegirías una...', options:[{label:'Donde el protagonista lidera un cambio desde cero', value:'CO'},{label:'De juicio, investigación o misterio a resolver', value:'EP'},{label:'De diplomacia y negociación internacional', value:'PM'}]},
+    { q:'El proyecto grupal va atrasado y el profesor pide una actualización mañana. Esa noche tú...', options:[
+      {label:'Te quedas armando una versión completa para presentar mañana, aunque el grupo no la haya visto', value:'CO'},
+      {label:'Repasas todo lo que ya se hizo buscando huecos antes de mostrar nada', value:'EP'},
+      {label:'Escribes a cada compañero para saber en qué va cada uno antes de armar algo', value:'PM'},
+    ]},
+    { q:'Piensa en el mejor compañero de equipo que has tenido. ¿Cuál de estas frases lo describe mejor?', options:[
+      {label:'Era quien se daba cuenta de los errores que nadie más veía', value:'EP'},
+      {label:'Lograba que todos en el grupo se sintieran escuchados', value:'PM'},
+      {label:'Siempre era el primero en proponer algo y hacer que las cosas se movieran', value:'CO'},
+    ]},
+    { q:'Al terminar un proyecto en equipo, lo que más te llenaría de orgullo sería...', options:[
+      {label:'Que nadie del equipo haya quedado por fuera de las decisiones', value:'PM'},
+      {label:'Que el equipo haya logrado algo que nadie más se atrevía a intentar', value:'CO'},
+      {label:'Que no se les haya escapado ningún detalle importante', value:'EP'},
+    ]},
+    { q:'Si tu forma de trabajar en equipo fuera una herramienta, ¿cuál sería?', options:[
+      {label:'Un martillo: va directo al problema y lo resuelve', value:'CO'},
+      {label:'Una llave inglesa: se ajusta a lo que el grupo necesite en el momento', value:'PM'},
+      {label:'Una lupa: revisa cada detalle antes de dar algo por hecho', value:'EP'},
+    ]},
+    { q:'En un juego de mesa notas que alguien está haciendo trampa, aunque nadie más lo ha notado. Tú...', options:[
+      {label:'Observas un par de jugadas más para confirmarlo antes de decir algo', value:'EP'},
+      {label:'Lo confrontas ahí mismo, delante de todos', value:'CO'},
+      {label:'Se lo dices aparte, en privado, para no generar un conflicto frente a todos', value:'PM'},
+    ]},
+    { q:'¿Qué preferirías que dijeran de ti tus compañeros de equipo dentro de 5 años?', options:[
+      {label:'Fue quien mantuvo unido al grupo en los momentos difíciles', value:'PM'},
+      {label:'Fue quien evitó que cometiéramos errores grandes', value:'EP'},
+      {label:'Fue quien más se atrevió a proponer cosas nuevas', value:'CO'},
+    ]},
+    { q:'Terminas de leer una noticia polémica. Lo primero que piensas es...', options:[
+      {label:'Qué harías tú si estuvieras a cargo de resolverla', value:'CO'},
+      {label:'Si esa información realmente viene de una fuente confiable', value:'EP'},
+      {label:'En cómo afecta a las distintas personas involucradas', value:'PM'},
+    ]},
   ];
   const quizModal = createModalController('quizModal');
   function tallyQuizWinner(answers) {
     const tally = {CO: 0, EP: 0, PM: 0};
     answers.forEach(a => tally[a]++);
-    return Object.keys(tally).reduce((a, b) => tally[a] >= tally[b] ? a : b);
+    return pickQuizWinner(tally);
   }
 
   /* ---- Brújula de Comisión (test de afinidad) ---- */
@@ -370,83 +400,60 @@
       desc:'Protege el medio ambiente, promueve la agricultura sostenible y vela por la salud pública y el desarrollo de las zonas rurales.' },
   };
   const comisionQuizQuestions = [
-    { q:'¿Qué problema te preocupa más al pensar en el futuro?', options:[
-      {label:'La discriminación y el acceso desigual a la justicia', value:'CLJ'},
-      {label:'Los conflictos internacionales y la falta de seguridad', value:'EXT'},
-      {label:'El desempleo y las crisis económicas', value:'ECO'},
-      {label:'La falta de acceso a educación de calidad', value:'CED'},
-      {label:'La precariedad laboral y la desigualdad social', value:'EAS'},
-      {label:'El atraso tecnológico y la dependencia energética', value:'IIE'},
-      {label:'El cambio climático y la salud pública', value:'MAS'},
+    { q:'Si tuvieras que resolver un problema del mundo real esta misma semana, ¿cuál elegirías?', options:[
+      {label:'Mediar en un conflicto entre dos países que no se hablan hace años', value:'EXT'},
+      {label:'Diseñar una solución tecnológica que nadie ha probado antes, aunque pueda fallar', value:'IIE'},
+      {label:'Evitar que un país entre en default y no pueda pagar su deuda', value:'ECO'},
+      {label:'Frenar una crisis que está matando cultivos y animales al mismo tiempo', value:'MAS'},
+      {label:'Reabrir una fábrica que dejó a cientos de familias sin ingresos', value:'EAS'},
     ]},
-    { q:'Si pudieras liderar un proyecto en tu colegio, sería sobre...', options:[
-      {label:'Un comité de convivencia e igualdad de género', value:'CLJ'},
-      {label:'Un modelo de diplomacia o intercambio internacional', value:'EXT'},
-      {label:'Un proyecto de ahorro o emprendimiento escolar', value:'ECO'},
-      {label:'Un festival cultural o un programa de tutorías', value:'CED'},
-      {label:'Una feria de empleo juvenil o comercio justo', value:'EAS'},
-      {label:'Un club de robótica, ciencia o energías limpias', value:'IIE'},
-      {label:'Una campaña ambiental o una huerta escolar', value:'MAS'},
+    { q:'¿Cuál de estas historias te generaría más indignación al leerla?', options:[
+      {label:'Cerraron la única biblioteca pública de un pueblo por falta de presupuesto', value:'CED'},
+      {label:'Una fábrica contaminó un río entero y nadie respondió por eso', value:'MAS'},
+      {label:'Un país se quedó sin electricidad tres días por no invertir en su red energética', value:'IIE'},
+      {label:'A una persona la despidieron solo por su género, y nadie hizo nada', value:'CLJ'},
+      {label:'Un banco quebró y miles de ahorros desaparecieron de la noche a la mañana', value:'ECO'},
     ]},
-    { q:'Un libro o documental que te llamaría la atención trata sobre...', options:[
-      {label:'Casos judiciales y derechos humanos', value:'CLJ'},
-      {label:'Espionaje, guerra o diplomacia internacional', value:'EXT'},
-      {label:'Crisis financieras y mercados globales', value:'ECO'},
-      {label:'Historia del arte o sistemas educativos', value:'CED'},
-      {label:'Movimientos obreros y comercio internacional', value:'EAS'},
-      {label:'Inteligencia artificial o energías del futuro', value:'IIE'},
-      {label:'Especies en peligro o pandemias', value:'MAS'},
+    { q:'¿A cuál de estas personas admirarías más si conocieras su historia completa?', options:[
+      {label:'Una científica que descubrió cómo revertir el daño de una sequía', value:'MAS'},
+      {label:'Una maestra que transformó la educación de todo un pueblo', value:'CED'},
+      {label:'Una abogada que ganó un caso histórico contra la discriminación laboral', value:'CLJ'},
+      {label:'Un diplomático que evitó una guerra con una negociación de último minuto', value:'EXT'},
+      {label:'Un líder sindical que logró mejores condiciones para miles de trabajadores', value:'EAS'},
     ]},
-    { q:'En un debate, te sientes más cómodo/a hablando de...', options:[
-      {label:'Leyes, libertades e igualdad', value:'CLJ'},
-      {label:'Política exterior y defensa', value:'EXT'},
-      {label:'Presupuestos, impuestos y política monetaria', value:'ECO'},
-      {label:'Cultura y sistemas educativos', value:'CED'},
-      {label:'Derechos laborales y comercio', value:'EAS'},
-      {label:'Innovación, tecnología y energía', value:'IIE'},
-      {label:'Medio ambiente y salud pública', value:'MAS'},
+    { q:'Un amigo te cuenta un problema personal. ¿Cuál de estos te dejaría pensando más tiempo después de la conversación?', options:[
+      {label:'Le negaron un trabajo por ser mujer', value:'CLJ'},
+      {label:'Lo despidieron sin ninguna explicación ni indemnización', value:'EAS'},
+      {label:'Su familia tuvo que huir de su país por la guerra', value:'EXT'},
+      {label:'Perdió sus ahorros por una mala decisión del banco', value:'ECO'},
+      {label:'No pudo estudiar lo que quería porque no había internet en su pueblo', value:'IIE'},
     ]},
-    { q:'Elegirías hacer una pasantía en...', options:[
-      {label:'Una ONG de derechos humanos o un juzgado', value:'CLJ'},
-      {label:'Una embajada o un organismo internacional', value:'EXT'},
-      {label:'Un banco central o un ministerio de hacienda', value:'ECO'},
-      {label:'Un museo o una institución educativa', value:'CED'},
-      {label:'Un sindicato o una empresa exportadora', value:'EAS'},
-      {label:'Una startup tecnológica o una empresa de energía', value:'IIE'},
-      {label:'Una reserva natural o un hospital', value:'MAS'},
+    { q:'Tienes que dar un discurso improvisado de 2 minutos ahora mismo. ¿Sobre cuál de estos temas te sentirías más seguro/a?', options:[
+      {label:'Por qué la energía del futuro no puede depender del petróleo', value:'IIE'},
+      {label:'Por qué sube o baja el valor de una moneda', value:'ECO'},
+      {label:'Por qué un conflicto entre dos países no tiene una solución fácil', value:'EXT'},
+      {label:'Por qué el cambio climático ya afecta a los agricultores hoy', value:'MAS'},
+      {label:'Por qué la educación pública debería ser prioridad de un gobierno', value:'CED'},
     ]},
-    { q:'Tu materia favorita en el colegio es...', options:[
-      {label:'Ética, cívica o filosofía', value:'CLJ'},
-      {label:'Ciencias sociales o geografía política', value:'EXT'},
-      {label:'Economía o matemáticas financieras', value:'ECO'},
-      {label:'Artes o literatura', value:'CED'},
-      {label:'Emprendimiento o ciencias sociales', value:'EAS'},
-      {label:'Física, tecnología o informática', value:'IIE'},
-      {label:'Biología o ciencias ambientales', value:'MAS'},
+    { q:'Podrías cambiar una sola ley este año. ¿Cuál elegirías?', options:[
+      {label:'Una que obligue a los bancos a ser más transparentes con sus clientes', value:'ECO'},
+      {label:'Una que garantice el mismo salario para el mismo trabajo, sin importar el género', value:'CLJ'},
+      {label:'Una que proteja a quien pierde su trabajo por decisiones de una empresa extranjera', value:'EAS'},
+      {label:'Una que castigue a las empresas que contaminan ríos y bosques', value:'MAS'},
+      {label:'Una que garantice acceso gratuito a la universidad pública', value:'CED'},
     ]},
-    { q:'Si tuvieras un superpoder para cambiar el mundo, sería...', options:[
-      {label:'Garantizar justicia real para todos', value:'CLJ'},
-      {label:'Terminar con los conflictos armados', value:'EXT'},
-      {label:'Acabar con la pobreza económica', value:'ECO'},
-      {label:'Dar educación gratuita y de calidad a todos', value:'CED'},
-      {label:'Garantizar trabajo digno para todos', value:'EAS'},
-      {label:'Dar acceso a tecnología a todo el planeta', value:'IIE'},
-      {label:'Curar enfermedades y salvar el planeta', value:'MAS'},
-    ]},
-    { q:'¿Qué campaña seguirías más de cerca?', options:[
-      {label:'Una campaña contra la discriminación', value:'CLJ'},
-      {label:'Una misión de paz internacional', value:'EXT'},
-      {label:'Una campaña de educación financiera', value:'ECO'},
-      {label:'Una campaña de becas educativas', value:'CED'},
-      {label:'Una campaña de comercio justo', value:'EAS'},
-      {label:'Una campaña de innovación abierta', value:'IIE'},
-      {label:'Una campaña contra el cambio climático', value:'MAS'},
+    { q:'Dentro de 10 años, ¿qué titular sobre ti te gustaría leer?', options:[
+      {label:'"Abrió mercados internacionales que generaron miles de empleos"', value:'EAS'},
+      {label:'"Negoció un acuerdo de paz que puso fin a un conflicto de décadas"', value:'EXT'},
+      {label:'"Inventó una tecnología que cambió la forma en que el mundo produce energía"', value:'IIE'},
+      {label:'"Creó un programa educativo que llegó a miles de estudiantes rurales"', value:'CED'},
+      {label:'"Lideró la ley que cerró la brecha salarial de género en su país"', value:'CLJ'},
     ]},
   ];
   function tallyComisionWinner(answers) {
     const tally = { CLJ:0, EXT:0, ECO:0, CED:0, EAS:0, IIE:0, MAS:0 };
     answers.forEach(a => tally[a]++);
-    return Object.keys(tally).reduce((a, b) => tally[a] >= tally[b] ? a : b);
+    return pickQuizWinner(tally);
   }
 
   /* ---- Match Europeo (test de afinidad con partidos) ---- */
@@ -546,7 +553,7 @@
     const tally = {};
     PARTIDOS.forEach(p => tally[p.code] = 0);
     answers.forEach(a => tally[a]++);
-    return Object.keys(tally).reduce((a, b) => tally[a] >= tally[b] ? a : b);
+    return pickQuizWinner(tally);
   }
 
   function refCode(prefix){
@@ -611,7 +618,11 @@
     function startInsQuiz() {
       initQuiz({
         modalId: 'quizModal',
+        emoji: '&#129517;',
+        title: '¿Cuál es tu estilo de liderazgo?',
+        intro: 'No hay respuestas correctas ni incorrectas, responde con lo primero que te identifique.',
         questions: quizQuestions,
+        shuffleQuestions: true,
         onFinish: (answers, body) => {
           const r = rolesInfo[tallyQuizWinner(answers)];
           document.getElementById('resultadoBrujula').value = r.title;
@@ -643,7 +654,11 @@
     function startComisionInsQuiz() {
       initQuiz({
         modalId: 'quizModal',
+        emoji: '&#129517;',
+        title: '¿Cuál es tu comisión ideal?',
+        intro: 'No hay respuestas correctas ni incorrectas, responde con lo primero que te identifique.',
         questions: comisionQuizQuestions,
+        shuffleQuestions: true,
         onFinish: (answers, body) => {
           const c = comisionesInfo[tallyComisionWinner(answers)];
           document.getElementById('resultadoBrujulaComision').value = c.title;
@@ -675,7 +690,11 @@
     function startPartidoInsQuiz() {
       initQuiz({
         modalId: 'quizModal',
+        emoji: '&#128153;',
+        title: 'Match Europeo',
+        intro: 'No hay respuestas correctas ni incorrectas, responde con lo primero que te identifique.',
         questions: partidoQuizQuestions,
+        shuffleQuestions: true,
         onFinish: (answers, body) => {
           const winnerCode = tallyPartidoWinner(answers);
           const p = PARTIDOS.find(x => x.code === winnerCode);
@@ -1028,7 +1047,11 @@
     function startProfileQuiz() {
       initQuiz({
         modalId: 'quizModal',
+        emoji: '&#129517;',
+        title: '¿Cuál es tu estilo de liderazgo?',
+        intro: 'No hay respuestas correctas ni incorrectas, responde con lo primero que te identifique.',
         questions: quizQuestions,
+        shuffleQuestions: true,
         onFinish: (answers, body) => {
           const r = rolesInfo[tallyQuizWinner(answers)];
           // Repetir el test reemplaza el resultado anterior, local y en la Sheet.
@@ -1058,7 +1081,11 @@
     function startComisionProfileQuiz() {
       initQuiz({
         modalId: 'quizModal',
+        emoji: '&#129517;',
+        title: '¿Cuál es tu comisión ideal?',
+        intro: 'No hay respuestas correctas ni incorrectas, responde con lo primero que te identifique.',
         questions: comisionQuizQuestions,
+        shuffleQuestions: true,
         onFinish: (answers, body) => {
           const c = comisionesInfo[tallyComisionWinner(answers)];
           // Repetir el test reemplaza el resultado anterior, local y en la Sheet.
@@ -1088,7 +1115,11 @@
     function startPartidoProfileQuiz() {
       initQuiz({
         modalId: 'quizModal',
+        emoji: '&#128153;',
+        title: 'Match Europeo',
+        intro: 'No hay respuestas correctas ni incorrectas, responde con lo primero que te identifique.',
         questions: partidoQuizQuestions,
+        shuffleQuestions: true,
         onFinish: (answers, body) => {
           const winnerCode = tallyPartidoWinner(answers);
           const p = PARTIDOS.find(x => x.code === winnerCode);

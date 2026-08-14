@@ -70,8 +70,8 @@
 <div class="section-inner">
   <div class="container">
     <div style="text-align:center; margin:0 0 var(--space-5);">
-      <button class="btn-solid" id="openQuizBtn" style="background:var(--navy-deep); color:var(--white);">&#129517; Brújula Legislativa: descubre tu rol</button>
-      <p style="font-size:12.5px; color:#8695AC; margin-top:10px;">5 preguntas rápidas para saber si eres Comisario, Europarlamentario o Primer Ministro.</p>
+      <button class="btn-solid" id="openQuizBtn" style="background:var(--navy-deep); color:var(--white);">&#129517; Brújula Legislativa: ¿cuál es tu estilo de liderazgo?</button>
+      <p style="font-size:12.5px; color:#8695AC; margin-top:10px;">7 preguntas rápidas para saber si eres Comisario, Europarlamentario o Primer Ministro.</p>
     </div>
 
     <div class="grid-cards" id="rolesGrid"></div>
@@ -156,20 +156,62 @@
 
   /* ---- Test: Brújula Legislativa ---- */
   const rolesInfo = {"CO": {"code": "CO", "title": "Comisario", "color": "#C9A227", "bullets": ["Redacta y presenta una propuesta legislativa", "Expone ante su comisión y, si es seleccionada, en plenaria", "Responde las preguntas de la mesa directiva"], "desc": "Es el rol base del Euromodelo Joven. Su función es crear una propuesta legislativa que será debatida en comisión y, en caso de ser seleccionada, en plenaria. El comisario deberá exponer su propuesta y responder las preguntas que se le formulen. Representa a una bancada política dentro de la Comisión Europea."}, "EP": {"code": "EP", "title": "Europarlamentario", "color": "#1E3D73", "bullets": ["Es el rol más numeroso del programa", "Formula preguntas a los comisarios y redacta enmiendas", "Vota las enmiendas y las propuestas legislativas"], "desc": "Es el rol más numeroso dentro del Euromodelo Joven. Su participación es la más relevante de cara al desarrollo del debate: formulan preguntas para discutir la propuesta y crean las enmiendas que serán votadas, además de votar las propuestas legislativas de los comisarios. Representan los ideales de un partido político del Parlamento Europeo."}, "PM": {"code": "PM", "title": "Primer Ministro", "color": "#3E6E9E", "bullets": ["Representa a un Estado miembro de la UE", "Formula preguntas sobre las propuestas legislativas", "Vota las enmiendas y las propuestas legislativas"], "desc": "Es el segundo rol participante en el debate. Sus intervenciones aportan al desarrollo del debate, formulan preguntas para discutir las propuestas y su función especial es votar las enmiendas propuestas por los europarlamentarios y las propuestas legislativas de los comisarios. Representan los intereses de un Estado miembro de la Unión Europea."}};
-  const quizQuestions = [{"q": "En un trabajo en grupo, normalmente tú...", "options": [{"label": "Propones la idea inicial y la defiendes ante los demás", "value": "CO"}, {"label": "Haces preguntas y buscas mejorar la propuesta de otros", "value": "EP"}, {"label": "Te preocupas por representar los intereses de todo el grupo", "value": "PM"}]}, {"q": "Tu mayor fortaleza es...", "options": [{"label": "Crear y argumentar propuestas propias", "value": "CO"}, {"label": "El pensamiento crítico y detectar fallas en un argumento", "value": "EP"}, {"label": "La negociación y la defensa de intereses ajenos", "value": "PM"}]}, {"q": "En un debate, preferirías...", "options": [{"label": "Exponer tu propia propuesta ante todos", "value": "CO"}, {"label": "Formular preguntas incómodas y proponer cambios", "value": "EP"}, {"label": "Representar la postura de tu país o región", "value": "PM"}]}, {"q": "Tus amigos te describirían como alguien...", "options": [{"label": "Creativo/a e iniciador/a de proyectos", "value": "CO"}, {"label": "Analítico/a y curioso/a", "value": "EP"}, {"label": "Diplomático/a y buen/a negociador/a", "value": "PM"}]}, {"q": "Si tuvieras que elegir una película, elegirías una...", "options": [{"label": "Donde el protagonista lidera un cambio desde cero", "value": "CO"}, {"label": "De juicio, investigación o misterio a resolver", "value": "EP"}, {"label": "De diplomacia y negociación internacional", "value": "PM"}]}];
+  const quizQuestions = [
+    { q:'El proyecto grupal va atrasado y el profesor pide una actualización mañana. Esa noche tú...', options:[
+      {label:'Te quedas armando una versión completa para presentar mañana, aunque el grupo no la haya visto', value:'CO'},
+      {label:'Repasas todo lo que ya se hizo buscando huecos antes de mostrar nada', value:'EP'},
+      {label:'Escribes a cada compañero para saber en qué va cada uno antes de armar algo', value:'PM'},
+    ]},
+    { q:'Piensa en el mejor compañero de equipo que has tenido. ¿Cuál de estas frases lo describe mejor?', options:[
+      {label:'Era quien se daba cuenta de los errores que nadie más veía', value:'EP'},
+      {label:'Lograba que todos en el grupo se sintieran escuchados', value:'PM'},
+      {label:'Siempre era el primero en proponer algo y hacer que las cosas se movieran', value:'CO'},
+    ]},
+    { q:'Al terminar un proyecto en equipo, lo que más te llenaría de orgullo sería...', options:[
+      {label:'Que nadie del equipo haya quedado por fuera de las decisiones', value:'PM'},
+      {label:'Que el equipo haya logrado algo que nadie más se atrevía a intentar', value:'CO'},
+      {label:'Que no se les haya escapado ningún detalle importante', value:'EP'},
+    ]},
+    { q:'Si tu forma de trabajar en equipo fuera una herramienta, ¿cuál sería?', options:[
+      {label:'Un martillo: va directo al problema y lo resuelve', value:'CO'},
+      {label:'Una llave inglesa: se ajusta a lo que el grupo necesite en el momento', value:'PM'},
+      {label:'Una lupa: revisa cada detalle antes de dar algo por hecho', value:'EP'},
+    ]},
+    { q:'En un juego de mesa notas que alguien está haciendo trampa, aunque nadie más lo ha notado. Tú...', options:[
+      {label:'Observas un par de jugadas más para confirmarlo antes de decir algo', value:'EP'},
+      {label:'Lo confrontas ahí mismo, delante de todos', value:'CO'},
+      {label:'Se lo dices aparte, en privado, para no generar un conflicto frente a todos', value:'PM'},
+    ]},
+    { q:'¿Qué preferirías que dijeran de ti tus compañeros de equipo dentro de 5 años?', options:[
+      {label:'Fue quien mantuvo unido al grupo en los momentos difíciles', value:'PM'},
+      {label:'Fue quien evitó que cometiéramos errores grandes', value:'EP'},
+      {label:'Fue quien más se atrevió a proponer cosas nuevas', value:'CO'},
+    ]},
+    { q:'Terminas de leer una noticia polémica. Lo primero que piensas es...', options:[
+      {label:'Qué harías tú si estuvieras a cargo de resolverla', value:'CO'},
+      {label:'Si esa información realmente viene de una fuente confiable', value:'EP'},
+      {label:'En cómo afecta a las distintas personas involucradas', value:'PM'},
+    ]},
+  ];
   const quizModal = createModalController('quizModal');
   function startRoleQuiz() {
     initQuiz({
       modalId: 'quizModal',
+      emoji: '&#129517;',
+      title: '¿Cuál es tu estilo de liderazgo?',
+      intro: 'No hay respuestas correctas ni incorrectas, responde con lo primero que te identifique.',
       questions: quizQuestions,
+      shuffleQuestions: true,
       onFinish: (answers, body) => {
         const tally = { CO: 0, EP: 0, PM: 0 };
         answers.forEach(a => tally[a]++);
-        const winner = Object.keys(tally).reduce((a, b) => tally[a] >= tally[b] ? a : b);
+        const winner = pickQuizWinner(tally);
         const r = rolesInfo[winner];
+        const pct = Math.round((tally[winner] / quizQuestions.length) * 100);
         body.innerHTML = `
           <div class="quiz-result">
             <div class="result-icon" style="background:${r.color}">${r.code}</div>
+            <div class="match-pct">${pct}% de afinidad</div>
             <h3>¡Tu perfil es: ${r.title}!</h3>
             <p>${r.desc}</p>
             <a class="btn-primary" href="perfil.html?rol=${encodeURIComponent(r.title)}">Inscribirme como ${r.title} &rarr;</a><br>

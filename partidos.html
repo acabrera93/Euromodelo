@@ -145,12 +145,16 @@
   function startPartyQuiz() {
     initQuiz({
       modalId: 'quizModal',
+      emoji: '&#128153;',
+      title: 'Match Europeo',
+      intro: 'No hay respuestas correctas ni incorrectas, responde con lo primero que te identifique.',
       questions: quizQuestions,
+      shuffleQuestions: true,
       onFinish: (answers, body) => {
         const tally = {};
         partidos.forEach(p => tally[p.code] = 0);
         answers.forEach(a => tally[a]++);
-        const winnerCode = Object.keys(tally).reduce((a, b) => tally[a] >= tally[b] ? a : b);
+        const winnerCode = pickQuizWinner(tally);
         const p = partidosLookup[winnerCode];
         const pct = Math.round((tally[winnerCode] / quizQuestions.length) * 100);
         body.innerHTML = `
