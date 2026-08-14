@@ -468,6 +468,19 @@ footer .container{display:flex; justify-content:space-between; flex-wrap:wrap; g
 }
 .admin-tab-btn:hover{color:var(--blue-revel);}
 .admin-tab-btn.active{color:var(--navy-deep); border-bottom-color:var(--gold-star);}
+.bloque-dropdown{display:inline-block; position:relative;}
+.bloque-dropdown .admin-tab-btn .caret{font-size:10px; margin-left:2px; display:inline-block; transition:transform .15s;}
+.bloque-dropdown-menu{
+  display:none; position:absolute; top:calc(100% + 6px); left:0; background:var(--white); color:var(--ink);
+  border:1px solid var(--line); border-radius:10px; box-shadow:0 12px 32px rgba(11,37,69,.18); padding:6px; min-width:180px; z-index:60;
+}
+.bloque-dropdown-menu.open{display:block;}
+.bloque-dropdown-item{
+  display:block; width:100%; text-align:left; background:none; border:none; font-family:inherit;
+  padding:9px 12px; border-radius:8px; font-size:14px; font-weight:500; color:var(--ink); cursor:pointer;
+}
+.bloque-dropdown-item:hover{background:var(--blue-pale);}
+.bloque-dropdown-item.selected{background:var(--blue-pale); color:var(--blue-revel); font-weight:600;}
 
 /* ---- Panel de administración: filtros y edición de fila ---- */
 .admin-filters{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:var(--space-3);}
@@ -497,6 +510,7 @@ footer .container{display:flex; justify-content:space-between; flex-wrap:wrap; g
 .origen-badge.manual{background:var(--gold-star); color:var(--navy-deep);}
 .origen-badge.automatica{background:var(--teal);}
 .origen-badge.sin-asignar{background:var(--blue-pale); color:var(--blue-slate);}
+.pref-tag{font-size:11px; font-style:italic; font-weight:400; color:var(--blue-slate);}
 
 /* ---- Panel de administración: propuestas de comisarios ---- */
 .propuesta-badge{

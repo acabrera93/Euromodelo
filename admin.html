@@ -66,9 +66,14 @@
 
       <div class="admin-tabs" id="bloqueTabs" style="margin-bottom:var(--space-2);">
         <button type="button" class="admin-tab-btn active" data-tipo="Nacional" data-ciudad="">Nacional</button>
-        <button type="button" class="admin-tab-btn" data-tipo="Regional" data-ciudad="Riohacha">Regional — Riohacha</button>
-        <button type="button" class="admin-tab-btn" data-tipo="Regional" data-ciudad="Bucaramanga">Regional — Bucaramanga</button>
-        <button type="button" class="admin-tab-btn" data-tipo="Regional" data-ciudad="Cúcuta">Regional — Cúcuta</button>
+        <div class="bloque-dropdown" id="bloqueRegionalDropdown">
+          <button type="button" class="admin-tab-btn" id="bloqueRegionalToggle">Regional <span class="caret">&#9662;</span></button>
+          <div class="bloque-dropdown-menu" id="bloqueRegionalMenu">
+            <button type="button" class="bloque-dropdown-item" data-tipo="Regional" data-ciudad="Riohacha">Riohacha</button>
+            <button type="button" class="bloque-dropdown-item" data-tipo="Regional" data-ciudad="Bucaramanga">Bucaramanga</button>
+            <button type="button" class="bloque-dropdown-item" data-tipo="Regional" data-ciudad="Cúcuta">Cúcuta</button>
+          </div>
+        </div>
       </div>
 
       <div class="admin-tabs" id="sectionTabs">
@@ -239,6 +244,17 @@
   function displayComision(r) { return r.comision_asignada || r.comision_opcion1 || 'Pendiente'; }
   function displayPartido(r) { return r.partido_asignado || r.partido || 'Pendiente'; }
 
+  // Para la celda de la tabla (a diferencia de displayRol/Comision/Partido, que devuelven el
+  // valor plano para filtrar y para preseleccionar el <select> al editar): si no hay asignación
+  // real todavía, se muestra la preferencia marcada como tal, para no confundirla con una
+  // asignación ya hecha — la columna Origen es la señal definitiva, pero esto evita tener que
+  // mirarla aparte.
+  function fieldCellHtml(asignado, preferencia) {
+    if (asignado) return asignado;
+    if (preferencia) return `${preferencia} <span class="pref-tag">(preferencia)</span>`;
+    return 'Pendiente';
+  }
+
   function optionsHtml(list, current) {
     return list.map(v => `<option value="${v}" ${v === current ? 'selected' : ''}>${v}</option>`).join('');
   }
@@ -272,9 +288,9 @@
     return `<tr data-ref-code="${r.ref_code || ''}">
       <td>${r.nombre_completo || ''}</td>
       <td>${r.institucion_educativa || ''}</td>
-      <td>${displayRol(r)}</td>
-      <td>${displayComision(r)}</td>
-      <td>${displayPartido(r)}</td>
+      <td>${fieldCellHtml(r.rol_asignado, r.rol_opcion1)}</td>
+      <td>${fieldCellHtml(r.comision_asignada, r.comision_opcion1)}</td>
+      <td>${fieldCellHtml(r.partido_asignado, r.partido)}</td>
       <td>${origenBadge(r)}</td>
       <td>
         <button class="admin-row-btn" data-action="edit">Editar</button>
@@ -633,15 +649,34 @@
     document.getElementById('detailTableBody').innerHTML = '';
   }
 
-  document.querySelectorAll('#bloqueTabs .admin-tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      currentBloque = { tipo: btn.dataset.tipo, ciudad: btn.dataset.ciudad || '' };
-      document.querySelectorAll('#bloqueTabs .admin-tab-btn').forEach(b => b.classList.toggle('active', b === btn));
-      renderAll();
-      // La vista previa de simulación mostrada corresponde al bloque anterior: se limpia para no
-      // confundir esos números con los del bloque recién seleccionado.
-      resetSimulacionPreview();
+  function selectBloque(tipo, ciudad) {
+    currentBloque = { tipo, ciudad: ciudad || '' };
+    document.getElementById('bloqueTabs').querySelector('.admin-tab-btn[data-tipo="Nacional"]').classList.toggle('active', tipo === 'Nacional');
+    document.getElementById('bloqueRegionalToggle').classList.toggle('active', tipo === 'Regional');
+    document.querySelectorAll('.bloque-dropdown-item').forEach(item => {
+      item.classList.toggle('selected', tipo === 'Regional' && item.dataset.ciudad === ciudad);
     });
+    document.getElementById('bloqueRegionalMenu').classList.remove('open');
+    renderAll();
+    // La vista previa de simulación mostrada corresponde al bloque anterior: se limpia para no
+    // confundir esos números con los del bloque recién seleccionado.
+    resetSimulacionPreview();
+  }
+
+  document.getElementById('bloqueTabs').querySelector('.admin-tab-btn[data-tipo="Nacional"]').addEventListener('click', () => {
+    selectBloque('Nacional', '');
+  });
+  document.getElementById('bloqueRegionalToggle').addEventListener('click', (e) => {
+    e.stopPropagation();
+    document.getElementById('bloqueRegionalMenu').classList.toggle('open');
+  });
+  document.querySelectorAll('.bloque-dropdown-item').forEach(item => {
+    item.addEventListener('click', () => selectBloque('Regional', item.dataset.ciudad));
+  });
+  document.addEventListener('click', (e) => {
+    if (!document.getElementById('bloqueRegionalDropdown').contains(e.target)) {
+      document.getElementById('bloqueRegionalMenu').classList.remove('open');
+    }
   });
 
   // ---------- Simulación (vista previa, dentro del panel de admin) ----------
