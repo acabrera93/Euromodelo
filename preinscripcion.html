@@ -75,7 +75,7 @@
       </div>
       <div class="field full">
         <label>¿Euromodelo Regional o Nacional?</label>
-        <div class="radio-row">
+        <div class="radio-row" id="preTipoEuromodelo">
           <label><input type="radio" name="tipoEuromodelo" value="Regional" required checked> Regional</label>
           <label><input type="radio" name="tipoEuromodelo" value="Nacional" required> Nacional</label>
         </div>
@@ -103,13 +103,14 @@
         </div>
         <div class="field student-only-field">
           <label>Ciudad</label>
-          <select required name="ciudad">
+          <select required name="ciudad" id="preCiudad">
             <option value="">Selecciona una ciudad</option>
             <option>Riohacha</option>
             <option>Bucaramanga</option>
-            <option>Bogotá</option>
+            <option value="Bogotá" id="preCiudadBogota">Bogotá</option>
             <option>Cúcuta</option>
           </select>
+          <p id="preCiudadRegionalNote" style="display:none; font-size:12px; color:var(--blue-slate); margin-top:6px;">Bogotá es la sede del Euromodelo Nacional — no está disponible como sede Regional.</p>
         </div>
         <div class="field full"><label>Institución educativa</label><input required type="text" name="institucion"></div>
       </div>
@@ -201,6 +202,23 @@
       menorSection.querySelectorAll('input[name="autorizaImagen"]').forEach(inp => inp.required = esMenor);
     }
   });
+
+  // Bogotá es la sede del Euromodelo Nacional, no una sede Regional — se oculta como opción de
+  // ciudad cuando se elige Regional, y se resetea la selección si ya estaba en Bogotá.
+  function updateCiudadForTipoEuromodelo() {
+    const esRegional = document.querySelector('input[name="tipoEuromodelo"]:checked')?.value === 'Regional';
+    const bogotaOption = document.getElementById('preCiudadBogota');
+    bogotaOption.disabled = esRegional;
+    bogotaOption.hidden = esRegional;
+    document.getElementById('preCiudadRegionalNote').style.display = esRegional ? 'block' : 'none';
+    const ciudadSelect = document.getElementById('preCiudad');
+    if (esRegional && ciudadSelect.value === 'Bogotá') ciudadSelect.value = '';
+  }
+  document.getElementById('preTipoEuromodelo').addEventListener('change', (e) => {
+    if (e.target.name !== 'tipoEuromodelo') return;
+    updateCiudadForTipoEuromodelo();
+  });
+  updateCiudadForTipoEuromodelo();
 
   function refCode(prefix){
     return prefix + '-' + Math.random().toString(36).slice(2,7).toUpperCase();
