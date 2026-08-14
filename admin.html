@@ -64,7 +64,15 @@
       </div>
       <p id="adminError" style="display:none; color:#C0392B; font-size:13px; margin:0 0 var(--space-3);">No se pudo cargar la información. Intenta de nuevo.</p>
 
-      <div class="admin-tabs">
+      <div class="admin-tabs" id="bloqueTabs" style="margin-bottom:var(--space-2);">
+        <button type="button" class="admin-tab-btn active" data-tipo="Nacional" data-ciudad="">Nacional</button>
+        <button type="button" class="admin-tab-btn" data-tipo="Regional" data-ciudad="Riohacha">Regional — Riohacha</button>
+        <button type="button" class="admin-tab-btn" data-tipo="Regional" data-ciudad="Bucaramanga">Regional — Bucaramanga</button>
+        <button type="button" class="admin-tab-btn" data-tipo="Regional" data-ciudad="Bogotá">Regional — Bogotá</button>
+        <button type="button" class="admin-tab-btn" data-tipo="Regional" data-ciudad="Cúcuta">Regional — Cúcuta</button>
+      </div>
+
+      <div class="admin-tabs" id="sectionTabs">
         <button type="button" class="admin-tab-btn active" data-tab="participantes">Participantes</button>
         <button type="button" class="admin-tab-btn" data-tab="simulacion">Simulación y sorteo</button>
         <button type="button" class="admin-tab-btn" data-tab="propuestas">Propuestas de comisarios</button>
@@ -213,6 +221,21 @@
 
   let allRecords = [];
 
+  // ---------- Bloque activo: Nacional, o Regional en una ciudad concreta ----------
+  // Cada sede regional lleva su propia contabilidad (mínimo de comisión, cupo de partido, etc.),
+  // sin cruzar datos con otras — por eso todo lo que se ve en las pestañas de abajo se filtra
+  // primero por el bloque activo antes de aplicar sus propios filtros (búsqueda, comisión...).
+  let currentBloque = { tipo: 'Nacional', ciudad: '' };
+
+  function inCurrentBloque(r) {
+    const tipo = r.tipo_euromodelo || 'Nacional';
+    if (tipo !== currentBloque.tipo) return false;
+    if (currentBloque.tipo === 'Regional' && (r.ciudad || '') !== currentBloque.ciudad) return false;
+    return true;
+  }
+  function bloqueRecords() { return allRecords.filter(inCurrentBloque); }
+  function bloqueLabel() { return currentBloque.tipo === 'Nacional' ? 'Nacional' : `Regional — ${currentBloque.ciudad}`; }
+
   function displayRol(r) { return r.rol_asignado || r.rol_opcion1 || 'Pendiente'; }
   function displayComision(r) { return r.comision_asignada || r.comision_opcion1 || 'Pendiente'; }
   function displayPartido(r) { return r.partido_asignado || r.partido || 'Pendiente'; }
@@ -286,7 +309,7 @@
 
   function filteredRecords() {
     const f = currentFilters();
-    return allRecords.filter(r => {
+    return bloqueRecords().filter(r => {
       if (f.search) {
         const hay = ((r.nombre_completo || '') + ' ' + (r.email || '')).toLowerCase();
         if (hay.indexOf(f.search) === -1) return false;
@@ -299,10 +322,11 @@
   }
 
   function renderStats() {
-    document.getElementById('statTotalParticipantes').textContent = allRecords.length;
-    const colegios = new Set(allRecords.map(r => r.institucion_educativa).filter(Boolean));
+    const records = bloqueRecords();
+    document.getElementById('statTotalParticipantes').textContent = records.length;
+    const colegios = new Set(records.map(r => r.institucion_educativa).filter(Boolean));
     document.getElementById('statTotalColegios').textContent = colegios.size;
-    const conAsignacion = allRecords.filter(r => r.rol_asignado || r.comision_asignada || r.partido_asignado).length;
+    const conAsignacion = records.filter(r => r.rol_asignado || r.comision_asignada || r.partido_asignado).length;
     document.getElementById('statConAsignacion').textContent = conAsignacion;
   }
 
@@ -314,7 +338,7 @@
 
   function renderColegios() {
     const groups = {};
-    allRecords.forEach(r => {
+    bloqueRecords().forEach(r => {
       const school = r.institucion_educativa || 'Sin colegio';
       groups[school] = (groups[school] || 0) + 1;
     });
@@ -344,7 +368,7 @@
 
   function renderPropuestas() {
     const comisionFilter = document.getElementById('propuestaFilterComision').value;
-    const records = allRecords.filter(r => r.rol_asignado === 'Comisario' && r.propuesta_url
+    const records = bloqueRecords().filter(r => r.rol_asignado === 'Comisario' && r.propuesta_url
       && (!comisionFilter || r.comision_asignada === comisionFilter));
     document.getElementById('propuestasTableBody').innerHTML = records.map(propuestaRowHtml).join('');
     document.getElementById('propuestasEmpty').style.display = records.length === 0 ? 'block' : 'none';
@@ -352,7 +376,7 @@
 
   function renderAll() {
     renderStats();
-    populateColegioFilter(allRecords);
+    populateColegioFilter(bloqueRecords());
     renderTable();
     renderColegios();
     renderPropuestas();
@@ -477,12 +501,12 @@
   }
 
   document.getElementById('applyAssignmentBtn').addEventListener('click', async (e) => {
-    const sure = confirm('¿Sortear rol, comisión y partido para los participantes que todavía no tienen asignación manual? No se tocará a quienes ya fueron asignados a mano.');
+    const sure = confirm(`¿Sortear rol, comisión y partido para "${bloqueLabel()}"? Solo afecta a los participantes de este bloque que todavía no tienen asignación manual — no se tocará a quienes ya fueron asignados a mano, ni a otros bloques.`);
     if (!sure) return;
     setButtonLoading(e.target, 'Sorteando…');
     const mesaCount = Number(document.getElementById('mesaCountInput').value) || 0;
     const creds = getCreds();
-    const result = await apiCall({ form: 'admin_apply_assignment', adminEmail: creds.email, adminPassword: creds.password, mesaCount });
+    const result = await apiCall({ form: 'admin_apply_assignment', adminEmail: creds.email, adminPassword: creds.password, mesaCount, tipoEuromodelo: currentBloque.tipo, ciudad: currentBloque.ciudad });
     if (result && result.ok) {
       showAssignmentMsg(`Se asignaron ${result.applied} participantes (${result.skipped} ya tenían asignación manual y no se tocaron).`, false);
       await loadParticipants();
@@ -493,11 +517,11 @@
   });
 
   document.getElementById('undoAssignmentBtn').addEventListener('click', async (e) => {
-    const sure = confirm('¿Deshacer el último sorteo automático? Esto vacía rol/comisión/partido de los participantes que fueron asignados en esa corrida.');
+    const sure = confirm(`¿Deshacer el último sorteo automático de "${bloqueLabel()}"? Esto vacía rol/comisión/partido de los participantes de este bloque que fueron asignados en esa corrida.`);
     if (!sure) return;
     setButtonLoading(e.target, 'Deshaciendo…');
     const creds = getCreds();
-    const result = await apiCall({ form: 'admin_undo_assignment', adminEmail: creds.email, adminPassword: creds.password });
+    const result = await apiCall({ form: 'admin_undo_assignment', adminEmail: creds.email, adminPassword: creds.password, tipoEuromodelo: currentBloque.tipo, ciudad: currentBloque.ciudad });
     if (result && result.ok) {
       showAssignmentMsg(`Se revirtieron ${result.restored} asignaciones.`, false);
       await loadParticipants();
@@ -590,10 +614,34 @@
     }
   });
 
-  document.querySelectorAll('.admin-tab-btn').forEach(btn => {
+  document.querySelectorAll('#sectionTabs .admin-tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.admin-tab-panel').forEach(p => { p.style.display = p.id === 'tab-' + btn.dataset.tab ? 'block' : 'none'; });
-      document.querySelectorAll('.admin-tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+      document.querySelectorAll('#sectionTabs .admin-tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+    });
+  });
+
+  function resetSimulacionPreview() {
+    document.getElementById('simMeta').textContent = '—';
+    document.getElementById('simError').style.display = 'none';
+    document.getElementById('assignmentResultMsg').style.display = 'none';
+    document.getElementById('statTotal').textContent = '0';
+    document.getElementById('statComisionesOk').textContent = '0/7';
+    document.getElementById('statFallback').textContent = '0';
+    document.getElementById('statPartidosLlenos').textContent = '0';
+    document.getElementById('comisionesGrid').innerHTML = '';
+    document.getElementById('partidosGrid').innerHTML = '';
+    document.getElementById('detailTableBody').innerHTML = '';
+  }
+
+  document.querySelectorAll('#bloqueTabs .admin-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentBloque = { tipo: btn.dataset.tipo, ciudad: btn.dataset.ciudad || '' };
+      document.querySelectorAll('#bloqueTabs .admin-tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+      renderAll();
+      // La vista previa de simulación mostrada corresponde al bloque anterior: se limpia para no
+      // confundir esos números con los del bloque recién seleccionado.
+      resetSimulacionPreview();
     });
   });
 
@@ -676,11 +724,11 @@
     setButtonLoading(btn);
     try {
       const mesaCount = Number(document.getElementById('mesaCountInput').value) || 0;
-      const result = await apiCall({ form: 'admin_simulate', adminEmail: creds.email, adminPassword: creds.password, mesaCount });
+      const result = await apiCall({ form: 'admin_simulate', adminEmail: creds.email, adminPassword: creds.password, mesaCount, tipoEuromodelo: currentBloque.tipo, ciudad: currentBloque.ciudad });
       if (!result || !result.ok) { errEl.style.display = 'block'; return; }
       const summary = result.summary;
       document.getElementById('simMeta').textContent =
-        'Última actualización: ' + new Date().toLocaleString('es-CO') + ' · ' + summary.totalInscritos + ' inscritos con formulario completo';
+        `${bloqueLabel()} · Última actualización: ` + new Date().toLocaleString('es-CO') + ' · ' + summary.totalInscritos + ' inscritos con formulario completo';
       renderSimStats(summary);
       renderSimComisiones(summary.comisiones);
       renderSimPartidos(summary.partidos);

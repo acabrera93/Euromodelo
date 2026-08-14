@@ -73,6 +73,13 @@
           <label><input type="radio" name="tipoCuenta" value="Profesor" required> Profesor</label>
         </div>
       </div>
+      <div class="field full">
+        <label>¿Euromodelo Regional o Nacional?</label>
+        <div class="radio-row">
+          <label><input type="radio" name="tipoEuromodelo" value="Regional" required checked> Regional</label>
+          <label><input type="radio" name="tipoEuromodelo" value="Nacional" required> Nacional</label>
+        </div>
+      </div>
       <div class="form-grid">
         <div class="field full"><label>Correo electrónico</label><input required type="email" name="email"></div>
         <div class="field full"><label>Nombre completo</label><input required type="text" name="nombre"></div>
@@ -101,6 +108,7 @@
             <option>Riohacha</option>
             <option>Bucaramanga</option>
             <option>Bogotá</option>
+            <option>Cúcuta</option>
           </select>
         </div>
         <div class="field full"><label>Institución educativa</label><input required type="text" name="institucion"></div>
@@ -204,8 +212,10 @@
     const fd = new FormData(preForm);
     const preRefCode = refCode('PRE');
     const tipoCuenta = fd.get('tipoCuenta') || 'Estudiante';
+    const tipoEuromodelo = fd.get('tipoEuromodelo') || 'Regional';
     const data = {
       tipo: tipoCuenta,
+      tipoEuromodelo,
       nombre: fd.get('nombre').trim(),
       tipoDocumento: fd.get('tipoDocumento') || '',
       numDocumento: (fd.get('numDocumento') || '').trim(),
@@ -232,6 +242,7 @@
           enviado: new Date().toISOString(),
           ref_code: preRefCode,
           tipo: data.tipo,
+          tipo_euromodelo: data.tipoEuromodelo,
           email: data.email,
           password: creds.password,
           nombre_completo: data.nombre,

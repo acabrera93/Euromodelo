@@ -1,4 +1,6 @@
-var NOTIFY_EMAILS_ = ['juan.ladino@fundacionrevel.net', 'juan.ovalle@fundacionrevel.net'];
+// Notificación interna al staff por cada preinscripción/inscripción: desactivada por ahora
+// (lista vacía) — sendNotificationEmail_ se salta el envío cuando no hay destinatarios.
+var NOTIFY_EMAILS_ = [];
 var SITE_URL_ = 'https://acabrera93.github.io/Euromodelo/';
 // Acceso simple al endpoint de simulación (solo lectura, no escribe en la Sheet): clave
 // compartida + lista de correos autorizados. No es autenticación real, es un filtro básico.
@@ -41,7 +43,8 @@ var FIELD_LABELS_ = {
   propuesta_url: 'Propuesta legislativa (PDF)',
   propuesta_estado: 'Estado de la propuesta',
   propuesta_comentario: 'Comentario del staff sobre la propuesta',
-  asignacion_origen: 'Origen de la asignación'
+  asignacion_origen: 'Origen de la asignación',
+  tipo_euromodelo: 'Regional o Nacional'
 };
 
 function normalizeName_(s) {
@@ -173,6 +176,7 @@ function sendPasswordResetEmail_(email, nombre, newPassword) {
 
 // ---------- Correo interno al staff (resumen de cada envío) ----------
 function sendNotificationEmail_(isPre, data, canonicalHeaders, sheetUrl) {
+  if (!NOTIFY_EMAILS_.length) return; // notificación desactivada: sin destinatarios, no se envía
   var tipoLabel = isPre ? 'Preinscripción' : 'Inscripción';
   var subject = 'Nueva ' + tipoLabel.toLowerCase() + ' — ' + (data.nombre_completo || 'Euromodelo Joven 2026');
 
@@ -241,6 +245,7 @@ function mapRecordToUser_(record) {
     propuestaUrl: record.propuesta_url || '',
     propuestaEstado: record.propuesta_estado || '',
     propuestaComentario: record.propuesta_comentario || '',
+    tipoEuromodelo: record.tipo_euromodelo || 'Nacional',
   };
   if (record.rol_opcion1) {
     user.inscripcion = {
@@ -277,7 +282,11 @@ var CANONICAL_HEADERS_ = [
   // '' | 'Manual' | 'Automática'. Se recalcula cada vez que rol_asignado/comision_asignada/
   // partido_asignado cambian, desde handleUpdateAssignment_ (Manual) o handleApplyAssignment_
   // (Automática); se limpia junto con esos tres campos al borrar o deshacer.
-  'asignacion_origen'
+  'asignacion_origen',
+  // 'Regional' | 'Nacional'. En blanco se trata como 'Nacional' (mapRecordToUser_ y
+  // filterByScope_). Si es 'Regional', la sede es la propia columna `ciudad` — no hace falta
+  // una columna aparte para eso.
+  'tipo_euromodelo'
 ];
 
 var INSCRIPCION_FIELDS_ = [
@@ -470,6 +479,10 @@ function handleListComisionPropuestas_(sheet, headers, data) {
 
   var comision = (record.comision_asignada || '').toString();
   if (!comision) return jsonOut_({ ok: true, comision: '', proposals: [] });
+  // Misma sede que quien pregunta: el mismo nombre de comisión existe de forma independiente
+  // en cada bloque (Nacional, Regional-Ciudad), así que no basta con comparar el nombre solo.
+  var tipoEuromodelo = (record.tipo_euromodelo || 'Nacional').toString();
+  var ciudad = (record.ciudad || '').toString();
 
   var lastRow = sheet.getLastRow();
   var proposals = [];
@@ -480,6 +493,8 @@ function handleListComisionPropuestas_(sheet, headers, data) {
       headers.forEach(function(h, i) { r[h] = row[i]; });
       if ((r.rol_asignado || '').toString() !== 'Comisario') return;
       if ((r.comision_asignada || '').toString() !== comision) return;
+      if ((r.tipo_euromodelo || 'Nacional').toString() !== tipoEuromodelo) return;
+      if (tipoEuromodelo === 'Regional' && (r.ciudad || '').toString() !== ciudad) return;
       if ((r.propuesta_estado || '').toString() !== 'Aprobada') return;
       if (!r.propuesta_url) return;
       proposals.push({ nombre: r.nombre_completo || '', url: r.propuesta_url });
@@ -650,9 +665,30 @@ function handleUpdateAssignment_(sheet, headers, ss, data) {
 // email) en PropertiesService para poder deshacer esta corrida con handleUndoAssignment_.
 var LAST_ASSIGNMENT_BACKUP_KEY_ = 'LAST_ASSIGNMENT_BACKUP_';
 
+// Un participante 'Regional' pertenece a la sede de su propia columna `ciudad` — no hace falta
+// una columna de sede aparte. 'Nacional' es un solo bloque, sin importar la ciudad.
+function filterByScope_(records, tipoEuromodelo, ciudad) {
+  return records.filter(function(r) {
+    var tipo = (r.tipo_euromodelo || 'Nacional').toString();
+    if (tipo !== tipoEuromodelo) return false;
+    if (tipoEuromodelo === 'Regional' && (r.ciudad || '').toString() !== ciudad) return false;
+    return true;
+  });
+}
+
+// Clave de PropertiesService para el backup de "deshacer", una por bloque — así sortear en una
+// sede no pisa el histórico de deshacer de otra.
+function scopeBackupKey_(tipoEuromodelo, ciudad) {
+  var key = LAST_ASSIGNMENT_BACKUP_KEY_ + (tipoEuromodelo || 'Nacional');
+  if (tipoEuromodelo === 'Regional') key += '_' + (ciudad || '');
+  return key;
+}
+
 function handleApplyAssignment_(sheet, headers, ss, data) {
   if (!verifyAdminCredentials_(ss, data.adminEmail, data.adminPassword)) return jsonOut_({ ok: false });
 
+  var tipoEuromodelo = (data.tipoEuromodelo || 'Nacional').toString();
+  var ciudad = (data.ciudad || '').toString();
   var mesaCount = Number(data.mesaCount);
   if (!isFinite(mesaCount) || mesaCount < 0) mesaCount = 2;
 
@@ -666,6 +702,7 @@ function handleApplyAssignment_(sheet, headers, ss, data) {
       return record;
     });
   }
+  records = filterByScope_(records, tipoEuromodelo, ciudad);
 
   var summary = runAssignmentSimulation_(records, mesaCount);
   var rolIdx = headers.indexOf('rol_asignado');
@@ -692,15 +729,18 @@ function handleApplyAssignment_(sheet, headers, ss, data) {
     applied++;
   });
 
-  PropertiesService.getScriptProperties().setProperty(LAST_ASSIGNMENT_BACKUP_KEY_, JSON.stringify(touchedEmails));
+  PropertiesService.getScriptProperties().setProperty(scopeBackupKey_(tipoEuromodelo, ciudad), JSON.stringify(touchedEmails));
   return jsonOut_({ ok: true, applied: applied, skipped: skipped });
 }
 
 function handleUndoAssignment_(sheet, headers, ss, data) {
   if (!verifyAdminCredentials_(ss, data.adminEmail, data.adminPassword)) return jsonOut_({ ok: false });
 
+  var tipoEuromodelo = (data.tipoEuromodelo || 'Nacional').toString();
+  var ciudad = (data.ciudad || '').toString();
   var props = PropertiesService.getScriptProperties();
-  var raw = props.getProperty(LAST_ASSIGNMENT_BACKUP_KEY_);
+  var backupKey = scopeBackupKey_(tipoEuromodelo, ciudad);
+  var raw = props.getProperty(backupKey);
   if (!raw) return jsonOut_({ ok: false, error: 'nothing_to_undo' });
 
   var emails = JSON.parse(raw);
@@ -720,7 +760,7 @@ function handleUndoAssignment_(sheet, headers, ss, data) {
     restored++;
   });
 
-  props.deleteProperty(LAST_ASSIGNMENT_BACKUP_KEY_);
+  props.deleteProperty(backupKey);
   return jsonOut_({ ok: true, restored: restored });
 }
 
@@ -940,6 +980,8 @@ function handleSimulate_(sheet, headers, ss, data) {
   if (!verifyAdminCredentials_(ss, data.adminEmail, data.adminPassword)) {
     return jsonOut_({ ok: false, error: 'unauthorized' });
   }
+  var tipoEuromodelo = (data.tipoEuromodelo || 'Nacional').toString();
+  var ciudad = (data.ciudad || '').toString();
   var mesaCount = Number(data.mesaCount);
   if (!isFinite(mesaCount) || mesaCount < 0) mesaCount = 2;
 
@@ -953,6 +995,7 @@ function handleSimulate_(sheet, headers, ss, data) {
       return record;
     });
   }
+  records = filterByScope_(records, tipoEuromodelo, ciudad);
 
   var summary = runAssignmentSimulation_(records, mesaCount);
   return jsonOut_({ ok: true, summary: summary });
