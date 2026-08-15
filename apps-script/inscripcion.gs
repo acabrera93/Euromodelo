@@ -1377,11 +1377,47 @@ function handleAdminListCandidatos_(ss, data) {
   return jsonOut_({ ok: true, candidatos: rankedCandidatos, pools: pools });
 }
 
+// email -> partido (asignado si ya lo hay, si no la preferencia), para poder mostrar de qué
+// bancada es cada candidato sin que nadie tenga que escribirlo a mano — sale de su propia fila en
+// "preinscripciones", igual que su nombre.
+function buildEmailToPartidoMap_(sheet, headers) {
+  var map = {};
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return map;
+  var values = sheet.getRange(2, 1, lastRow - 1, headers.length).getValues();
+  values.forEach(function(row) {
+    var r = {};
+    headers.forEach(function(h, i) { r[h] = row[i]; });
+    var email = (r.email || '').toString().trim().toLowerCase();
+    if (!email) return;
+    map[email] = (r.partido_asignado || r.partido || '').toString();
+  });
+  return map;
+}
+
+// email -> última postulación a mesa directiva de esa persona (dominio/experiencia/motivación),
+// para mostrarla junto al candidato — si postuló más de una vez, se queda con la más reciente.
+function buildEmailToPostulacionMap_(ss) {
+  var post = ensurePostulacionesMesaSheet_(ss);
+  var lastRow = post.sheet.getLastRow();
+  var map = {};
+  if (lastRow < 2) return map;
+  var values = post.sheet.getRange(2, 1, lastRow - 1, post.headers.length).getValues();
+  values.forEach(function(row) {
+    var r = {};
+    post.headers.forEach(function(h, i) { r[h] = row[i]; });
+    var email = (r.email || '').toString().trim().toLowerCase();
+    if (email) map[email] = r;
+  });
+  return map;
+}
+
 // Participante: candidatos de Parlamento de su propia sede + candidatos de su propia comisión
 // (nunca las de las demás comisiones). Mientras el pool esté abierto, solo se informa si ya votó
 // (sin conteos, para no influenciar el voto de nadie); al cerrarse, se agregan votos y el cargo
-// final de cada candidato según el ranking. Reenvía sus propias credenciales, mismo criterio sin
-// sesión que el resto del proyecto.
+// final de cada candidato según el ranking. Cada candidato trae también su partido (de su
+// inscripción) y lo que puso en su postulación a mesa directiva, si postuló. Reenvía sus propias
+// credenciales, mismo criterio sin sesión que el resto del proyecto.
 function handleListCandidatos_(sheet, headers, ss, data) {
   var email = (data.email || '').toString().trim().toLowerCase();
   var password = (data.password || '').toString();
@@ -1435,10 +1471,21 @@ function handleListCandidatos_(sheet, headers, ss, data) {
     return false;
   }
 
+  var emailToPartido = buildEmailToPartidoMap_(sheet, headers);
+  var emailToPostulacion = buildEmailToPostulacionMap_(ss);
+
   function buildPool(ambito, comisionPool, candidatosRaw) {
     var cerrada = isVotacionCerrada_(tipoEuromodelo, ciudad, ambito, comisionPool);
     var items = candidatosRaw.map(function(r) {
-      return { id: r.id, nombre: r.nombre || '', videoUrl: r.video_url || '', enviado: r.enviado || '' };
+      var candEmail = (r.email || '').toString().trim().toLowerCase();
+      var postulacion = emailToPostulacion[candEmail];
+      return {
+        id: r.id, nombre: r.nombre || '', videoUrl: r.video_url || '', enviado: r.enviado || '',
+        partido: emailToPartido[candEmail] || '',
+        dominio: postulacion ? (postulacion.dominio || '') : '',
+        experiencia: postulacion ? (postulacion.experiencia || '') : '',
+        motivacion: postulacion ? (postulacion.motivacion || '') : '',
+      };
     });
     if (cerrada) {
       var counts = tallyVotos_(ss, tipoEuromodelo, ciudad, ambito, comisionPool);

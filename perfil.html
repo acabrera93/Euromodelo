@@ -288,7 +288,7 @@
         <div id="pfPostulacionForm" class="form-card">
           <div class="section-head" style="margin-bottom:var(--space-2);">
             <h3 style="font-size:16px; color:var(--navy-deep); font-family:'Fraunces',serif;">Postúlate a una mesa directiva</h3>
-            <p style="font-size:13px;">Las mesas directivas conducen las sesiones por comisiones y la sesión plenaria. Se evalúan el dominio del procedimiento legislativo, la asertividad comunicativa y la capacidad de resolución de conflictos.</p>
+            <p style="font-size:13px;">Las mesas directivas conducen las sesiones por comisiones y la sesión plenaria. Cualquier rol puede postularse — Comisario, Europarlamentario o Primer Ministro. Se evalúan el dominio del procedimiento legislativo, la asertividad comunicativa y la capacidad de resolución de conflictos.</p>
           </div>
           <div class="form-grid">
             <div class="field full">
@@ -372,7 +372,7 @@
           <p style="font-size:13px;">Visibles para todos los participantes, sin importar su comisión.</p>
         </div>
         <p id="pfPropuestasPlenariaEmpty" style="display:none; font-size:13.5px; color:var(--blue-slate);">Aún no hay propuestas que hayan pasado a la sesión Plenaria.</p>
-        <ul class="role-bullets" id="pfPropuestasPlenariaList" style="--accent:var(--gold-star);"></ul>
+        <div class="grid-cards" id="pfPropuestasPlenariaList"></div>
       </div>
       </div>
 
@@ -1082,32 +1082,60 @@
     // votos, y solo se conoce una vez el staff cierra esa votación — antes de eso, cada
     // participante solo ve la lista de candidatos y si ya votó o no (sin conteos, para no
     // influenciar a nadie).
+    // Lo que el candidato puso en su postulación (dominio/experiencia/motivación) no siempre
+    // existe — solo si postuló desde la pestaña "Postular a Mesa Directiva" antes de que el
+    // staff lo cargara como candidato. Cuando sí hay algo que mostrar, va en un desplegable
+    // pegado debajo de la tarjeta, para no alargar la lista por defecto.
+    function candidatePostulacionHtml(candidate) {
+      if (!candidate.dominio && !candidate.experiencia && !candidate.motivacion) return '';
+      const filas = [
+        candidate.dominio ? `<p style="margin:0 0 8px;"><b>Dominio del procedimiento legislativo:</b> ${candidate.dominio}</p>` : '',
+        candidate.experiencia ? `<p style="margin:0 0 8px;"><b>Experiencia relevante:</b> ${candidate.experiencia}</p>` : '',
+        candidate.motivacion ? `<p style="margin:0;"><b>Motivación:</b> ${candidate.motivacion}</p>` : '',
+      ].join('');
+      return `
+        <details style="border:1px solid var(--line); border-top:none; border-radius:0 0 10px 10px; margin:-8px 0 8px;">
+          <summary style="font-size:13px; padding:8px 14px;">Ver su postulación</summary>
+          <div style="padding:0 14px 14px; font-size:13px; color:#4A5A73; line-height:1.6;">${filas}</div>
+        </details>`;
+    }
+
+    function partidoBadgeHtml(candidate) {
+      return candidate.partido ? `<span class="party-badge" style="margin-top:4px; display:inline-block;">${candidate.partido}</span>` : '';
+    }
+
     function votingCandidateCardHtml(candidate, ambito, yaVoto) {
       const videoBtn = candidate.videoUrl
         ? `<a class="candidate-video-btn" style="text-decoration:none; display:inline-block;" href="${candidate.videoUrl}" target="_blank" rel="noopener">&#127909; Ver video</a>`
         : `<span class="candidate-video-btn" style="opacity:.55; cursor:default;">Sin video aún</span>`;
       const voteBtn = yaVoto ? '' : `<button class="candidate-video-btn" type="button" style="background:var(--gold-star); color:var(--navy-deep);" data-vote-candidato="${candidate.id}" data-vote-ambito="${ambito}" data-vote-nombre="${candidate.nombre}">Votar</button>`;
+      const postulacionHtml = candidatePostulacionHtml(candidate);
       return `
-        <div class="candidate-card">
+        <div class="candidate-card"${postulacionHtml ? ' style="margin-bottom:0; border-radius:10px 10px 0 0;"' : ''}>
           <div class="photo-placeholder ph-sq"><span class="ph-icon">&#128247;</span><span class="ph-label">Foto</span></div>
           <div class="candidate-info">
             <div class="candidate-name">${candidate.nombre}</div>
+            ${partidoBadgeHtml(candidate)}
           </div>
           ${videoBtn}
           ${voteBtn}
-        </div>`;
+        </div>
+        ${postulacionHtml}`;
     }
 
     function resultCandidateCardHtml(candidate) {
       const cargoBadge = candidate.cargoFinal ? ` <span class="tag">${candidate.cargoFinal}</span>` : '';
+      const postulacionHtml = candidatePostulacionHtml(candidate);
       return `
-        <div class="candidate-card">
+        <div class="candidate-card"${postulacionHtml ? ' style="margin-bottom:0; border-radius:10px 10px 0 0;"' : ''}>
           <div class="photo-placeholder ph-sq"><span class="ph-icon">&#128247;</span><span class="ph-label">Foto</span></div>
           <div class="candidate-info">
             <div class="candidate-name">${candidate.nombre}${cargoBadge}</div>
             <div class="candidate-role">${candidate.votos} voto${candidate.votos === 1 ? '' : 's'}</div>
+            ${partidoBadgeHtml(candidate)}
           </div>
-        </div>`;
+        </div>
+        ${postulacionHtml}`;
     }
 
     function renderVotacionPool(config) {
@@ -1458,7 +1486,32 @@
     }
 
     // Propuestas que pasaron a Plenaria: a diferencia de las de "tu comisión", estas se ven sin
-    // importar la comisión del participante — por eso no depende de u.comisionAsignada.
+    // importar la comisión del participante — por eso no depende de u.comisionAsignada. Se
+    // agrupan por comisión, reusando los mismos code/color de comisionesInfo (Brújula de
+    // Comisión) para que la agrupación se sienta parte del mismo sistema visual del sitio.
+    function comisionInfoByTitle(title) {
+      return Object.values(comisionesInfo).find(c => c.title === title);
+    }
+
+    function renderPlenariaGrouped(proposals) {
+      const groups = {};
+      proposals.forEach(p => {
+        const key = p.comision || 'Sin comisión';
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(p);
+      });
+      return Object.keys(groups).sort().map(comisionTitle => {
+        const info = comisionInfoByTitle(comisionTitle);
+        const color = info ? info.color : 'var(--blue-slate)';
+        const items = groups[comisionTitle].map(p => `<li><a href="${p.url}" target="_blank">${p.nombre}</a>${votacionBadgeHtml(p.resultadoVotacion)}</li>`).join('');
+        return `
+          <div class="card accent" style="--accent:${color};">
+            <h3>${info ? info.code + ' — ' : ''}${comisionTitle}</h3>
+            <ul class="role-bullets" style="--accent:${color};">${items}</ul>
+          </div>`;
+      }).join('');
+    }
+
     function renderPlenariaPropuestas(u) {
       fetch(EUROMODELO_SCRIPT_URL, {
         method: 'POST',
@@ -1476,7 +1529,7 @@
             listEl.innerHTML = '';
           } else {
             emptyEl.style.display = 'none';
-            listEl.innerHTML = proposals.map(p => `<li><a href="${p.url}" target="_blank">${p.nombre}</a> — ${p.comision}${votacionBadgeHtml(p.resultadoVotacion)}</li>`).join('');
+            listEl.innerHTML = renderPlenariaGrouped(proposals);
           }
         })
         .catch(err => console.error('No se pudo cargar las propuestas de plenaria:', err));
