@@ -732,6 +732,134 @@ function handleUpdateAssignment_(sheet, headers, ss, data) {
   return jsonOut_({ ok: true });
 }
 
+// ---------- Candidatos a mesas directivas (votación) ----------
+// Pestaña "candidatos" aparte: el staff los carga desde el panel de admin (no hay postulación
+// pública automática todavía — mesas-postulacion.html sigue siendo solo informativo hasta que se
+// conecte). Un candidato es de 'Parlamento' (mesa plenaria de un bloque completo) o de 'Comision'
+// (mesa de una comisión puntual dentro de ese bloque); 'comision' queda en blanco para los de
+// Parlamento. rol_mesa usa los mismos 3 cargos del Parlamento (Presidente, Vicepresidente,
+// Secretario General) o los 2 de comisión (Presidente, Secretario General) — mismo criterio que
+// runAssignmentSimulation_ para roles/comisiones ya usa en el resto del proyecto.
+var CANDIDATOS_HEADERS_ = ['id', 'tipo_euromodelo', 'ciudad', 'ambito', 'comision', 'rol_mesa', 'nombre', 'video_url', 'enviado'];
+var CANDIDATOS_ROLES_PARLAMENTO_ = ['Presidente', 'Vicepresidente', 'Secretario General'];
+var CANDIDATOS_ROLES_COMISION_ = ['Presidente', 'Secretario General'];
+
+function ensureCandidatosSheet_(ss) {
+  var sheet = findOrCreateSheet_(ss, ['candidatos'], 'candidatos');
+  var headers = getHeaders_(sheet, CANDIDATOS_HEADERS_);
+  return { sheet: sheet, headers: headers };
+}
+
+function handleAdminAddCandidato_(ss, data) {
+  if (!verifyAdminCredentials_(ss, data.adminEmail, data.adminPassword)) return jsonOut_({ ok: false });
+
+  var ambito = (data.ambito || '').toString();
+  if (ambito !== 'Parlamento' && ambito !== 'Comision') return jsonOut_({ ok: false, error: 'ambito_invalido' });
+
+  var rolMesa = (data.rolMesa || '').toString();
+  var validRoles = ambito === 'Parlamento' ? CANDIDATOS_ROLES_PARLAMENTO_ : CANDIDATOS_ROLES_COMISION_;
+  if (validRoles.indexOf(rolMesa) === -1) return jsonOut_({ ok: false, error: 'rol_invalido' });
+
+  var nombre = (data.nombre || '').toString().trim();
+  if (!nombre) return jsonOut_({ ok: false, error: 'nombre_requerido' });
+
+  var comision = ambito === 'Comision' ? (data.comision || '').toString() : '';
+  if (ambito === 'Comision' && !comision) return jsonOut_({ ok: false, error: 'comision_requerida' });
+
+  var cand = ensureCandidatosSheet_(ss);
+  var id = 'CAND-' + Math.random().toString(36).slice(2, 7).toUpperCase();
+  var row = cand.headers.map(function(h) {
+    if (h === 'id') return id;
+    if (h === 'tipo_euromodelo') return (data.tipoEuromodelo || 'Nacional').toString();
+    if (h === 'ciudad') return (data.ciudad || '').toString();
+    if (h === 'ambito') return ambito;
+    if (h === 'comision') return comision;
+    if (h === 'rol_mesa') return rolMesa;
+    if (h === 'nombre') return nombre;
+    if (h === 'video_url') return (data.videoUrl || '').toString();
+    if (h === 'enviado') return new Date().toISOString();
+    return '';
+  });
+  var targetRow = cand.sheet.getLastRow() + 1;
+  var range = cand.sheet.getRange(targetRow, 1, 1, row.length);
+  range.setNumberFormat('@');
+  range.setValues([row]);
+  return jsonOut_({ ok: true, id: id });
+}
+
+function handleAdminDeleteCandidato_(ss, data) {
+  if (!verifyAdminCredentials_(ss, data.adminEmail, data.adminPassword)) return jsonOut_({ ok: false });
+  var cand = ensureCandidatosSheet_(ss);
+  var rowNum = findRowByColumn_(cand.sheet, cand.headers, 'id', data.id);
+  if (rowNum === -1) return jsonOut_({ ok: false, error: 'not_found' });
+  cand.sheet.deleteRow(rowNum);
+  return jsonOut_({ ok: true });
+}
+
+// Lista completa de un bloque para el panel de admin (a diferencia de handleListCandidatos_, que
+// es para un participante y ya viene filtrada a su propia comisión).
+function handleAdminListCandidatos_(ss, data) {
+  if (!verifyAdminCredentials_(ss, data.adminEmail, data.adminPassword)) return jsonOut_({ ok: false });
+
+  var tipoEuromodelo = (data.tipoEuromodelo || 'Nacional').toString();
+  var ciudad = (data.ciudad || '').toString();
+  var cand = ensureCandidatosSheet_(ss);
+  var lastRow = cand.sheet.getLastRow();
+  var candidatos = [];
+  if (lastRow >= 2) {
+    var values = cand.sheet.getRange(2, 1, lastRow - 1, cand.headers.length).getValues();
+    values.forEach(function(row) {
+      var r = {};
+      cand.headers.forEach(function(h, i) { r[h] = row[i]; });
+      if ((r.tipo_euromodelo || 'Nacional').toString() !== tipoEuromodelo) return;
+      if (tipoEuromodelo === 'Regional' && (r.ciudad || '').toString() !== ciudad) return;
+      candidatos.push(r);
+    });
+  }
+  return jsonOut_({ ok: true, candidatos: candidatos });
+}
+
+// Participante: candidatos de Parlamento de su propia sede + candidatos de su propia comisión
+// (nunca las de las demás comisiones). Reenvía sus propias credenciales, mismo criterio sin
+// sesión que el resto del proyecto.
+function handleListCandidatos_(sheet, headers, ss, data) {
+  var email = (data.email || '').toString().trim().toLowerCase();
+  var password = (data.password || '').toString();
+  var rowNum = findRowByColumn_(sheet, headers, 'email', email, true);
+  if (rowNum === -1) return jsonOut_({ ok: false });
+
+  var rowValues = sheet.getRange(rowNum, 1, 1, headers.length).getValues()[0];
+  var record = {};
+  headers.forEach(function(h, i) { record[h] = rowValues[i]; });
+  if ((record.password || '').toString() !== password) return jsonOut_({ ok: false });
+
+  var tipoEuromodelo = (record.tipo_euromodelo || 'Nacional').toString();
+  var ciudad = (record.ciudad || '').toString();
+  var comision = (record.comision_asignada || record.comision_opcion1 || '').toString();
+
+  var cand = ensureCandidatosSheet_(ss);
+  var lastRow = cand.sheet.getLastRow();
+  var parlamento = [];
+  var comisionCandidatos = [];
+  if (lastRow >= 2) {
+    var values = cand.sheet.getRange(2, 1, lastRow - 1, cand.headers.length).getValues();
+    values.forEach(function(row) {
+      var r = {};
+      cand.headers.forEach(function(h, i) { r[h] = row[i]; });
+      if ((r.tipo_euromodelo || 'Nacional').toString() !== tipoEuromodelo) return;
+      if (tipoEuromodelo === 'Regional' && (r.ciudad || '').toString() !== ciudad) return;
+      var item = { nombre: r.nombre || '', rolMesa: r.rol_mesa || '', videoUrl: r.video_url || '' };
+      var ambito = (r.ambito || '').toString();
+      if (ambito === 'Parlamento') {
+        parlamento.push(item);
+      } else if (ambito === 'Comision' && comision && (r.comision || '').toString() === comision) {
+        comisionCandidatos.push(item);
+      }
+    });
+  }
+  return jsonOut_({ ok: true, parlamento: parlamento, comision: comisionCandidatos, comisionNombre: comision });
+}
+
 // ---------- Sorteo automático de rol/comisión/partido (aplica el resultado a la Sheet) ----------
 // Reusa runAssignmentSimulation_ (el mismo algoritmo que la vista previa "Simulación y sorteo"
 // del panel de admin), pero esta vez SÍ escribe en la Sheet. Respeta cualquier asignación
@@ -1137,6 +1265,10 @@ function doPost(e) {
   if (data.form === 'admin_update_assignment') return handleUpdateAssignment_(sheet, headers, ss, data);
   if (data.form === 'admin_apply_assignment') return handleApplyAssignment_(sheet, headers, ss, data);
   if (data.form === 'admin_undo_assignment') return handleUndoAssignment_(sheet, headers, ss, data);
+  if (data.form === 'list_candidatos') return handleListCandidatos_(sheet, headers, ss, data);
+  if (data.form === 'admin_add_candidato') return handleAdminAddCandidato_(ss, data);
+  if (data.form === 'admin_delete_candidato') return handleAdminDeleteCandidato_(ss, data);
+  if (data.form === 'admin_list_candidatos') return handleAdminListCandidatos_(ss, data);
 
   var isPre = data.form === 'preinscripcion';
 

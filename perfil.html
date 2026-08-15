@@ -239,21 +239,6 @@
             <span class="origen-badge sin-asignar" id="pfPartidoPendiente" style="display:none; margin-bottom:8px;">Pendiente de asignar</span>
             <p id="pfPartido" style="font-weight:600; color:var(--blue-revel);"></p>
           </div>
-          <div class="card">
-            <h3>Brújula Legislativa</h3>
-            <p id="pfBrujula" style="font-weight:600; color:var(--blue-revel);"></p>
-            <div class="card-foot"><a href="#" id="retakeBrujulaLinkProfile" class="link-btn">Volver a hacer el test &rarr;</a></div>
-          </div>
-          <div class="card">
-            <h3>Brújula de Comisión</h3>
-            <p id="pfBrujulaComision" style="font-weight:600; color:var(--blue-revel);"></p>
-            <div class="card-foot"><a href="#" id="retakeComisionLinkProfile" class="link-btn">Volver a hacer el test &rarr;</a></div>
-          </div>
-          <div class="card">
-            <h3>Brújula de Partido Político</h3>
-            <p id="pfBrujulaPartido" style="font-weight:600; color:var(--blue-revel);"></p>
-            <div class="card-foot"><a href="#" id="retakePartidoLinkProfile" class="link-btn">Volver a hacer el test &rarr;</a></div>
-          </div>
         </div>
       </div>
       </div>
@@ -263,13 +248,24 @@
         <div class="section-head">
           <h2 style="font-size:20px;">Votación de mesas directivas</h2>
         </div>
-        <div class="form-card" style="margin-bottom:var(--space-3);">
-          <h3 class="subsection-title" style="margin-bottom:12px;">Mesa Directiva del Parlamento Europeo — <span id="pfVotacionCiudad"></span></h3>
-          <div id="pfVotacionParlamento"></div>
+
+        <div class="admin-tabs" id="pfVotacionSubTabs" style="margin-bottom:var(--space-3);">
+          <button type="button" class="admin-tab-btn active" data-pf-subtab="parlamento">Mesa Directiva del Parlamento Europeo</button>
+          <button type="button" class="admin-tab-btn" id="pfVotacionComisionTabBtn" data-pf-subtab="comision" style="display:none;">Mesa de tu Comisión</button>
         </div>
-        <div class="form-card" id="pfVotacionComisionCard" style="display:none;">
-          <h3 class="subsection-title" style="margin-bottom:12px;">Mesa de tu Comisión — <span id="pfVotacionComisionNombre"></span></h3>
-          <div id="pfVotacionComision"></div>
+
+        <div class="pf-subtab-panel" id="pfsubtab-parlamento">
+          <div class="form-card">
+            <p class="subsection-title" style="margin-bottom:12px;">Sede: <span id="pfVotacionCiudad"></span></p>
+            <div id="pfVotacionParlamento"></div>
+          </div>
+        </div>
+
+        <div class="pf-subtab-panel" id="pfsubtab-comision" style="display:none;">
+          <div class="form-card" id="pfVotacionComisionCard" style="display:none;">
+            <p class="subsection-title" style="margin-bottom:12px;">Comisión: <span id="pfVotacionComisionNombre"></span></p>
+            <div id="pfVotacionComision"></div>
+          </div>
         </div>
       </div>
       </div>
@@ -976,10 +972,6 @@
           document.getElementById('pfPartidoPendiente').style.display = 'inline-block';
           document.getElementById('pfPartido').textContent = ins.partido;
         }
-
-        document.getElementById('pfBrujula').textContent = ins.resultadoBrujula || 'Aún no realizada';
-        document.getElementById('pfBrujulaComision').textContent = ins.resultadoBrujulaComision || 'Aún no realizada';
-        document.getElementById('pfBrujulaPartido').textContent = ins.resultadoBrujulaPartido || 'Aún no realizado';
       } else {
         document.getElementById('pfInscripcionData').style.display = 'none';
         document.getElementById('pfNoInscripcion').style.display = 'block';
@@ -993,36 +985,70 @@
     const PARLAMENTO_MESA_ROLES = ['Presidente', 'Vicepresidente', 'Secretario General'];
     const COMISION_MESA_ROLES = ['Presidente', 'Secretario General'];
 
-    function candidateCardHtml(roleLabel) {
+    function candidateCardHtml(candidate) {
+      const videoBtn = candidate.videoUrl
+        ? `<a class="candidate-video-btn" style="text-decoration:none; display:inline-block;" href="${candidate.videoUrl}" target="_blank" rel="noopener">&#127909; Ver video</a>`
+        : `<span class="candidate-video-btn" style="opacity:.55; cursor:default;">Sin video aún</span>`;
       return `
         <div class="candidate-card">
           <div class="photo-placeholder ph-sq"><span class="ph-icon">&#128247;</span><span class="ph-label">Foto</span></div>
           <div class="candidate-info">
-            <div class="candidate-name">Candidato/a por confirmar</div>
-            <div class="candidate-role">${roleLabel}</div>
+            <div class="candidate-name">${candidate.nombre}</div>
+            <div class="candidate-role">${candidate.rolMesa}</div>
           </div>
-          <button class="candidate-video-btn" type="button" onclick="alert('El staff debe vincular aquí el nombre del candidato y el enlace a su video de presentación.')">&#127909; Ver video</button>
+          ${videoBtn}
         </div>`;
     }
 
-    function roleGroupHtml(roles) {
-      return roles.map(role => `<div class="role-group-title">${role}</div>${candidateCardHtml(role)}${candidateCardHtml(role)}`).join('');
+    // roles: lista fija de cargos (Presidente, Vicepresidente...); candidates: los que trajo el
+    // backend para ese ámbito. Si un cargo todavía no tiene candidatos cargados por el staff,
+    // se avisa en vez de dejar el bloque vacío.
+    function roleGroupHtml(roles, candidates) {
+      return roles.map(role => {
+        const matches = candidates.filter(c => c.rolMesa === role);
+        const body = matches.length > 0
+          ? matches.map(candidateCardHtml).join('')
+          : '<p style="font-size:13px; color:var(--blue-slate); margin:0 0 var(--space-2);">Aún no hay candidatos confirmados para este cargo.</p>';
+        return `<div class="role-group-title">${role}</div>${body}`;
+      }).join('');
+    }
+
+    function renderVotacionCandidatos(u, result) {
+      const parlamento = (result && result.parlamento) || [];
+      const comisionCandidatos = (result && result.comision) || [];
+      document.getElementById('pfVotacionParlamento').innerHTML = roleGroupHtml(PARLAMENTO_MESA_ROLES, parlamento);
+
+      const comision = u.comisionAsignada || (u.inscripcion && u.inscripcion.comision1) || '';
+      const comisionCard = document.getElementById('pfVotacionComisionCard');
+      document.getElementById('pfVotacionComisionTabBtn').style.display = comision ? '' : 'none';
+      if (comision) {
+        comisionCard.style.display = 'block';
+        document.getElementById('pfVotacionComisionNombre').textContent = comision;
+        document.getElementById('pfVotacionComision').innerHTML = roleGroupHtml(COMISION_MESA_ROLES, comisionCandidatos);
+      } else {
+        comisionCard.style.display = 'none';
+        // Si el sub-tab de comisión estaba activo y ya no hay comisión, vuelve al de Parlamento.
+        document.getElementById('pfVotacionComisionTabBtn').classList.remove('active');
+        document.getElementById('pfsubtab-comision').style.display = 'none';
+        document.querySelector('#pfVotacionSubTabs .admin-tab-btn[data-pf-subtab="parlamento"]').classList.add('active');
+        document.getElementById('pfsubtab-parlamento').style.display = 'block';
+      }
     }
 
     function renderVotacion(u) {
       document.getElementById('pfVotacion').style.display = 'block';
       document.getElementById('pfVotacionCiudad').textContent = u.ciudad || 'Ciudad por confirmar';
-      document.getElementById('pfVotacionParlamento').innerHTML = roleGroupHtml(PARLAMENTO_MESA_ROLES);
-
-      const comision = u.comisionAsignada || (u.inscripcion && u.inscripcion.comision1) || '';
-      const comisionCard = document.getElementById('pfVotacionComisionCard');
-      if (comision) {
-        comisionCard.style.display = 'block';
-        document.getElementById('pfVotacionComisionNombre').textContent = comision;
-        document.getElementById('pfVotacionComision').innerHTML = roleGroupHtml(COMISION_MESA_ROLES);
-      } else {
-        comisionCard.style.display = 'none';
-      }
+      fetch(EUROMODELO_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ form: 'list_candidatos', email: u.username, password: u.password }),
+      })
+        .then(res => res.json())
+        .then(result => renderVotacionCandidatos(u, (result && result.ok) ? result : null))
+        .catch(err => {
+          console.error('No se pudo cargar los candidatos de la votación:', err);
+          renderVotacionCandidatos(u, null);
+        });
     }
 
     const PROPUESTA_MAX_BYTES = 8 * 1024 * 1024;
@@ -1167,108 +1193,12 @@
     });
     document.getElementById('pftab-info').style.display = 'block';
 
-    function startProfileQuiz() {
-      initQuiz({
-        modalId: 'quizModal',
-        emoji: '&#129517;',
-        title: '¿Cuál es tu estilo de liderazgo?',
-        intro: 'No hay respuestas correctas ni incorrectas, responde con lo primero que te identifique.',
-        questions: quizQuestions,
-        shuffleQuestions: true,
-        onFinish: (answers, body) => {
-          const r = rolesInfo[tallyQuizWinner(answers)];
-          // Repetir el test reemplaza el resultado anterior, local y en la Sheet.
-          updateBrujulaResult(currentProfileUser.username, currentProfileUser.refCode, r.title);
-          document.getElementById('pfBrujula').textContent = r.title;
-          body.innerHTML = `
-            <div class="quiz-result">
-              <div class="result-icon" style="background:${r.color}">${r.code}</div>
-              <h3>¡Tu nuevo resultado es: ${r.title}!</h3>
-              <p>${r.desc}</p>
-              <button class="btn-primary" id="quizCloseBtn2" type="button">Cerrar</button><br>
-              <button class="quiz-restart" id="quizRestartBtn2">Volver a intentar</button>
-            </div>`;
-          document.getElementById('quizRestartBtn2').addEventListener('click', startProfileQuiz);
-          document.getElementById('quizCloseBtn2').addEventListener('click', () => quizModal.close());
-        },
+    document.querySelectorAll('#pfVotacionSubTabs .admin-tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#pfVotacionSubTabs .admin-tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+        document.querySelectorAll('.pf-subtab-panel').forEach(p => { p.style.display = p.id === 'pfsubtab-' + btn.dataset.pfSubtab ? 'block' : 'none'; });
       });
-    }
-    if (user.inscripcion) {
-      document.getElementById('retakeBrujulaLinkProfile').addEventListener('click', (e) => {
-        e.preventDefault();
-        quizModal.open();
-        startProfileQuiz();
-      });
-    }
-
-    function startComisionProfileQuiz() {
-      initQuiz({
-        modalId: 'quizModal',
-        emoji: '&#129517;',
-        title: '¿Cuál es tu comisión ideal?',
-        intro: 'No hay respuestas correctas ni incorrectas, responde con lo primero que te identifique.',
-        questions: comisionQuizQuestions,
-        shuffleQuestions: true,
-        onFinish: (answers, body) => {
-          const c = comisionesInfo[tallyComisionWinner(answers)];
-          // Repetir el test reemplaza el resultado anterior, local y en la Sheet.
-          updateBrujulaResult(currentProfileUser.username, currentProfileUser.refCode, c.title, 'resultado_brujula_comision');
-          document.getElementById('pfBrujulaComision').textContent = c.title;
-          body.innerHTML = `
-            <div class="quiz-result">
-              <div class="result-icon" style="background:${c.color}">${c.code}</div>
-              <h3>¡Tu nuevo resultado es: ${c.title}!</h3>
-              <p>${c.desc}</p>
-              <button class="btn-primary" id="comisionQuizCloseBtn2" type="button">Cerrar</button><br>
-              <button class="quiz-restart" id="comisionQuizRestartBtn2">Volver a intentar</button>
-            </div>`;
-          document.getElementById('comisionQuizRestartBtn2').addEventListener('click', startComisionProfileQuiz);
-          document.getElementById('comisionQuizCloseBtn2').addEventListener('click', () => quizModal.close());
-        },
-      });
-    }
-    if (user.inscripcion) {
-      document.getElementById('retakeComisionLinkProfile').addEventListener('click', (e) => {
-        e.preventDefault();
-        quizModal.open();
-        startComisionProfileQuiz();
-      });
-    }
-
-    function startPartidoProfileQuiz() {
-      initQuiz({
-        modalId: 'quizModal',
-        emoji: '&#129517;',
-        title: 'Brújula de Partido Político',
-        intro: 'No hay respuestas correctas ni incorrectas, responde con lo primero que te identifique.',
-        questions: partidoQuizQuestions,
-        shuffleQuestions: true,
-        onFinish: (answers, body) => {
-          const winnerCode = tallyPartidoWinner(answers);
-          const p = PARTIDOS.find(x => x.code === winnerCode);
-          // Repetir el test reemplaza el resultado anterior, local y en la Sheet.
-          updateBrujulaResult(currentProfileUser.username, currentProfileUser.refCode, p.title, 'resultado_brujula_partido');
-          document.getElementById('pfBrujulaPartido').textContent = p.title;
-          body.innerHTML = `
-            <div class="quiz-result">
-              <div class="result-icon" style="background:${p.color}">${p.code}</div>
-              <h3>¡Tu nueva Brújula de Partido Político es: ${p.title}!</h3>
-              <p>${p.desc}</p>
-              <button class="btn-primary" id="partidoQuizCloseBtn2" type="button">Cerrar</button><br>
-              <button class="quiz-restart" id="partidoQuizRestartBtn2">Volver a intentar</button>
-            </div>`;
-          document.getElementById('partidoQuizRestartBtn2').addEventListener('click', startPartidoProfileQuiz);
-          document.getElementById('partidoQuizCloseBtn2').addEventListener('click', () => quizModal.close());
-        },
-      });
-    }
-    if (user.inscripcion) {
-      document.getElementById('retakePartidoLinkProfile').addEventListener('click', (e) => {
-        e.preventDefault();
-        quizModal.open();
-        startPartidoProfileQuiz();
-      });
-    }
+    });
 
     } // fin de la rama estudiante (if user.tipo === 'Profesor' / else)
 

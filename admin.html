@@ -80,6 +80,7 @@
         <button type="button" class="admin-tab-btn active" data-tab="participantes">Participantes</button>
         <button type="button" class="admin-tab-btn" data-tab="simulacion">Simulación y sorteo</button>
         <button type="button" class="admin-tab-btn" data-tab="propuestas">Propuestas de comisarios</button>
+        <button type="button" class="admin-tab-btn" data-tab="candidatos">Candidatos a mesas</button>
       </div>
 
       <div class="admin-tab-panel" id="tab-participantes">
@@ -164,7 +165,9 @@
         <div class="section-head"><h2 style="font-size:20px;">Propuestas de comisarios</h2></div>
         <div class="admin-filters">
           <select id="propuestaFilterComision"><option value="">Todas las comisiones</option></select>
+          <button type="button" class="btn-ghost" id="propuestasMockToggle" style="border-color:var(--blue-slate); color:var(--blue-revel);">Cargar datos de prueba (21 propuestas)</button>
         </div>
+        <p style="font-size:12px; color:#8695AC; margin:-6px 0 var(--space-2);">Los datos de prueba solo se ven en tu pantalla — no se guardan en la Sheet ni afectan a los demás.</p>
         <div class="sim-table-wrap">
           <table class="sim-table" id="propuestasTable">
             <thead><tr><th>Nombre</th><th>Comisión</th><th>PDF</th><th>Estado</th><th>Comentario</th><th></th></tr></thead>
@@ -172,6 +175,46 @@
           </table>
         </div>
         <p id="propuestasEmpty" style="display:none; font-size:13.5px; color:var(--blue-slate); margin-top:var(--space-2);">Aún no hay propuestas subidas.</p>
+      </div>
+
+      <div class="admin-tab-panel" id="tab-candidatos" style="display:none;">
+        <div class="form-card" style="margin-bottom:var(--space-5);">
+          <div class="section-head" style="margin-bottom:var(--space-2);">
+            <h3 style="font-size:16px; color:var(--navy-deep); font-family:'Fraunces',serif;">Agregar candidato</h3>
+            <p style="font-size:13px;">Se agrega al bloque activo de arriba (Nacional o la sede Regional seleccionada).</p>
+          </div>
+          <div class="admin-filters">
+            <select id="candAmbito">
+              <option value="Parlamento">Mesa del Parlamento Europeo</option>
+              <option value="Comision">Mesa de una comisión</option>
+            </select>
+            <select id="candComision" style="display:none;"></select>
+            <select id="candRolMesa"></select>
+            <input type="text" id="candNombre" placeholder="Nombre completo">
+            <input type="text" id="candVideoUrl" placeholder="Enlace al video (opcional)">
+          </div>
+          <div class="form-submit-row" style="justify-content:flex-start;">
+            <button class="btn-primary" id="candAddBtn" type="button">Agregar candidato</button>
+          </div>
+          <p id="candError" style="display:none; color:#C0392B; font-size:13px; margin-top:8px;"></p>
+        </div>
+
+        <div class="section-head"><h2 style="font-size:20px;">Mesa del Parlamento Europeo</h2></div>
+        <div class="sim-table-wrap" style="margin-bottom:var(--space-5);">
+          <table class="sim-table">
+            <thead><tr><th>Cargo</th><th>Nombre</th><th>Video</th><th></th></tr></thead>
+            <tbody id="candParlamentoTableBody"></tbody>
+          </table>
+        </div>
+
+        <div class="section-head"><h2 style="font-size:20px;">Mesas por comisión</h2></div>
+        <div class="sim-table-wrap">
+          <table class="sim-table">
+            <thead><tr><th>Comisión</th><th>Cargo</th><th>Nombre</th><th>Video</th><th></th></tr></thead>
+            <tbody id="candComisionTableBody"></tbody>
+          </table>
+        </div>
+        <p id="candEmpty" style="display:none; font-size:13.5px; color:var(--blue-slate); margin-top:var(--space-2);">Aún no hay candidatos cargados para este bloque.</p>
       </div>
     </div>
 
@@ -357,24 +400,58 @@
   function propuestaRowHtml(r) {
     const estado = r.propuesta_estado || 'Pendiente';
     const badgeClass = estado === 'Plenaria' ? 'plenaria' : estado === 'Aprobada' ? 'aprobada' : 'pendiente';
-    return `<tr data-ref-code="${r.ref_code || ''}">
-      <td>${r.nombre_completo || ''}</td>
-      <td>${r.comision_asignada || ''}</td>
-      <td><a href="${r.propuesta_url}" target="_blank">Ver PDF</a></td>
-      <td><span class="propuesta-badge ${badgeClass}">${estado}</span></td>
-      <td><textarea class="propuesta-comentario">${r.propuesta_comentario || ''}</textarea></td>
-      <td>
-        <button class="admin-row-btn" data-action="guardar-comentario">Guardar</button>
+    const mockTag = r._mock ? ' <span class="tag">PRUEBA</span>' : '';
+    const pdfCell = r._mock ? '<span style="color:#8695AC;">PDF de prueba</span>' : `<a href="${r.propuesta_url}" target="_blank">Ver PDF</a>`;
+    const actionsCell = r._mock
+      ? '<span style="font-size:12px; color:#8695AC;">Solo vista previa</span>'
+      : `<button class="admin-row-btn" data-action="guardar-comentario">Guardar</button>
         <button class="admin-row-btn save" data-action="aprobar">Aprobar</button>
-        <button class="admin-row-btn save" data-action="plenaria">Enviar a Plenaria</button>
-      </td>
+        <button class="admin-row-btn save" data-action="plenaria">Enviar a Plenaria</button>`;
+    return `<tr data-ref-code="${r.ref_code || ''}">
+      <td>${r.nombre_completo || ''}${mockTag}</td>
+      <td>${r.comision_asignada || ''}</td>
+      <td>${pdfCell}</td>
+      <td><span class="propuesta-badge ${badgeClass}">${estado}</span></td>
+      <td><textarea class="propuesta-comentario" ${r._mock ? 'disabled' : ''}>${r.propuesta_comentario || ''}</textarea></td>
+      <td>${actionsCell}</td>
     </tr>`;
   }
 
+  // ---------- Datos de prueba de propuestas: solo en pantalla, nunca se envían al backend ----------
+  const MOCK_COMISARIO_NOMBRES_ = ['Ana Torres', 'Luis Gómez', 'Valentina Ruiz'];
+  const MOCK_PROPUESTA_ESTADOS_ = ['Pendiente', 'Aprobada', 'Plenaria'];
+  let mockPropuestasActivas = false;
+  function buildMockPropuestas() {
+    const mock = [];
+    COMISIONES.forEach((comision, ci) => {
+      MOCK_COMISARIO_NOMBRES_.forEach((nombre, ni) => {
+        mock.push({
+          ref_code: `MOCK-${ci}-${ni}`,
+          nombre_completo: `${nombre} (prueba)`,
+          comision_asignada: comision,
+          propuesta_url: '#',
+          propuesta_estado: MOCK_PROPUESTA_ESTADOS_[ni],
+          propuesta_comentario: '',
+          _mock: true,
+        });
+      });
+    });
+    return mock;
+  }
+  document.getElementById('propuestasMockToggle').addEventListener('click', (e) => {
+    mockPropuestasActivas = !mockPropuestasActivas;
+    e.target.textContent = mockPropuestasActivas ? 'Quitar datos de prueba' : 'Cargar datos de prueba (21 propuestas)';
+    renderPropuestas();
+  });
+
   function renderPropuestas() {
     const comisionFilter = document.getElementById('propuestaFilterComision').value;
-    const records = bloqueRecords().filter(r => r.rol_asignado === 'Comisario' && r.propuesta_url
+    const real = bloqueRecords().filter(r => r.rol_asignado === 'Comisario' && r.propuesta_url
       && (!comisionFilter || r.comision_asignada === comisionFilter));
+    const mock = mockPropuestasActivas
+      ? buildMockPropuestas().filter(r => !comisionFilter || r.comision_asignada === comisionFilter)
+      : [];
+    const records = real.concat(mock);
     document.getElementById('propuestasTableBody').innerHTML = records.map(propuestaRowHtml).join('');
     document.getElementById('propuestasEmpty').style.display = records.length === 0 ? 'block' : 'none';
   }
@@ -462,6 +539,7 @@
     sessionStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify({ email, password }));
     showContent();
     await loadParticipants();
+    loadCandidatos();
     clearButtonLoading(submitBtn);
     if (result.mustChangePassword) openForcePasswordModal();
   });
@@ -569,6 +647,97 @@
     }
   });
 
+  // ---------- Candidatos a mesas directivas ----------
+  const CAND_ROLES_PARLAMENTO = ['Presidente', 'Vicepresidente', 'Secretario General'];
+  const CAND_ROLES_COMISION = ['Presidente', 'Secretario General'];
+  let allCandidatos = [];
+
+  function populateCandidatoForm() {
+    const ambito = document.getElementById('candAmbito').value;
+    const comisionSelect = document.getElementById('candComision');
+    const rolSelect = document.getElementById('candRolMesa');
+    comisionSelect.style.display = ambito === 'Comision' ? '' : 'none';
+    if (ambito === 'Comision' && !comisionSelect.innerHTML) {
+      comisionSelect.innerHTML = COMISIONES.map(c => `<option value="${c}">${c}</option>`).join('');
+    }
+    const roles = ambito === 'Comision' ? CAND_ROLES_COMISION : CAND_ROLES_PARLAMENTO;
+    rolSelect.innerHTML = roles.map(r => `<option value="${r}">${r}</option>`).join('');
+  }
+  document.getElementById('candAmbito').addEventListener('change', populateCandidatoForm);
+  populateCandidatoForm();
+
+  function candDeleteRowHtml(c, comisionLabel) {
+    const cols = comisionLabel !== undefined ? `<td>${comisionLabel}</td><td>${c.rol_mesa || ''}</td>` : `<td>${c.rol_mesa || ''}</td>`;
+    const videoCell = c.video_url ? `<a href="${c.video_url}" target="_blank">Ver video</a>` : '—';
+    return `<tr data-id="${c.id}">${cols}<td>${c.nombre || ''}</td><td>${videoCell}</td><td><button class="admin-row-btn danger" data-action="borrar-candidato">Eliminar</button></td></tr>`;
+  }
+
+  function renderCandidatos() {
+    const parlamento = allCandidatos.filter(c => (c.ambito || '') === 'Parlamento');
+    const comision = allCandidatos.filter(c => (c.ambito || '') === 'Comision');
+    document.getElementById('candParlamentoTableBody').innerHTML = parlamento.map(c => candDeleteRowHtml(c)).join('');
+    document.getElementById('candComisionTableBody').innerHTML = comision.map(c => candDeleteRowHtml(c, c.comision || '')).join('');
+    document.getElementById('candEmpty').style.display = allCandidatos.length === 0 ? 'block' : 'none';
+  }
+
+  async function loadCandidatos() {
+    const creds = getCreds();
+    if (!creds) return;
+    const result = await apiCall({ form: 'admin_list_candidatos', adminEmail: creds.email, adminPassword: creds.password, tipoEuromodelo: currentBloque.tipo, ciudad: currentBloque.ciudad });
+    if (!result || !result.ok) return;
+    allCandidatos = result.candidatos || [];
+    renderCandidatos();
+  }
+
+  document.getElementById('candAddBtn').addEventListener('click', async (e) => {
+    const errEl = document.getElementById('candError');
+    errEl.style.display = 'none';
+    const ambito = document.getElementById('candAmbito').value;
+    const comision = ambito === 'Comision' ? document.getElementById('candComision').value : '';
+    const rolMesa = document.getElementById('candRolMesa').value;
+    const nombre = document.getElementById('candNombre').value.trim();
+    const videoUrl = document.getElementById('candVideoUrl').value.trim();
+    if (!nombre) {
+      errEl.textContent = 'Escribe el nombre del candidato.';
+      errEl.style.display = 'block';
+      return;
+    }
+    const creds = getCreds();
+    setButtonLoading(e.target, 'Agregando…');
+    const result = await apiCall({
+      form: 'admin_add_candidato', adminEmail: creds.email, adminPassword: creds.password,
+      tipoEuromodelo: currentBloque.tipo, ciudad: currentBloque.ciudad,
+      ambito, comision, rolMesa, nombre, videoUrl,
+    });
+    clearButtonLoading(e.target);
+    if (!result || !result.ok) {
+      errEl.textContent = 'No se pudo agregar el candidato. Intenta de nuevo.';
+      errEl.style.display = 'block';
+      return;
+    }
+    document.getElementById('candNombre').value = '';
+    document.getElementById('candVideoUrl').value = '';
+    await loadCandidatos();
+  });
+
+  document.getElementById('candParlamentoTableBody').addEventListener('click', handleCandDelete);
+  document.getElementById('candComisionTableBody').addEventListener('click', handleCandDelete);
+  async function handleCandDelete(e) {
+    if (e.target.dataset.action !== 'borrar-candidato') return;
+    const tr = e.target.closest('tr');
+    const id = tr.dataset.id;
+    const sure = confirm('¿Eliminar este candidato?');
+    if (!sure) return;
+    const creds = getCreds();
+    setButtonLoading(e.target);
+    const result = await apiCall({ form: 'admin_delete_candidato', adminEmail: creds.email, adminPassword: creds.password, id });
+    if (result && result.ok) {
+      await loadCandidatos();
+    } else {
+      clearButtonLoading(e.target);
+    }
+  }
+
   document.getElementById('participantsTableBody').addEventListener('click', async (e) => {
     const action = e.target.dataset.action;
     if (!action) return;
@@ -657,6 +826,7 @@
     // La vista previa de simulación mostrada corresponde al bloque anterior: se limpia para no
     // confundir esos números con los del bloque recién seleccionado.
     resetSimulacionPreview();
+    loadCandidatos();
   }
 
   document.getElementById('bloqueTabs').querySelector('.admin-tab-btn[data-tipo="Nacional"]').addEventListener('click', () => {
@@ -778,6 +948,7 @@
   if (savedCreds) {
     showContent();
     loadParticipants();
+    loadCandidatos();
   }
 </script>
 </body>
