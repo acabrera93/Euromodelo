@@ -795,38 +795,38 @@
       // Envío al backend real (Google Sheets + notificación por correo al staff).
       // Los datos personales vienen del perfil creado en la preinscripción; aquí solo se agregan
       // las preferencias de rol, comisión y partido.
-      try{
-        fetch(EUROMODELO_SCRIPT_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: {'Content-Type': 'text/plain;charset=utf-8'},
-          body: JSON.stringify({
-            form: 'inscripcion',
-            enviado: data.enviado,
-            ref_code: code,
-            email: user.email || '',
-            nombre_completo: user.nombre || '',
-            tipo_documento: user.tipoDocumento || '',
-            numero_documento: user.numDocumento || '',
-            telefono: user.telefono ? ('+57 ' + user.telefono) : '',
-            ciudad: user.ciudad || '',
-            institucion_educativa: user.institucion || '',
-            rol_opcion1: data.rol1, rol_opcion2: data.rol2, rol_opcion3: data.rol3,
-            comision_opcion1: data.comision1, comision_opcion2: data.comision2, comision_opcion3: data.comision3,
-            partido: data.partido,
-            resultado_brujula: data.resultadoBrujula,
-            resultado_brujula_comision: data.resultadoBrujulaComision,
-            resultado_brujula_partido: data.resultadoBrujulaPartido,
-            autoriza_datos: user.autorizaDatos || '',
-            es_menor: user.esMenor || '',
-            autoriza_imagen: user.autorizaImagen || '',
-          }),
-        });
-      }catch(err){
-        console.error('No se pudo enviar la inscripción al backend:', err);
-      }
-
-      window.location.reload();
+      // Importante: hay que esperar a que el fetch salga (o falle) antes de recargar. Si se
+      // recarga de inmediato, el navegador puede cancelar la petición en curso — la Sheet nunca
+      // recibe la inscripción, y el próximo refresco silencioso desde el backend (que sí lee la
+      // fila sin actualizar) termina borrando la inscripción que se acababa de guardar localmente.
+      fetch(EUROMODELO_SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: {'Content-Type': 'text/plain;charset=utf-8'},
+        body: JSON.stringify({
+          form: 'inscripcion',
+          enviado: data.enviado,
+          ref_code: code,
+          email: user.email || '',
+          nombre_completo: user.nombre || '',
+          tipo_documento: user.tipoDocumento || '',
+          numero_documento: user.numDocumento || '',
+          telefono: user.telefono ? ('+57 ' + user.telefono) : '',
+          ciudad: user.ciudad || '',
+          institucion_educativa: user.institucion || '',
+          rol_opcion1: data.rol1, rol_opcion2: data.rol2, rol_opcion3: data.rol3,
+          comision_opcion1: data.comision1, comision_opcion2: data.comision2, comision_opcion3: data.comision3,
+          partido: data.partido,
+          resultado_brujula: data.resultadoBrujula,
+          resultado_brujula_comision: data.resultadoBrujulaComision,
+          resultado_brujula_partido: data.resultadoBrujulaPartido,
+          autoriza_datos: user.autorizaDatos || '',
+          es_menor: user.esMenor || '',
+          autoriza_imagen: user.autorizaImagen || '',
+        }),
+      })
+        .catch(err => console.error('No se pudo enviar la inscripción al backend:', err))
+        .finally(() => window.location.reload());
     });
   }
 </script>
@@ -941,6 +941,7 @@
       document.getElementById('pfBadges').innerHTML = badges.join('');
 
       if (u.inscripcion) {
+        document.getElementById('pfNoInscripcion').style.display = 'none';
         document.getElementById('pfInscripcionData').style.display = 'block';
         const ins = u.inscripcion;
 
@@ -980,6 +981,7 @@
         document.getElementById('pfBrujulaComision').textContent = ins.resultadoBrujulaComision || 'Aún no realizada';
         document.getElementById('pfBrujulaPartido').textContent = ins.resultadoBrujulaPartido || 'Aún no realizado';
       } else {
+        document.getElementById('pfInscripcionData').style.display = 'none';
         document.getElementById('pfNoInscripcion').style.display = 'block';
         initInscripcionForm(u);
       }
@@ -1027,8 +1029,8 @@
 
     function renderPropuestaSections(u) {
       document.getElementById('pfTabPropuestaBtn').style.display = u.rolAsignado === 'Comisario' ? '' : 'none';
+      document.getElementById('pfPropuestaComisario').style.display = u.rolAsignado === 'Comisario' ? 'block' : 'none';
       if (u.rolAsignado === 'Comisario') {
-        document.getElementById('pfPropuestaComisario').style.display = 'block';
         const estadoEl = document.getElementById('pfPropuestaEstado');
         if (u.propuestaEstado) {
           estadoEl.style.display = 'block';
@@ -1053,8 +1055,8 @@
         }
       }
 
+      document.getElementById('pfComisionPropuestas').style.display = u.comisionAsignada ? 'block' : 'none';
       if (u.comisionAsignada) {
-        document.getElementById('pfComisionPropuestas').style.display = 'block';
         fetch(EUROMODELO_SCRIPT_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
