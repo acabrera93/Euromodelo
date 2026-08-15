@@ -89,10 +89,6 @@
 <div id="perfilLoggedIn" style="display:none;">
   <div class="profile-hero">
     <div class="container profile-card">
-      <div class="photo-placeholder ph-avatar-lg" style="border-color:rgba(255,255,255,.5); color:rgba(255,255,255,.7); background:rgba(255,255,255,.06);">
-        <span class="ph-icon">&#128247;</span>
-        <span class="ph-label">Foto</span>
-      </div>
       <div>
         <p class="profile-name" id="pfNombre"></p>
         <p class="profile-meta" id="pfMeta"></p>
@@ -103,6 +99,29 @@
 
   <div class="section-inner">
     <div class="container" style="max-width:760px;">
+      <div id="pfProfesorView" style="display:none;">
+        <div class="section-head">
+          <h2 style="font-size:20px;">Estudiantes de <span id="pfProfesorColegio"></span></h2>
+          <p style="font-size:13px;">Listado de estudiantes inscritos de tu colegio, con su rol, comisión y bancada (asignados por el staff, o su preferencia mientras la asignación final no esté lista).</p>
+        </div>
+        <p id="pfNoStudents" style="display:none; font-size:13.5px; color:var(--blue-slate);">Aún no hay estudiantes inscritos de tu colegio.</p>
+        <div class="sim-table-wrap" id="pfStudentsTableWrap" style="display:none;">
+          <table class="sim-table">
+            <thead><tr><th>Nombre</th><th>Rol</th><th>Comisión</th><th>Bancada</th></tr></thead>
+            <tbody id="pfStudentsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="pfStudentTabs" style="display:none;">
+        <div class="admin-tabs" id="pfTabs" style="margin-bottom:var(--space-4);">
+          <button type="button" class="admin-tab-btn active" data-pf-tab="info">Mi información</button>
+          <button type="button" class="admin-tab-btn" data-pf-tab="votacion">Votación</button>
+          <button type="button" class="admin-tab-btn" id="pfTabPropuestaBtn" data-pf-tab="propuesta" style="display:none;">Subir propuesta</button>
+          <button type="button" class="admin-tab-btn" data-pf-tab="propuestas">Propuestas</button>
+        </div>
+
+      <div class="admin-tab-panel" id="pftab-info">
       <div id="pfNoInscripcion" style="display:none;">
         <form class="form-card" id="insForm">
           <div class="section-head" style="margin-bottom:var(--space-2);">
@@ -194,24 +213,10 @@
           </div>
 
           <div class="form-submit-row">
-            <span class="form-note">La asignación final de rol, comisión y bancada será confirmada por el staff del Euromodelo Joven.</span>
+            <span class="form-note" style="font-size:13.5px; font-weight:700; color:var(--navy-deep); max-width:none; white-space:nowrap;">La asignación final de rol, comisión y bancada será confirmada por el staff del Euromodelo Joven.</span>
             <button class="btn-primary" type="submit">Enviar inscripción</button>
           </div>
         </form>
-      </div>
-
-      <div id="pfProfesorView" style="display:none;">
-        <div class="section-head">
-          <h2 style="font-size:20px;">Estudiantes de <span id="pfProfesorColegio"></span></h2>
-          <p style="font-size:13px;">Listado de estudiantes inscritos de tu colegio, con su rol, comisión y bancada (asignados por el staff, o su preferencia mientras la asignación final no esté lista).</p>
-        </div>
-        <p id="pfNoStudents" style="display:none; font-size:13.5px; color:var(--blue-slate);">Aún no hay estudiantes inscritos de tu colegio.</p>
-        <div class="sim-table-wrap" id="pfStudentsTableWrap" style="display:none;">
-          <table class="sim-table">
-            <thead><tr><th>Nombre</th><th>Rol</th><th>Comisión</th><th>Bancada</th></tr></thead>
-            <tbody id="pfStudentsTableBody"></tbody>
-          </table>
-        </div>
       </div>
 
       <div id="pfInscripcionData" style="display:none;">
@@ -221,14 +226,17 @@
         <div class="grid-cards">
           <div class="card">
             <h3 id="pfRolesTitle">Opciones de rol</h3>
+            <span class="origen-badge sin-asignar" id="pfRolesPendiente" style="display:none; margin-bottom:8px;">Pendiente de asignar</span>
             <ul class="role-bullets" id="pfRoles" style="--accent:var(--gold-star);"></ul>
           </div>
           <div class="card">
             <h3 id="pfComisionesTitle">Opciones de comisión</h3>
+            <span class="origen-badge sin-asignar" id="pfComisionesPendiente" style="display:none; margin-bottom:8px;">Pendiente de asignar</span>
             <ul class="role-bullets" id="pfComisiones" style="--accent:var(--blue-slate);"></ul>
           </div>
           <div class="card">
             <h3 id="pfPartidoTitle">Bancada de preferencia</h3>
+            <span class="origen-badge sin-asignar" id="pfPartidoPendiente" style="display:none; margin-bottom:8px;">Pendiente de asignar</span>
             <p id="pfPartido" style="font-weight:600; color:var(--blue-revel);"></p>
           </div>
           <div class="card">
@@ -248,8 +256,26 @@
           </div>
         </div>
       </div>
+      </div>
 
-      <div id="pfPropuestaComisario" class="form-card" style="display:none; margin-top:var(--space-4);">
+      <div class="admin-tab-panel" id="pftab-votacion" style="display:none;">
+      <div id="pfVotacion" style="display:none;">
+        <div class="section-head">
+          <h2 style="font-size:20px;">Votación de mesas directivas</h2>
+        </div>
+        <div class="form-card" style="margin-bottom:var(--space-3);">
+          <h3 class="subsection-title" style="margin-bottom:12px;">Mesa Directiva del Parlamento Europeo — <span id="pfVotacionCiudad"></span></h3>
+          <div id="pfVotacionParlamento"></div>
+        </div>
+        <div class="form-card" id="pfVotacionComisionCard" style="display:none;">
+          <h3 class="subsection-title" style="margin-bottom:12px;">Mesa de tu Comisión — <span id="pfVotacionComisionNombre"></span></h3>
+          <div id="pfVotacionComision"></div>
+        </div>
+      </div>
+      </div>
+
+      <div class="admin-tab-panel" id="pftab-propuesta" style="display:none;">
+      <div id="pfPropuestaComisario" class="form-card" style="display:none;">
         <div class="section-head" style="margin-bottom:var(--space-2);">
           <h3 style="font-size:16px; color:var(--navy-deep); font-family:'Fraunces',serif;">Tu propuesta legislativa</h3>
           <p style="font-size:13px;">Sube tu propuesta en PDF (máximo 8MB). Al subir un nuevo archivo, reemplaza al anterior y vuelve a quedar pendiente de revisión.</p>
@@ -265,13 +291,27 @@
           <button class="btn-primary" type="button" id="pfPropuestaUploadBtn">Subir propuesta</button>
         </div>
       </div>
+      </div>
 
-      <div id="pfComisionPropuestas" style="display:none; margin-top:var(--space-4);">
+      <div class="admin-tab-panel" id="pftab-propuestas" style="display:none;">
+      <div id="pfComisionPropuestas" style="display:none;">
         <div class="section-head">
           <h2 style="font-size:20px;">Propuestas aprobadas de tu comisión</h2>
         </div>
         <p id="pfComisionPropuestasEmpty" style="display:none; font-size:13.5px; color:var(--blue-slate);">Aún no hay propuestas aprobadas en tu comisión.</p>
         <ul class="role-bullets" id="pfComisionPropuestasList" style="--accent:var(--teal);"></ul>
+      </div>
+
+      <div id="pfPropuestasPlenaria" style="margin-top:var(--space-4);">
+        <div class="section-head">
+          <h2 style="font-size:20px;">Propuestas que pasaron a Plenaria</h2>
+          <p style="font-size:13px;">Visibles para todos los participantes, sin importar su comisión.</p>
+        </div>
+        <p id="pfPropuestasPlenariaEmpty" style="display:none; font-size:13.5px; color:var(--blue-slate);">Aún no hay propuestas que hayan pasado a la sesión Plenaria.</p>
+        <ul class="role-bullets" id="pfPropuestasPlenariaList" style="--accent:var(--gold-star);"></ul>
+      </div>
+      </div>
+
       </div>
 
       <div style="text-align:center; margin-top:var(--space-4);">
@@ -877,6 +917,7 @@
     if (user.tipo === 'Profesor') {
       renderProfesorView(user);
     } else {
+    document.getElementById('pfStudentTabs').style.display = 'block';
 
     // Se mantiene actualizado con el último `u` renderizado, para que el botón de
     // repetir la Brújula Legislativa siempre use los datos más recientes (username, refCode).
@@ -905,27 +946,33 @@
 
         if (u.rolAsignado) {
           document.getElementById('pfRolesTitle').textContent = 'Rol asignado';
+          document.getElementById('pfRolesPendiente').style.display = 'none';
           document.getElementById('pfRoles').innerHTML = `<li class="assigned">${u.rolAsignado}</li>`;
         } else {
           document.getElementById('pfRolesTitle').textContent = 'Opciones de rol';
+          document.getElementById('pfRolesPendiente').style.display = 'inline-block';
           document.getElementById('pfRoles').innerHTML =
             `<li>Opción 1: ${ins.rol1}</li><li>Opción 2: ${ins.rol2}</li><li>Opción 3: ${ins.rol3}</li>`;
         }
 
         if (u.comisionAsignada) {
           document.getElementById('pfComisionesTitle').textContent = 'Comisión asignada';
+          document.getElementById('pfComisionesPendiente').style.display = 'none';
           document.getElementById('pfComisiones').innerHTML = `<li class="assigned">${u.comisionAsignada}</li>`;
         } else {
           document.getElementById('pfComisionesTitle').textContent = 'Opciones de comisión';
+          document.getElementById('pfComisionesPendiente').style.display = 'inline-block';
           document.getElementById('pfComisiones').innerHTML =
             `<li>Opción 1: ${ins.comision1}</li><li>Opción 2: ${ins.comision2}</li><li>Opción 3: ${ins.comision3}</li>`;
         }
 
         if (u.partidoAsignado) {
           document.getElementById('pfPartidoTitle').textContent = 'Bancada asignada';
+          document.getElementById('pfPartidoPendiente').style.display = 'none';
           document.getElementById('pfPartido').textContent = u.partidoAsignado;
         } else {
           document.getElementById('pfPartidoTitle').textContent = 'Bancada de preferencia';
+          document.getElementById('pfPartidoPendiente').style.display = 'inline-block';
           document.getElementById('pfPartido').textContent = ins.partido;
         }
 
@@ -938,9 +985,48 @@
       }
     }
 
+    // Votación de mesas directivas: aún sin candidatos reales (el staff los carga más
+    // adelante), así que por ahora se muestran placeholders — pero ya filtrados a la sede y
+    // comisión del propio estudiante, no a las de los demás.
+    const PARLAMENTO_MESA_ROLES = ['Presidente', 'Vicepresidente', 'Secretario General'];
+    const COMISION_MESA_ROLES = ['Presidente', 'Secretario General'];
+
+    function candidateCardHtml(roleLabel) {
+      return `
+        <div class="candidate-card">
+          <div class="photo-placeholder ph-sq"><span class="ph-icon">&#128247;</span><span class="ph-label">Foto</span></div>
+          <div class="candidate-info">
+            <div class="candidate-name">Candidato/a por confirmar</div>
+            <div class="candidate-role">${roleLabel}</div>
+          </div>
+          <button class="candidate-video-btn" type="button" onclick="alert('El staff debe vincular aquí el nombre del candidato y el enlace a su video de presentación.')">&#127909; Ver video</button>
+        </div>`;
+    }
+
+    function roleGroupHtml(roles) {
+      return roles.map(role => `<div class="role-group-title">${role}</div>${candidateCardHtml(role)}${candidateCardHtml(role)}`).join('');
+    }
+
+    function renderVotacion(u) {
+      document.getElementById('pfVotacion').style.display = 'block';
+      document.getElementById('pfVotacionCiudad').textContent = u.ciudad || 'Ciudad por confirmar';
+      document.getElementById('pfVotacionParlamento').innerHTML = roleGroupHtml(PARLAMENTO_MESA_ROLES);
+
+      const comision = u.comisionAsignada || (u.inscripcion && u.inscripcion.comision1) || '';
+      const comisionCard = document.getElementById('pfVotacionComisionCard');
+      if (comision) {
+        comisionCard.style.display = 'block';
+        document.getElementById('pfVotacionComisionNombre').textContent = comision;
+        document.getElementById('pfVotacionComision').innerHTML = roleGroupHtml(COMISION_MESA_ROLES);
+      } else {
+        comisionCard.style.display = 'none';
+      }
+    }
+
     const PROPUESTA_MAX_BYTES = 8 * 1024 * 1024;
 
     function renderPropuestaSections(u) {
+      document.getElementById('pfTabPropuestaBtn').style.display = u.rolAsignado === 'Comisario' ? '' : 'none';
       if (u.rolAsignado === 'Comisario') {
         document.getElementById('pfPropuestaComisario').style.display = 'block';
         const estadoEl = document.getElementById('pfPropuestaEstado');
@@ -992,6 +1078,31 @@
       }
     }
 
+    // Propuestas que pasaron a Plenaria: a diferencia de las de "tu comisión", estas se ven sin
+    // importar la comisión del participante — por eso no depende de u.comisionAsignada.
+    function renderPlenariaPropuestas(u) {
+      fetch(EUROMODELO_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ form: 'list_plenaria_propuestas', email: u.username, password: u.password }),
+      })
+        .then(res => res.json())
+        .then(result => {
+          if (!result || !result.ok) return;
+          const proposals = result.proposals || [];
+          const listEl = document.getElementById('pfPropuestasPlenariaList');
+          const emptyEl = document.getElementById('pfPropuestasPlenariaEmpty');
+          if (proposals.length === 0) {
+            emptyEl.style.display = 'block';
+            listEl.innerHTML = '';
+          } else {
+            emptyEl.style.display = 'none';
+            listEl.innerHTML = proposals.map(p => `<li><a href="${p.url}" target="_blank">${p.nombre}</a> — ${p.comision}</li>`).join('');
+          }
+        })
+        .catch(err => console.error('No se pudo cargar las propuestas de plenaria:', err));
+    }
+
     document.getElementById('pfPropuestaUploadBtn').addEventListener('click', () => {
       const uploadBtn = document.getElementById('pfPropuestaUploadBtn');
       const input = document.getElementById('pfPropuestaFileInput');
@@ -1036,13 +1147,23 @@
 
     renderInscripcionSummary(user);
     renderPropuestaSections(user);
+    renderVotacion(user);
+    renderPlenariaPropuestas(user);
     if (user.inscripcion) {
       // Refresco silencioso: si el staff ya cargó rol/comisión/partido en la Sheet,
       // esta llamada los trae y actualiza la vista sin recargar.
       refreshUserFromServer(user.username).then(refreshed => {
-        if (refreshed) { renderInscripcionSummary(refreshed); renderPropuestaSections(refreshed); }
+        if (refreshed) { renderInscripcionSummary(refreshed); renderPropuestaSections(refreshed); renderVotacion(refreshed); }
       });
     }
+
+    document.querySelectorAll('#pfTabs .admin-tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#pfTabs .admin-tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+        document.querySelectorAll('.admin-tab-panel').forEach(p => { p.style.display = p.id === 'pftab-' + btn.dataset.pfTab ? 'block' : 'none'; });
+      });
+    });
+    document.getElementById('pftab-info').style.display = 'block';
 
     function startProfileQuiz() {
       initQuiz({

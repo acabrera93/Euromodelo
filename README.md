@@ -13,11 +13,11 @@ roles.html                  Roles (incluye test "Brújula Legislativa")
 comisiones.html             Comisiones (7)
 partidos.html                Partidos Políticos (hemiciclo + test "Match Europeo")
 mesas-postulacion.html      Postulación a Mesas Directivas
-mesas-votacion.html         Votación de Mesas Directivas (ciudad > comisión > candidatos)
 galeria.html                Galería "20 Años, Mil Historias"
 preinscripcion.html         Formulario de preinscripción (genera usuario/contraseña)
 perfil.html                 Área personal del estudiante: al iniciar sesión, si aún no se ha
-                             inscrito ve ahí mismo el formulario de rol/comisión/partido
+                             inscrito ve ahí mismo el formulario de rol/comisión/partido, y
+                             también la votación de mesas directivas (Parlamento + su comisión)
 
 assets/
   styles.css                 Hoja de estilos compartida (tokens de color, tipografía, componentes)

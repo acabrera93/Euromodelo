@@ -106,7 +106,7 @@
           </table>
         </div>
 
-        <div class="section-head"><h2 style="font-size:20px;">Agrupado por colegio</h2></div>
+        <div class="section-head"><h2 style="font-size:20px;">Agrupado por colegio</h2><p>Solo cuenta a quienes cumplen los filtros de arriba (comisión, rol, colegio, búsqueda).</p></div>
         <div class="grid-cards" id="colegiosGrid"></div>
       </div>
 
@@ -342,7 +342,7 @@
 
   function renderColegios() {
     const groups = {};
-    bloqueRecords().forEach(r => {
+    filteredRecords().forEach(r => {
       const school = r.institucion_educativa || 'Sin colegio';
       groups[school] = (groups[school] || 0) + 1;
     });
@@ -356,7 +356,7 @@
 
   function propuestaRowHtml(r) {
     const estado = r.propuesta_estado || 'Pendiente';
-    const badgeClass = estado === 'Aprobada' ? 'aprobada' : 'pendiente';
+    const badgeClass = estado === 'Plenaria' ? 'plenaria' : estado === 'Aprobada' ? 'aprobada' : 'pendiente';
     return `<tr data-ref-code="${r.ref_code || ''}">
       <td>${r.nombre_completo || ''}</td>
       <td>${r.comision_asignada || ''}</td>
@@ -366,6 +366,7 @@
       <td>
         <button class="admin-row-btn" data-action="guardar-comentario">Guardar</button>
         <button class="admin-row-btn save" data-action="aprobar">Aprobar</button>
+        <button class="admin-row-btn save" data-action="plenaria">Enviar a Plenaria</button>
       </td>
     </tr>`;
   }
@@ -491,9 +492,13 @@
     await loadParticipants();
     clearButtonLoading(e.target);
   });
+  function renderFilteredViews() {
+    renderTable();
+    renderColegios();
+  }
   ['filterSearch', 'filterComision', 'filterRol', 'filterColegio'].forEach(id => {
-    document.getElementById(id).addEventListener('input', renderTable);
-    document.getElementById(id).addEventListener('change', renderTable);
+    document.getElementById(id).addEventListener('input', renderFilteredViews);
+    document.getElementById(id).addEventListener('change', renderFilteredViews);
   });
   document.getElementById('propuestaFilterComision').addEventListener('change', renderPropuestas);
 
@@ -551,11 +556,13 @@
       ref_code: refCode, propuesta_comentario: comentario,
     };
     if (action === 'aprobar') payload.propuesta_estado = 'Aprobada';
+    if (action === 'plenaria') payload.propuesta_estado = 'Plenaria';
     setButtonLoading(e.target);
     const result = await apiCall(payload);
     if (result && result.ok) {
       record.propuesta_comentario = comentario;
       if (action === 'aprobar') record.propuesta_estado = 'Aprobada';
+      if (action === 'plenaria') record.propuesta_estado = 'Plenaria';
       renderPropuestas();
     } else {
       clearButtonLoading(e.target);

@@ -518,6 +518,7 @@ footer .container{display:flex; justify-content:space-between; flex-wrap:wrap; g
 }
 .propuesta-badge.aprobada{background:var(--teal);}
 .propuesta-badge.pendiente{background:var(--blue-slate);}
+.propuesta-badge.plenaria{background:var(--gold-star); color:var(--navy-deep);}
 textarea.propuesta-comentario{
   width:100%; min-height:50px; border:1px solid var(--line); border-radius:8px; padding:6px 8px;
   font-size:12.5px; font-family:inherit; resize:vertical;

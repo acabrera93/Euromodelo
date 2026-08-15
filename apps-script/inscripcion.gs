@@ -276,8 +276,8 @@ var CANONICAL_HEADERS_ = [
   // las trata como 'Estudiante' por defecto, sin necesidad de migrar la Sheet.
   'tipo',
   // Propuesta legislativa del comisario: URL del PDF en Drive, estado ('' | 'Pendiente' |
-  // 'Aprobada') y comentario del staff. Una nueva subida reemplaza url/estado/comentario
-  // anteriores (mismo criterio que repetir una brújula).
+  // 'Aprobada' | 'Plenaria') y comentario del staff. Una nueva subida reemplaza url/estado/
+  // comentario anteriores (mismo criterio que repetir una brújula).
   'propuesta_url', 'propuesta_estado', 'propuesta_comentario',
   // '' | 'Manual' | 'Automática'. Se recalcula cada vez que rol_asignado/comision_asignada/
   // partido_asignado cambian, desde handleUpdateAssignment_ (Manual) o handleApplyAssignment_
@@ -498,6 +498,12 @@ function handleUploadPropuesta_(sheet, headers, data) {
   return jsonOut_({ ok: true, url: url, estado: 'Pendiente' });
 }
 
+// propuesta_estado sigue esta progresión: '' -> 'Pendiente' -> 'Aprobada' -> 'Plenaria'. Una
+// propuesta en 'Plenaria' sigue contando como aprobada dentro de su propia comisión (por eso
+// PROPUESTA_ESTADOS_VISIBLES_COMISION_ incluye ambas), y además se vuelve visible para todos los
+// participantes del bloque en handleListPlenariaPropuestas_, sin importar su comisión.
+var PROPUESTA_ESTADOS_VISIBLES_COMISION_ = ['Aprobada', 'Plenaria'];
+
 // El participante reenvía sus propias credenciales; solo ve las propuestas ya aprobadas de su
 // propia comisión asignada (si todavía no tiene comisión asignada, la lista viene vacía).
 function handleListComisionPropuestas_(sheet, headers, data) {
@@ -529,12 +535,47 @@ function handleListComisionPropuestas_(sheet, headers, data) {
       if ((r.comision_asignada || '').toString() !== comision) return;
       if ((r.tipo_euromodelo || 'Nacional').toString() !== tipoEuromodelo) return;
       if (tipoEuromodelo === 'Regional' && (r.ciudad || '').toString() !== ciudad) return;
-      if ((r.propuesta_estado || '').toString() !== 'Aprobada') return;
+      if (PROPUESTA_ESTADOS_VISIBLES_COMISION_.indexOf((r.propuesta_estado || '').toString()) === -1) return;
       if (!r.propuesta_url) return;
       proposals.push({ nombre: r.nombre_completo || '', url: r.propuesta_url });
     });
   }
   return jsonOut_({ ok: true, comision: comision, proposals: proposals });
+}
+
+// Propuestas que pasaron a la sesión Plenaria: visibles para TODOS los participantes del mismo
+// bloque (Nacional, o Regional de su misma ciudad), sin importar su propia comisión — a
+// diferencia de handleListComisionPropuestas_, que solo muestra las de la comisión propia.
+function handleListPlenariaPropuestas_(sheet, headers, data) {
+  var email = (data.email || '').toString().trim().toLowerCase();
+  var password = (data.password || '').toString();
+  var rowNum = findRowByColumn_(sheet, headers, 'email', email, true);
+  if (rowNum === -1) return jsonOut_({ ok: false });
+
+  var rowValues = sheet.getRange(rowNum, 1, 1, headers.length).getValues()[0];
+  var record = {};
+  headers.forEach(function(h, i) { record[h] = rowValues[i]; });
+  if ((record.password || '').toString() !== password) return jsonOut_({ ok: false });
+
+  var tipoEuromodelo = (record.tipo_euromodelo || 'Nacional').toString();
+  var ciudad = (record.ciudad || '').toString();
+
+  var lastRow = sheet.getLastRow();
+  var proposals = [];
+  if (lastRow >= 2) {
+    var values = sheet.getRange(2, 1, lastRow - 1, headers.length).getValues();
+    values.forEach(function(row) {
+      var r = {};
+      headers.forEach(function(h, i) { r[h] = row[i]; });
+      if ((r.rol_asignado || '').toString() !== 'Comisario') return;
+      if ((r.tipo_euromodelo || 'Nacional').toString() !== tipoEuromodelo) return;
+      if (tipoEuromodelo === 'Regional' && (r.ciudad || '').toString() !== ciudad) return;
+      if ((r.propuesta_estado || '').toString() !== 'Plenaria') return;
+      if (!r.propuesta_url) return;
+      proposals.push({ nombre: r.nombre_completo || '', comision: r.comision_asignada || '', url: r.propuesta_url });
+    });
+  }
+  return jsonOut_({ ok: true, proposals: proposals });
 }
 
 // ---------- Panel de administración: login individual de staff ----------
@@ -804,6 +845,19 @@ function handleUndoAssignment_(sheet, headers, ss, data) {
 // una vez cierren las inscripciones y se sepa el número definitivo de participantes.
 var SIM_MIN_PER_COMISION_ = 10;
 
+// Cupo de Primer Ministro: proporcional a los inscritos (1 por cada 10), redondeado al entero
+// más cercano y ajustado hacia arriba si cae en un número par, porque el número final de
+// Primeros Ministros siempre debe ser impar. Comisario y Europarlamentario no tienen tope.
+var SIM_PM_RATIO_ = 1 / 10;
+
+function computePrimerMinistroCap_(totalN) {
+  if (totalN <= 0) return 0;
+  var cap = Math.round(totalN * SIM_PM_RATIO_);
+  if (cap < 1) cap = 1;
+  if (cap % 2 === 0) cap += 1;
+  return cap;
+}
+
 var SIM_COMISIONES_ = [
   { code: 'CLJ', title: 'Asuntos Constitucionales, Libertades Civiles, Justicia e Igualdad de Género', color: '#6B2D8C' },
   { code: 'EXT', title: 'Asuntos Exteriores, Derechos Humanos, Seguridad y Defensa', color: '#1E3D73' },
@@ -826,6 +880,24 @@ var SIM_PARTIDOS_ = [
   { code: 'Greens/EFA', title: 'The Greens/EFA — Los Verdes/Alianza Libre Europea', color: '#3E9142', seats: 53 },
   { code: 'The Left', title: 'The Left — Izquierda Unitaria Europea/Verde Nórdica', color: '#8C1D2B', seats: 46 }
 ];
+
+// Asigna rol respetando el cupo de Primer Ministro: prueba las 3 opciones del participante en
+// orden y solo se detiene en 'Primer Ministro' si todavía queda cupo; si no, sigue a la
+// siguiente opción (que nunca vuelve a ser 'Primer Ministro', porque cada participante lo tiene
+// en una sola de sus 3 opciones). Comisario y Europarlamentario siempre tienen cupo libre.
+function assignRol_(record, pmCap, pmCount) {
+  var opciones = [record.rol_opcion1, record.rol_opcion2, record.rol_opcion3];
+  for (var i = 0; i < opciones.length; i++) {
+    var opcion = opciones[i];
+    if (opcion !== 'Primer Ministro') return opcion;
+    if (pmCount.total < pmCap) {
+      pmCount.total++;
+      return opcion;
+    }
+    // Cupo de Primer Ministro lleno: se prueba con la siguiente opción del participante.
+  }
+  return opciones[0] || '';
+}
 
 function assignPartido_(record, cap, count) {
   var preferido = record.partido;
@@ -987,13 +1059,17 @@ function runAssignmentSimulation_(records, mesaCount) {
   }
   SIM_PARTIDOS_.forEach(function(p) { partidoCount[p.title] = 0; });
 
-  // Pasada 1: asignación directa. Sin tope de rol/comisión por ahora ("no hay máximo por el
-  // momento"), así que rol y comisión son siempre la 1ª preferencia; solo partido tiene cupo real.
+  var pmCap = computePrimerMinistroCap_(totalN);
+  var pmCount = { total: 0 };
+
+  // Pasada 1: asignación directa. Sin tope de comisión por ahora ("no hay máximo por el
+  // momento"), así que comisión es siempre la 1ª preferencia; partido y Primer Ministro sí
+  // tienen cupo real.
   var assignments = participants.map(function(p) {
     var partidoResult = assignPartido_(p, partidoCap, partidoCount);
     return {
       email: p.email, nombre: p.nombre_completo, institucion: p.institucion_educativa, enviado: p.enviado,
-      rol: p.rol_opcion1,
+      rol: assignRol_(p, pmCap, pmCount),
       comision: p.comision_opcion1,
       comisionOrigen: 'preferencia_1',
       comisionPrefs: [p.comision_opcion1, p.comision_opcion2, p.comision_opcion3],
@@ -1052,6 +1128,7 @@ function doPost(e) {
   if (data.form === 'list_students') return handleListStudents_(sheet, headers, data);
   if (data.form === 'upload_propuesta') return handleUploadPropuesta_(sheet, headers, data);
   if (data.form === 'list_comision_propuestas') return handleListComisionPropuestas_(sheet, headers, data);
+  if (data.form === 'list_plenaria_propuestas') return handleListPlenariaPropuestas_(sheet, headers, data);
   if (data.form === 'admin_simulate') return handleSimulate_(sheet, headers, ss, data);
   if (data.form === 'admin_login') return handleAdminLogin_(ss, data);
   if (data.form === 'admin_forgot_password') return handleAdminForgotPassword_(ss, data);
