@@ -116,8 +116,8 @@
       <div id="pfStudentTabs" style="display:none;">
         <div class="admin-tabs" id="pfTabs" style="margin-bottom:var(--space-4);">
           <button type="button" class="admin-tab-btn active" data-pf-tab="info">Mi información</button>
-          <button type="button" class="admin-tab-btn" data-pf-tab="votacion">Votación</button>
           <button type="button" class="admin-tab-btn" data-pf-tab="postulacion">Postular a Mesa Directiva</button>
+          <button type="button" class="admin-tab-btn" data-pf-tab="votacion">Votación</button>
           <button type="button" class="admin-tab-btn" id="pfTabPropuestaBtn" data-pf-tab="propuesta" style="display:none;">Subir propuesta</button>
           <button type="button" class="admin-tab-btn" data-pf-tab="propuestas">Propuestas</button>
           <button type="button" class="admin-tab-btn" id="pfTabMesaBtn" data-pf-tab="mesa" style="display:none;">Mesa Directiva</button>
@@ -292,6 +292,15 @@
           </div>
           <div class="form-grid">
             <div class="field full">
+              <label>¿A qué te postulas?</label>
+              <select required id="pfPostTipo">
+                <option value="">Selecciona una opción</option>
+                <option value="Parlamento">Presidencia del Parlamento Europeo (Plenaria)</option>
+                <option value="Comision">Mesa directiva de tu comisión</option>
+                <option value="Ambos">Ambas</option>
+              </select>
+            </div>
+            <div class="field full">
               <label>Dominio del Procedimiento Legislativo Ordinario</label>
               <select required id="pfPostDominio">
                 <option value="">Selecciona un nivel</option>
@@ -308,17 +317,22 @@
             </div>
           </div>
 
-          <div class="field full">
-            <label>Enlace a tu video de presentación (YouTube)</label>
-            <input required type="url" id="pfPostVideoUrl" placeholder="https://youtube.com/watch?v=...">
+          <div class="field full" id="pfPostVideoParlamentoWrap" style="display:none;">
+            <label>Enlace a tu video de presentación para el Parlamento Europeo (YouTube o Drive)</label>
+            <input type="url" id="pfPostVideoUrlParlamento" placeholder="https://youtube.com/watch?v=... o https://drive.google.com/...">
+          </div>
+          <div class="field full" id="pfPostVideoComisionWrap" style="display:none;">
+            <label>Enlace a tu video de presentación para tu comisión (YouTube o Drive)</label>
+            <input type="url" id="pfPostVideoUrlComision" placeholder="https://youtube.com/watch?v=... o https://drive.google.com/...">
           </div>
           <div style="background:var(--blue-pale); border-radius:10px; padding:14px 16px; margin-bottom:var(--space-2);">
             <p style="margin:0 0 8px; font-size:13px; font-weight:700; color:var(--navy-deep);">&#127909; Instrucciones para tu video de presentación</p>
             <ul style="margin:0; padding-left:18px; font-size:12.5px; color:#4A5A73; line-height:1.7;">
               <li><b>Formato vertical</b> (9:16), como una historia o un reel.</li>
               <li><b>Duración máxima: 2 minutos.</b></li>
-              <li>Sube el video a YouTube (puede ser "no listado") y pega aquí el enlace.</li>
+              <li>Sube el video a YouTube (puede ser "no listado") o Google Drive (con acceso "cualquiera con el enlace") y pega aquí el enlace.</li>
               <li>Tu video debe decir: tu <b>nombre completo</b>, tu <b>ciudad e institución</b>, <b>por qué quieres ser parte de la mesa directiva</b>, y <b>una fortaleza tuya como líder</b>.</li>
+              <li>Si te postulas a <b>ambas</b> mesas, graba <b>un video distinto para cada una</b>.</li>
             </ul>
           </div>
 
@@ -1535,16 +1549,28 @@
         .catch(err => console.error('No se pudo cargar las propuestas de plenaria:', err));
     }
 
+    document.getElementById('pfPostTipo').addEventListener('change', (e) => {
+      const tipo = e.target.value;
+      document.getElementById('pfPostVideoParlamentoWrap').style.display = (tipo === 'Parlamento' || tipo === 'Ambos') ? 'block' : 'none';
+      document.getElementById('pfPostVideoComisionWrap').style.display = (tipo === 'Comision' || tipo === 'Ambos') ? 'block' : 'none';
+    });
+
     document.getElementById('pfPostSubmitBtn').addEventListener('click', async () => {
       const errEl = document.getElementById('pfPostError');
       errEl.style.display = 'none';
+      const tipoPostulacion = document.getElementById('pfPostTipo').value;
       const dominio = document.getElementById('pfPostDominio').value;
       const experiencia = document.getElementById('pfPostExperiencia').value.trim();
       const motivacion = document.getElementById('pfPostMotivacion').value.trim();
-      const videoUrl = document.getElementById('pfPostVideoUrl').value.trim();
+      const necesitaParlamento = tipoPostulacion === 'Parlamento' || tipoPostulacion === 'Ambos';
+      const necesitaComision = tipoPostulacion === 'Comision' || tipoPostulacion === 'Ambos';
+      const videoUrlParlamento = document.getElementById('pfPostVideoUrlParlamento').value.trim();
+      const videoUrlComision = document.getElementById('pfPostVideoUrlComision').value.trim();
       const disponible = document.getElementById('pfPostDisponible').checked;
-      if (!dominio || !experiencia || !motivacion || !videoUrl || !disponible) {
-        errEl.textContent = 'Completa todos los campos y confirma tu disponibilidad para la capacitación.';
+      if (!tipoPostulacion || !dominio || !experiencia || !motivacion || !disponible
+        || (necesitaParlamento && !videoUrlParlamento)
+        || (necesitaComision && !videoUrlComision)) {
+        errEl.textContent = 'Completa todos los campos — incluido un video por cada mesa a la que te postulas — y confirma tu disponibilidad para la capacitación.';
         errEl.style.display = 'block';
         return;
       }
@@ -1556,7 +1582,7 @@
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify({
             form: 'postular_mesa', email: currentProfileUser.username, password: currentProfileUser.password,
-            dominio, experiencia, motivacion, videoUrl, disponibleCapacitacion: disponible,
+            dominio, experiencia, motivacion, tipoPostulacion, videoUrlParlamento, videoUrlComision, disponibleCapacitacion: disponible,
           }),
         });
         const result = await res.json();

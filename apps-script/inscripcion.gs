@@ -590,8 +590,11 @@ function handleListPlenariaPropuestas_(sheet, headers, data) {
 // candidato real (admin_add_candidato) — postular no inscribe automáticamente en la votación.
 var POSTULACIONES_MESA_HEADERS_ = [
   'ref_code', 'email', 'nombre', 'tipo_euromodelo', 'ciudad', 'institucion',
-  'dominio', 'experiencia', 'motivacion', 'video_url', 'disponible_capacitacion', 'enviado'
+  'dominio', 'experiencia', 'motivacion', 'tipo_postulacion', 'video_url_parlamento', 'video_url_comision',
+  'disponible_capacitacion', 'enviado'
 ];
+// tipo_postulacion: 'Parlamento' | 'Comision' | 'Ambos'. Determina cuál(es) de los dos
+// enlaces de video son obligatorios — ver handlePostularMesa_.
 
 function ensurePostulacionesMesaSheet_(ss) {
   var sheet = findOrCreateSheet_(ss, ['postulaciones_mesa'], 'postulaciones_mesa');
@@ -613,8 +616,19 @@ function handlePostularMesa_(sheet, headers, ss, data) {
   var dominio = (data.dominio || '').toString();
   var experiencia = (data.experiencia || '').toString().trim();
   var motivacion = (data.motivacion || '').toString().trim();
-  var videoUrl = (data.videoUrl || '').toString().trim();
-  if (!dominio || !experiencia || !motivacion || !videoUrl) return jsonOut_({ ok: false, error: 'campos_incompletos' });
+  var tipoPostulacion = (data.tipoPostulacion || '').toString();
+  if (['Parlamento', 'Comision', 'Ambos'].indexOf(tipoPostulacion) === -1) {
+    return jsonOut_({ ok: false, error: 'tipo_postulacion_invalido' });
+  }
+  var videoUrlParlamento = (data.videoUrlParlamento || '').toString().trim();
+  var videoUrlComision = (data.videoUrlComision || '').toString().trim();
+  var necesitaParlamento = tipoPostulacion === 'Parlamento' || tipoPostulacion === 'Ambos';
+  var necesitaComision = tipoPostulacion === 'Comision' || tipoPostulacion === 'Ambos';
+  if (!dominio || !experiencia || !motivacion
+    || (necesitaParlamento && !videoUrlParlamento)
+    || (necesitaComision && !videoUrlComision)) {
+    return jsonOut_({ ok: false, error: 'campos_incompletos' });
+  }
 
   var post = ensurePostulacionesMesaSheet_(ss);
   var row = post.headers.map(function(h) {
@@ -627,7 +641,9 @@ function handlePostularMesa_(sheet, headers, ss, data) {
     if (h === 'dominio') return dominio;
     if (h === 'experiencia') return experiencia;
     if (h === 'motivacion') return motivacion;
-    if (h === 'video_url') return videoUrl;
+    if (h === 'tipo_postulacion') return tipoPostulacion;
+    if (h === 'video_url_parlamento') return necesitaParlamento ? videoUrlParlamento : '';
+    if (h === 'video_url_comision') return necesitaComision ? videoUrlComision : '';
     if (h === 'disponible_capacitacion') return data.disponibleCapacitacion ? 'Sí' : 'No';
     if (h === 'enviado') return new Date().toISOString();
     return '';
