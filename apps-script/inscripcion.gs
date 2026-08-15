@@ -419,6 +419,40 @@ function findOrCreateFolder_(name) {
   return DriveApp.createFolder(name);
 }
 
+function findOrCreateSubfolder_(parentFolder, name) {
+  var folders = parentFolder.getFoldersByName(name);
+  if (folders.hasNext()) return folders.next();
+  return parentFolder.createFolder(name);
+}
+
+// Nombre de carpeta legible para una comisión: reusa los mismos code/title de SIM_COMISIONES_
+// (definidos más abajo) para que "CLJ" y el nombre completo queden alineados con el resto del
+// proyecto. Si la comisión aún no está asignada, cae en una carpeta de "Sin comisión" en vez de
+// romper la subida.
+function comisionFolderName_(comisionTitle) {
+  var match = SIM_COMISIONES_.filter(function(c) { return c.title === comisionTitle; })[0];
+  if (match) return match.code + ' — ' + match.title;
+  return comisionTitle ? comisionTitle : 'Sin comisión';
+}
+
+// Árbol de carpetas: <raíz>/Nacional/<comisión>  ó  <raíz>/Regionales/<ciudad>/<comisión>.
+// Cada nivel se crea automáticamente la primera vez que hace falta (mismo patrón find-or-create
+// que ya usa findOrCreateFolder_), así que no hay que crear nada a mano en Drive.
+function resolvePropuestaFolder_(record) {
+  var root = findOrCreateFolder_(PROPUESTAS_FOLDER_NAME_);
+  var tipoEuromodelo = (record.tipo_euromodelo || 'Nacional').toString();
+  var bloqueFolder;
+  if (tipoEuromodelo === 'Regional') {
+    var regionalesFolder = findOrCreateSubfolder_(root, 'Regionales');
+    var ciudad = (record.ciudad || 'Sin ciudad').toString();
+    bloqueFolder = findOrCreateSubfolder_(regionalesFolder, ciudad);
+  } else {
+    bloqueFolder = findOrCreateSubfolder_(root, 'Nacional');
+  }
+  var comisionName = comisionFolderName_((record.comision_asignada || '').toString());
+  return findOrCreateSubfolder_(bloqueFolder, comisionName);
+}
+
 // El comisario reenvía sus propias credenciales (mismo criterio sin sesión de todo el proyecto).
 // Solo puede subir propuesta si su rol_asignado oficial (no la preferencia) es 'Comisario'.
 // Cada subida reemplaza la url/estado/comentario anteriores, igual que repetir una brújula.
@@ -447,7 +481,7 @@ function handleUploadPropuesta_(sheet, headers, data) {
 
   var fileName = 'Propuesta - ' + (record.nombre_completo || email) + ' (' + (record.ref_code || '') + ').pdf';
   var blob = Utilities.newBlob(bytes, 'application/pdf', fileName);
-  var folder = findOrCreateFolder_(PROPUESTAS_FOLDER_NAME_);
+  var folder = resolvePropuestaFolder_(record);
   var file = folder.createFile(blob);
   file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
   var url = file.getUrl();
