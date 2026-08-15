@@ -256,15 +256,27 @@
 
         <div class="pf-subtab-panel" id="pfsubtab-parlamento">
           <div class="form-card">
-            <p class="subsection-title" style="margin-bottom:12px;">Sede: <span id="pfVotacionCiudad"></span></p>
+            <p class="subsection-title" style="margin-bottom:4px;">Sede: <span id="pfVotacionCiudad"></span></p>
+            <p style="font-size:12.5px; color:var(--blue-slate); margin:0 0 14px;">Es una sola votación entre todos los candidatos: el más votado queda de Presidente, el segundo de Vicepresidente y el tercero de Secretario General.</p>
+            <p id="pfVotacionParlamentoYaVoto" style="display:none; font-size:13px; font-weight:600; color:var(--teal); margin-bottom:12px;">&#10003; Ya votaste en esta elección.</p>
             <div id="pfVotacionParlamento"></div>
+          </div>
+          <div class="form-card" id="pfVotacionParlamentoResultadosCard" style="display:none; margin-top:var(--space-3);">
+            <h3 class="subsection-title" style="margin-bottom:12px;">Resultados</h3>
+            <div id="pfVotacionParlamentoResultados"></div>
           </div>
         </div>
 
         <div class="pf-subtab-panel" id="pfsubtab-comision" style="display:none;">
           <div class="form-card" id="pfVotacionComisionCard" style="display:none;">
-            <p class="subsection-title" style="margin-bottom:12px;">Comisión: <span id="pfVotacionComisionNombre"></span></p>
+            <p class="subsection-title" style="margin-bottom:4px;">Comisión: <span id="pfVotacionComisionNombre"></span></p>
+            <p style="font-size:12.5px; color:var(--blue-slate); margin:0 0 14px;">Una sola votación: el más votado queda de Presidente y el segundo de Secretario General.</p>
+            <p id="pfVotacionComisionYaVoto" style="display:none; font-size:13px; font-weight:600; color:var(--teal); margin-bottom:12px;">&#10003; Ya votaste en esta elección.</p>
             <div id="pfVotacionComision"></div>
+          </div>
+          <div class="form-card" id="pfVotacionComisionResultadosCard" style="display:none; margin-top:var(--space-3);">
+            <h3 class="subsection-title" style="margin-bottom:12px;">Resultados</h3>
+            <div id="pfVotacionComisionResultados"></div>
           </div>
         </div>
       </div>
@@ -979,44 +991,68 @@
       }
     }
 
-    // Votación de mesas directivas: aún sin candidatos reales (el staff los carga más
-    // adelante), así que por ahora se muestran placeholders — pero ya filtrados a la sede y
-    // comisión del propio estudiante, no a las de los demás.
-    const PARLAMENTO_MESA_ROLES = ['Presidente', 'Vicepresidente', 'Secretario General'];
-    const COMISION_MESA_ROLES = ['Presidente', 'Secretario General'];
-
-    function candidateCardHtml(candidate) {
+    // Votación de mesas directivas: una sola elección por pool (Parlamento de la sede, o la
+    // propia comisión) — todos sus candidatos compiten juntos por un solo voto de cada
+    // participante. El cargo de cada quien (Presidente / Vicepresidente / Secretario General, o
+    // solo Presidente / Secretario General en comisión) lo calcula el backend por ranking de
+    // votos, y solo se conoce una vez el staff cierra esa votación — antes de eso, cada
+    // participante solo ve la lista de candidatos y si ya votó o no (sin conteos, para no
+    // influenciar a nadie).
+    function votingCandidateCardHtml(candidate, ambito, yaVoto) {
       const videoBtn = candidate.videoUrl
         ? `<a class="candidate-video-btn" style="text-decoration:none; display:inline-block;" href="${candidate.videoUrl}" target="_blank" rel="noopener">&#127909; Ver video</a>`
         : `<span class="candidate-video-btn" style="opacity:.55; cursor:default;">Sin video aún</span>`;
+      const voteBtn = yaVoto ? '' : `<button class="candidate-video-btn" type="button" style="background:var(--gold-star); color:var(--navy-deep);" data-vote-candidato="${candidate.id}" data-vote-ambito="${ambito}" data-vote-nombre="${candidate.nombre}">Votar</button>`;
       return `
         <div class="candidate-card">
           <div class="photo-placeholder ph-sq"><span class="ph-icon">&#128247;</span><span class="ph-label">Foto</span></div>
           <div class="candidate-info">
             <div class="candidate-name">${candidate.nombre}</div>
-            <div class="candidate-role">${candidate.rolMesa}</div>
           </div>
           ${videoBtn}
+          ${voteBtn}
         </div>`;
     }
 
-    // roles: lista fija de cargos (Presidente, Vicepresidente...); candidates: los que trajo el
-    // backend para ese ámbito. Si un cargo todavía no tiene candidatos cargados por el staff,
-    // se avisa en vez de dejar el bloque vacío.
-    function roleGroupHtml(roles, candidates) {
-      return roles.map(role => {
-        const matches = candidates.filter(c => c.rolMesa === role);
-        const body = matches.length > 0
-          ? matches.map(candidateCardHtml).join('')
-          : '<p style="font-size:13px; color:var(--blue-slate); margin:0 0 var(--space-2);">Aún no hay candidatos confirmados para este cargo.</p>';
-        return `<div class="role-group-title">${role}</div>${body}`;
-      }).join('');
+    function resultCandidateCardHtml(candidate) {
+      const cargoBadge = candidate.cargoFinal ? ` <span class="tag">${candidate.cargoFinal}</span>` : '';
+      return `
+        <div class="candidate-card">
+          <div class="photo-placeholder ph-sq"><span class="ph-icon">&#128247;</span><span class="ph-label">Foto</span></div>
+          <div class="candidate-info">
+            <div class="candidate-name">${candidate.nombre}${cargoBadge}</div>
+            <div class="candidate-role">${candidate.votos} voto${candidate.votos === 1 ? '' : 's'}</div>
+          </div>
+        </div>`;
+    }
+
+    function renderVotacionPool(config) {
+      const { ambito, listElId, yaVotoElId, resultadosCardId, resultadosListId, candidates, cerrada, yaVoto } = config;
+      document.getElementById(yaVotoElId).style.display = (!cerrada && yaVoto) ? 'block' : 'none';
+      const resultadosCard = document.getElementById(resultadosCardId);
+      const listEl = document.getElementById(listElId);
+      if (cerrada) {
+        listEl.innerHTML = '<p style="font-size:13px; color:var(--blue-slate);">Esta votación ya cerró — mira los resultados abajo.</p>';
+        resultadosCard.style.display = 'block';
+        document.getElementById(resultadosListId).innerHTML = candidates.length > 0
+          ? candidates.map(resultCandidateCardHtml).join('')
+          : '<p style="font-size:13px; color:var(--blue-slate); margin:0;">No hubo candidatos en esta votación.</p>';
+      } else {
+        listEl.innerHTML = candidates.length > 0
+          ? candidates.map(c => votingCandidateCardHtml(c, ambito, yaVoto)).join('')
+          : '<p style="font-size:13px; color:var(--blue-slate);">Aún no hay candidatos confirmados.</p>';
+        resultadosCard.style.display = 'none';
+      }
     }
 
     function renderVotacionCandidatos(u, result) {
-      const parlamento = (result && result.parlamento) || [];
-      const comisionCandidatos = (result && result.comision) || [];
-      document.getElementById('pfVotacionParlamento').innerHTML = roleGroupHtml(PARLAMENTO_MESA_ROLES, parlamento);
+      renderVotacionPool({
+        ambito: 'Parlamento',
+        listElId: 'pfVotacionParlamento', yaVotoElId: 'pfVotacionParlamentoYaVoto',
+        resultadosCardId: 'pfVotacionParlamentoResultadosCard', resultadosListId: 'pfVotacionParlamentoResultados',
+        candidates: (result && result.parlamento) || [],
+        cerrada: !!(result && result.parlamentoCerrada), yaVoto: !!(result && result.parlamentoYaVoto),
+      });
 
       const comision = u.comisionAsignada || (u.inscripcion && u.inscripcion.comision1) || '';
       const comisionCard = document.getElementById('pfVotacionComisionCard');
@@ -1024,7 +1060,13 @@
       if (comision) {
         comisionCard.style.display = 'block';
         document.getElementById('pfVotacionComisionNombre').textContent = comision;
-        document.getElementById('pfVotacionComision').innerHTML = roleGroupHtml(COMISION_MESA_ROLES, comisionCandidatos);
+        renderVotacionPool({
+          ambito: 'Comision',
+          listElId: 'pfVotacionComision', yaVotoElId: 'pfVotacionComisionYaVoto',
+          resultadosCardId: 'pfVotacionComisionResultadosCard', resultadosListId: 'pfVotacionComisionResultados',
+          candidates: (result && result.comision) || [],
+          cerrada: !!(result && result.comisionCerrada), yaVoto: !!(result && result.comisionYaVoto),
+        });
       } else {
         comisionCard.style.display = 'none';
         // Si el sub-tab de comisión estaba activo y ya no hay comisión, vuelve al de Parlamento.
@@ -1050,6 +1092,37 @@
           renderVotacionCandidatos(u, null);
         });
     }
+
+    document.getElementById('pfVotacion').addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-vote-candidato]');
+      if (!btn) return;
+      const candidatoId = btn.dataset.voteCandidato;
+      const ambito = btn.dataset.voteAmbito;
+      const nombre = btn.dataset.voteNombre;
+      if (!confirm(`¿Confirmas tu voto por "${nombre}"? No podrás cambiarlo después.`)) return;
+      setButtonLoading(btn, 'Votando…');
+      let result = null;
+      try {
+        const res = await fetch(EUROMODELO_SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ form: 'vote_candidato', email: currentProfileUser.username, password: currentProfileUser.password, ambito, candidatoId }),
+        });
+        result = await res.json();
+      } catch (err) {
+        console.error('No se pudo registrar el voto:', err);
+      }
+      if (result && result.ok) {
+        renderVotacion(currentProfileUser);
+      } else {
+        clearButtonLoading(btn);
+        const mensajes = {
+          ya_voto: 'Ya habías votado en esta elección.',
+          votacion_cerrada: 'Esta votación ya está cerrada.',
+        };
+        alert((result && mensajes[result.error]) || 'No se pudo registrar tu voto. Intenta de nuevo.');
+      }
+    });
 
     const PROPUESTA_MAX_BYTES = 8 * 1024 * 1024;
 

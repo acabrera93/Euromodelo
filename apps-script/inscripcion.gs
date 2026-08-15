@@ -732,17 +732,26 @@ function handleUpdateAssignment_(sheet, headers, ss, data) {
   return jsonOut_({ ok: true });
 }
 
-// ---------- Candidatos a mesas directivas (votación) ----------
+// ---------- Candidatos y votación de mesas directivas ----------
 // Pestaña "candidatos" aparte: el staff los carga desde el panel de admin (no hay postulación
 // pública automática todavía — mesas-postulacion.html sigue siendo solo informativo hasta que se
 // conecte). Un candidato es de 'Parlamento' (mesa plenaria de un bloque completo) o de 'Comision'
 // (mesa de una comisión puntual dentro de ese bloque); 'comision' queda en blanco para los de
-// Parlamento. rol_mesa usa los mismos 3 cargos del Parlamento (Presidente, Vicepresidente,
-// Secretario General) o los 2 de comisión (Presidente, Secretario General) — mismo criterio que
-// runAssignmentSimulation_ para roles/comisiones ya usa en el resto del proyecto.
-var CANDIDATOS_HEADERS_ = ['id', 'tipo_euromodelo', 'ciudad', 'ambito', 'comision', 'rol_mesa', 'nombre', 'video_url', 'enviado'];
-var CANDIDATOS_ROLES_PARLAMENTO_ = ['Presidente', 'Vicepresidente', 'Secretario General'];
-var CANDIDATOS_ROLES_COMISION_ = ['Presidente', 'Secretario General'];
+// Parlamento.
+//
+// El modelo de votación es UNA sola elección por pool (Parlamento de un bloque, o cada comisión
+// dentro de ese bloque): todos sus candidatos compiten juntos por un solo voto de cada
+// participante, sin cargo elegido de antemano. Cuando el staff cierra esa votación, el cargo de
+// cada candidato se calcula por el ranking de votos: en Parlamento, 1º Presidente, 2º
+// Vicepresidente, 3º Secretario General; en comisión, 1º Presidente, 2º Secretario General (sin
+// vicepresidente). Por eso 'candidatos' ya no guarda un cargo al crearse — el cargo es un
+// resultado, no un dato de entrada.
+var CANDIDATOS_HEADERS_ = ['id', 'tipo_euromodelo', 'ciudad', 'ambito', 'comision', 'nombre', 'video_url', 'enviado'];
+var CARGOS_PARLAMENTO_RANKING_ = ['Presidente', 'Vicepresidente', 'Secretario General'];
+var CARGOS_COMISION_RANKING_ = ['Presidente', 'Secretario General'];
+
+// Un voto por participante por pool: la pestaña "votos" guarda una fila por voto emitido.
+var VOTOS_HEADERS_ = ['id', 'tipo_euromodelo', 'ciudad', 'ambito', 'comision', 'candidato_id', 'email_votante', 'enviado'];
 
 function ensureCandidatosSheet_(ss) {
   var sheet = findOrCreateSheet_(ss, ['candidatos'], 'candidatos');
@@ -750,15 +759,30 @@ function ensureCandidatosSheet_(ss) {
   return { sheet: sheet, headers: headers };
 }
 
+function ensureVotosSheet_(ss) {
+  var sheet = findOrCreateSheet_(ss, ['votos'], 'votos');
+  var headers = getHeaders_(sheet, VOTOS_HEADERS_);
+  return { sheet: sheet, headers: headers };
+}
+
+// 'comision' se ignora para ambito='Parlamento' (siempre cuenta como un solo pool por bloque).
+function votacionCerradaKey_(tipoEuromodelo, ciudad, ambito, comision) {
+  var key = 'VOTACION_CERRADA_' + (tipoEuromodelo || 'Nacional');
+  if (tipoEuromodelo === 'Regional') key += '_' + (ciudad || '');
+  key += '_' + ambito;
+  if (ambito === 'Comision') key += '_' + (comision || '');
+  return key;
+}
+function isVotacionCerrada_(tipoEuromodelo, ciudad, ambito, comision) {
+  var val = PropertiesService.getScriptProperties().getProperty(votacionCerradaKey_(tipoEuromodelo, ciudad, ambito, comision));
+  return val === 'true';
+}
+
 function handleAdminAddCandidato_(ss, data) {
   if (!verifyAdminCredentials_(ss, data.adminEmail, data.adminPassword)) return jsonOut_({ ok: false });
 
   var ambito = (data.ambito || '').toString();
   if (ambito !== 'Parlamento' && ambito !== 'Comision') return jsonOut_({ ok: false, error: 'ambito_invalido' });
-
-  var rolMesa = (data.rolMesa || '').toString();
-  var validRoles = ambito === 'Parlamento' ? CANDIDATOS_ROLES_PARLAMENTO_ : CANDIDATOS_ROLES_COMISION_;
-  if (validRoles.indexOf(rolMesa) === -1) return jsonOut_({ ok: false, error: 'rol_invalido' });
 
   var nombre = (data.nombre || '').toString().trim();
   if (!nombre) return jsonOut_({ ok: false, error: 'nombre_requerido' });
@@ -774,7 +798,6 @@ function handleAdminAddCandidato_(ss, data) {
     if (h === 'ciudad') return (data.ciudad || '').toString();
     if (h === 'ambito') return ambito;
     if (h === 'comision') return comision;
-    if (h === 'rol_mesa') return rolMesa;
     if (h === 'nombre') return nombre;
     if (h === 'video_url') return (data.videoUrl || '').toString();
     if (h === 'enviado') return new Date().toISOString();
@@ -796,8 +819,139 @@ function handleAdminDeleteCandidato_(ss, data) {
   return jsonOut_({ ok: true });
 }
 
-// Lista completa de un bloque para el panel de admin (a diferencia de handleListCandidatos_, que
-// es para un participante y ya viene filtrada a su propia comisión).
+// Cuenta los votos de un pool específico, agrupados por candidato_id.
+function tallyVotos_(ss, tipoEuromodelo, ciudad, ambito, comision) {
+  var votos = ensureVotosSheet_(ss);
+  var lastRow = votos.sheet.getLastRow();
+  var counts = {};
+  if (lastRow >= 2) {
+    var values = votos.sheet.getRange(2, 1, lastRow - 1, votos.headers.length).getValues();
+    values.forEach(function(row) {
+      var r = {};
+      votos.headers.forEach(function(h, i) { r[h] = row[i]; });
+      if ((r.tipo_euromodelo || 'Nacional').toString() !== tipoEuromodelo) return;
+      if (tipoEuromodelo === 'Regional' && (r.ciudad || '').toString() !== ciudad) return;
+      if ((r.ambito || '').toString() !== ambito) return;
+      if (ambito === 'Comision' && (r.comision || '').toString() !== comision) return;
+      var cid = (r.candidato_id || '').toString();
+      counts[cid] = (counts[cid] || 0) + 1;
+    });
+  }
+  return counts;
+}
+
+// Ordena una lista de candidatos de un mismo pool por votos (desc) y les asigna el cargo según el
+// ranking de ese ámbito. Empates se desempatan por orden de inscripción del candidato (quien se
+// cargó primero en el panel de admin queda arriba) — es una regla arbitraria pero determinista;
+// un empate real debería resolverlo el staff a mano si hace falta.
+function rankCandidatos_(candidatos, counts, ambito) {
+  var ranking = ambito === 'Parlamento' ? CARGOS_PARLAMENTO_RANKING_ : CARGOS_COMISION_RANKING_;
+  var withVotes = candidatos.map(function(c) {
+    var votos = counts[c.id] || 0;
+    return Object.assign({}, c, { votos: votos });
+  });
+  withVotes.sort(function(a, b) {
+    if (b.votos !== a.votos) return b.votos - a.votos;
+    return new Date(a.enviado).getTime() - new Date(b.enviado).getTime();
+  });
+  withVotes.forEach(function(c, i) { c.cargoFinal = ranking[i] || ''; });
+  return withVotes;
+}
+
+function handleAdminSetVotacionCerrada_(ss, data) {
+  if (!verifyAdminCredentials_(ss, data.adminEmail, data.adminPassword)) return jsonOut_({ ok: false });
+  var ambito = (data.ambito || '').toString();
+  if (ambito !== 'Parlamento' && ambito !== 'Comision') return jsonOut_({ ok: false, error: 'ambito_invalido' });
+  var tipoEuromodelo = (data.tipoEuromodelo || 'Nacional').toString();
+  var ciudad = (data.ciudad || '').toString();
+  var comision = ambito === 'Comision' ? (data.comision || '').toString() : '';
+  if (ambito === 'Comision' && !comision) return jsonOut_({ ok: false, error: 'comision_requerida' });
+  PropertiesService.getScriptProperties().setProperty(
+    votacionCerradaKey_(tipoEuromodelo, ciudad, ambito, comision),
+    data.cerrada ? 'true' : 'false'
+  );
+  return jsonOut_({ ok: true });
+}
+
+// El participante emite su voto: uno por pool (Parlamento de su bloque, y por separado uno para
+// la mesa de su propia comisión). Verifica que el candidato exista y pertenezca exactamente a ese
+// pool, que la votación no esté cerrada, y que no haya votado antes ahí.
+function handleVoteCandidato_(sheet, headers, ss, data) {
+  var email = (data.email || '').toString().trim().toLowerCase();
+  var password = (data.password || '').toString();
+  var rowNum = findRowByColumn_(sheet, headers, 'email', email, true);
+  if (rowNum === -1) return jsonOut_({ ok: false });
+
+  var rowValues = sheet.getRange(rowNum, 1, 1, headers.length).getValues()[0];
+  var record = {};
+  headers.forEach(function(h, i) { record[h] = rowValues[i]; });
+  if ((record.password || '').toString() !== password) return jsonOut_({ ok: false });
+
+  var ambito = (data.ambito || '').toString();
+  if (ambito !== 'Parlamento' && ambito !== 'Comision') return jsonOut_({ ok: false, error: 'ambito_invalido' });
+
+  var tipoEuromodelo = (record.tipo_euromodelo || 'Nacional').toString();
+  var ciudad = (record.ciudad || '').toString();
+  var comision = '';
+  if (ambito === 'Comision') {
+    comision = (record.comision_asignada || record.comision_opcion1 || '').toString();
+    if (!comision) return jsonOut_({ ok: false, error: 'sin_comision' });
+  }
+
+  var candidatoId = (data.candidatoId || '').toString();
+  if (!candidatoId) return jsonOut_({ ok: false, error: 'candidato_requerido' });
+
+  var cand = ensureCandidatosSheet_(ss);
+  var candRowNum = findRowByColumn_(cand.sheet, cand.headers, 'id', candidatoId);
+  if (candRowNum === -1) return jsonOut_({ ok: false, error: 'candidato_no_existe' });
+  var candValues = cand.sheet.getRange(candRowNum, 1, 1, cand.headers.length).getValues()[0];
+  var candRecord = {};
+  cand.headers.forEach(function(h, i) { candRecord[h] = candValues[i]; });
+  var pertenece = (candRecord.tipo_euromodelo || 'Nacional').toString() === tipoEuromodelo
+    && (tipoEuromodelo !== 'Regional' || (candRecord.ciudad || '').toString() === ciudad)
+    && (candRecord.ambito || '').toString() === ambito
+    && (ambito !== 'Comision' || (candRecord.comision || '').toString() === comision);
+  if (!pertenece) return jsonOut_({ ok: false, error: 'candidato_no_pertenece' });
+
+  if (isVotacionCerrada_(tipoEuromodelo, ciudad, ambito, comision)) return jsonOut_({ ok: false, error: 'votacion_cerrada' });
+
+  var votos = ensureVotosSheet_(ss);
+  var lastRow = votos.sheet.getLastRow();
+  if (lastRow >= 2) {
+    var values = votos.sheet.getRange(2, 1, lastRow - 1, votos.headers.length).getValues();
+    for (var i = 0; i < values.length; i++) {
+      var r = {};
+      votos.headers.forEach(function(h, j) { r[h] = values[i][j]; });
+      if ((r.email_votante || '').toString().toLowerCase() !== email) continue;
+      if ((r.tipo_euromodelo || 'Nacional').toString() !== tipoEuromodelo) continue;
+      if (tipoEuromodelo === 'Regional' && (r.ciudad || '').toString() !== ciudad) continue;
+      if ((r.ambito || '').toString() !== ambito) continue;
+      if (ambito === 'Comision' && (r.comision || '').toString() !== comision) continue;
+      return jsonOut_({ ok: false, error: 'ya_voto' });
+    }
+  }
+
+  var row = votos.headers.map(function(h) {
+    if (h === 'id') return 'VOTO-' + Math.random().toString(36).slice(2, 7).toUpperCase();
+    if (h === 'tipo_euromodelo') return tipoEuromodelo;
+    if (h === 'ciudad') return ciudad;
+    if (h === 'ambito') return ambito;
+    if (h === 'comision') return comision;
+    if (h === 'candidato_id') return candidatoId;
+    if (h === 'email_votante') return email;
+    if (h === 'enviado') return new Date().toISOString();
+    return '';
+  });
+  var targetRow = votos.sheet.getLastRow() + 1;
+  var range = votos.sheet.getRange(targetRow, 1, 1, row.length);
+  range.setNumberFormat('@');
+  range.setValues([row]);
+  return jsonOut_({ ok: true });
+}
+
+// Lista completa de un bloque para el panel de admin, con el conteo de votos vivo de cada
+// candidato (el staff lo ve siempre, esté cerrada la votación o no — así sabe cuándo cerrarla) y
+// el estado abierta/cerrada de cada pool (Parlamento + cada comisión con candidatos).
 function handleAdminListCandidatos_(ss, data) {
   if (!verifyAdminCredentials_(ss, data.adminEmail, data.adminPassword)) return jsonOut_({ ok: false });
 
@@ -816,11 +970,41 @@ function handleAdminListCandidatos_(ss, data) {
       candidatos.push(r);
     });
   }
-  return jsonOut_({ ok: true, candidatos: candidatos });
+
+  // Agrupa por pool (Parlamento, o cada comisión) y calcula votos + una vista previa del cargo
+  // que le tocaría a cada quien si se cerrara la votación ahora mismo — así el staff sabe cuándo
+  // cerrarla, sin que esto sea todavía el resultado oficial (recién lo es cuando cierra el pool).
+  var byPool = {};
+  candidatos.forEach(function(c) {
+    var ambito = (c.ambito || '').toString();
+    var comision = ambito === 'Comision' ? (c.comision || '').toString() : '';
+    var key = ambito + '|' + comision;
+    if (!byPool[key]) byPool[key] = { ambito: ambito, comision: comision, items: [] };
+    byPool[key].items.push(c);
+  });
+
+  var rankedCandidatos = [];
+  var comisionesConCandidatos = {};
+  Object.keys(byPool).forEach(function(key) {
+    var pool = byPool[key];
+    var counts = tallyVotos_(ss, tipoEuromodelo, ciudad, pool.ambito, pool.comision);
+    var ranked = rankCandidatos_(pool.items, counts, pool.ambito);
+    rankedCandidatos = rankedCandidatos.concat(ranked);
+    if (pool.ambito === 'Comision') comisionesConCandidatos[pool.comision] = true;
+  });
+
+  var pools = { parlamento: { cerrada: isVotacionCerrada_(tipoEuromodelo, ciudad, 'Parlamento', '') }, comisiones: {} };
+  Object.keys(comisionesConCandidatos).forEach(function(comision) {
+    pools.comisiones[comision] = { cerrada: isVotacionCerrada_(tipoEuromodelo, ciudad, 'Comision', comision) };
+  });
+
+  return jsonOut_({ ok: true, candidatos: rankedCandidatos, pools: pools });
 }
 
 // Participante: candidatos de Parlamento de su propia sede + candidatos de su propia comisión
-// (nunca las de las demás comisiones). Reenvía sus propias credenciales, mismo criterio sin
+// (nunca las de las demás comisiones). Mientras el pool esté abierto, solo se informa si ya votó
+// (sin conteos, para no influenciar el voto de nadie); al cerrarse, se agregan votos y el cargo
+// final de cada candidato según el ranking. Reenvía sus propias credenciales, mismo criterio sin
 // sesión que el resto del proyecto.
 function handleListCandidatos_(sheet, headers, ss, data) {
   var email = (data.email || '').toString().trim().toLowerCase();
@@ -839,8 +1023,8 @@ function handleListCandidatos_(sheet, headers, ss, data) {
 
   var cand = ensureCandidatosSheet_(ss);
   var lastRow = cand.sheet.getLastRow();
-  var parlamento = [];
-  var comisionCandidatos = [];
+  var parlamentoCandidatos = [];
+  var comisionCandidatosRaw = [];
   if (lastRow >= 2) {
     var values = cand.sheet.getRange(2, 1, lastRow - 1, cand.headers.length).getValues();
     values.forEach(function(row) {
@@ -848,16 +1032,54 @@ function handleListCandidatos_(sheet, headers, ss, data) {
       cand.headers.forEach(function(h, i) { r[h] = row[i]; });
       if ((r.tipo_euromodelo || 'Nacional').toString() !== tipoEuromodelo) return;
       if (tipoEuromodelo === 'Regional' && (r.ciudad || '').toString() !== ciudad) return;
-      var item = { nombre: r.nombre || '', rolMesa: r.rol_mesa || '', videoUrl: r.video_url || '' };
       var ambito = (r.ambito || '').toString();
       if (ambito === 'Parlamento') {
-        parlamento.push(item);
+        parlamentoCandidatos.push(r);
       } else if (ambito === 'Comision' && comision && (r.comision || '').toString() === comision) {
-        comisionCandidatos.push(item);
+        comisionCandidatosRaw.push(r);
       }
     });
   }
-  return jsonOut_({ ok: true, parlamento: parlamento, comision: comisionCandidatos, comisionNombre: comision });
+
+  function yaVoto(ambito, comisionPool) {
+    var votos = ensureVotosSheet_(ss);
+    var lastRowVotos = votos.sheet.getLastRow();
+    if (lastRowVotos < 2) return false;
+    var vals = votos.sheet.getRange(2, 1, lastRowVotos - 1, votos.headers.length).getValues();
+    for (var i = 0; i < vals.length; i++) {
+      var r = {};
+      votos.headers.forEach(function(h, j) { r[h] = vals[i][j]; });
+      if ((r.email_votante || '').toString().toLowerCase() !== email) continue;
+      if ((r.tipo_euromodelo || 'Nacional').toString() !== tipoEuromodelo) continue;
+      if (tipoEuromodelo === 'Regional' && (r.ciudad || '').toString() !== ciudad) continue;
+      if ((r.ambito || '').toString() !== ambito) continue;
+      if (ambito === 'Comision' && (r.comision || '').toString() !== comisionPool) continue;
+      return true;
+    }
+    return false;
+  }
+
+  function buildPool(ambito, comisionPool, candidatosRaw) {
+    var cerrada = isVotacionCerrada_(tipoEuromodelo, ciudad, ambito, comisionPool);
+    var items = candidatosRaw.map(function(r) {
+      return { id: r.id, nombre: r.nombre || '', videoUrl: r.video_url || '', enviado: r.enviado || '' };
+    });
+    if (cerrada) {
+      var counts = tallyVotos_(ss, tipoEuromodelo, ciudad, ambito, comisionPool);
+      items = rankCandidatos_(items, counts, ambito);
+    }
+    return { candidatos: items, cerrada: cerrada, yaVoto: yaVoto(ambito, comisionPool) };
+  }
+
+  var parlamentoPool = buildPool('Parlamento', '', parlamentoCandidatos);
+  var comisionPool = comision ? buildPool('Comision', comision, comisionCandidatosRaw) : { candidatos: [], cerrada: false, yaVoto: false };
+
+  return jsonOut_({
+    ok: true,
+    parlamento: parlamentoPool.candidatos, parlamentoCerrada: parlamentoPool.cerrada, parlamentoYaVoto: parlamentoPool.yaVoto,
+    comision: comisionPool.candidatos, comisionCerrada: comisionPool.cerrada, comisionYaVoto: comisionPool.yaVoto,
+    comisionNombre: comision,
+  });
 }
 
 // ---------- Sorteo automático de rol/comisión/partido (aplica el resultado a la Sheet) ----------
@@ -1269,6 +1491,8 @@ function doPost(e) {
   if (data.form === 'admin_add_candidato') return handleAdminAddCandidato_(ss, data);
   if (data.form === 'admin_delete_candidato') return handleAdminDeleteCandidato_(ss, data);
   if (data.form === 'admin_list_candidatos') return handleAdminListCandidatos_(ss, data);
+  if (data.form === 'vote_candidato') return handleVoteCandidato_(sheet, headers, ss, data);
+  if (data.form === 'admin_set_votacion_cerrada') return handleAdminSetVotacionCerrada_(ss, data);
 
   var isPre = data.form === 'preinscripcion';
 
