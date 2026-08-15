@@ -21,7 +21,7 @@
           <a href="roles.html">Roles</a>
           <a href="comisiones.html">Comisiones</a>
           <a href="partidos.html">Partidos Políticos</a>
-          <a href="mesas-postulacion.html">Mesas Directivas</a>
+          <a href="perfil.html">Mesas Directivas</a>
         </div>
       </div>
       <a href="mentes.html">Grandes Mentes</a>
@@ -117,8 +117,10 @@
         <div class="admin-tabs" id="pfTabs" style="margin-bottom:var(--space-4);">
           <button type="button" class="admin-tab-btn active" data-pf-tab="info">Mi información</button>
           <button type="button" class="admin-tab-btn" data-pf-tab="votacion">Votación</button>
+          <button type="button" class="admin-tab-btn" data-pf-tab="postulacion">Postular a Mesa Directiva</button>
           <button type="button" class="admin-tab-btn" id="pfTabPropuestaBtn" data-pf-tab="propuesta" style="display:none;">Subir propuesta</button>
           <button type="button" class="admin-tab-btn" data-pf-tab="propuestas">Propuestas</button>
+          <button type="button" class="admin-tab-btn" id="pfTabMesaBtn" data-pf-tab="mesa" style="display:none;">Mesa Directiva</button>
         </div>
 
       <div class="admin-tab-panel" id="pftab-info">
@@ -282,6 +284,60 @@
       </div>
       </div>
 
+      <div class="admin-tab-panel" id="pftab-postulacion" style="display:none;">
+        <div id="pfPostulacionForm" class="form-card">
+          <div class="section-head" style="margin-bottom:var(--space-2);">
+            <h3 style="font-size:16px; color:var(--navy-deep); font-family:'Fraunces',serif;">Postúlate a una mesa directiva</h3>
+            <p style="font-size:13px;">Las mesas directivas conducen las sesiones por comisiones y la sesión plenaria. Se evalúan el dominio del procedimiento legislativo, la asertividad comunicativa y la capacidad de resolución de conflictos.</p>
+          </div>
+          <div class="form-grid">
+            <div class="field full">
+              <label>Dominio del Procedimiento Legislativo Ordinario</label>
+              <select required id="pfPostDominio">
+                <option value="">Selecciona un nivel</option>
+                <option>Básico</option><option>Intermedio</option><option>Avanzado</option>
+              </select>
+            </div>
+            <div class="field full">
+              <label>Experiencia relevante <span class="hint">(ediciones anteriores, debate, oratoria, liderazgo estudiantil)</span></label>
+              <textarea id="pfPostExperiencia" required></textarea>
+            </div>
+            <div class="field full">
+              <label>¿Por qué quieres integrar una mesa directiva?</label>
+              <textarea id="pfPostMotivacion" required></textarea>
+            </div>
+          </div>
+
+          <div class="field full">
+            <label>Enlace a tu video de presentación (YouTube)</label>
+            <input required type="url" id="pfPostVideoUrl" placeholder="https://youtube.com/watch?v=...">
+          </div>
+          <div style="background:var(--blue-pale); border-radius:10px; padding:14px 16px; margin-bottom:var(--space-2);">
+            <p style="margin:0 0 8px; font-size:13px; font-weight:700; color:var(--navy-deep);">&#127909; Instrucciones para tu video de presentación</p>
+            <ul style="margin:0; padding-left:18px; font-size:12.5px; color:#4A5A73; line-height:1.7;">
+              <li><b>Formato vertical</b> (9:16), como una historia o un reel.</li>
+              <li><b>Duración máxima: 2 minutos.</b></li>
+              <li>Sube el video a YouTube (puede ser "no listado") y pega aquí el enlace.</li>
+              <li>Tu video debe decir: tu <b>nombre completo</b>, tu <b>ciudad e institución</b>, <b>por qué quieres ser parte de la mesa directiva</b>, y <b>una fortaleza tuya como líder</b>.</li>
+            </ul>
+          </div>
+
+          <div class="field full">
+            <label class="checkline"><input required type="checkbox" id="pfPostDisponible"> Estoy disponible para asistir a la capacitación previa obligatoria de mesas directivas.</label>
+          </div>
+          <p id="pfPostError" style="display:none; color:#C0392B; font-size:13px; margin:8px 0 0;"></p>
+          <div class="form-submit-row">
+            <span class="form-note">Las postulaciones son evaluadas por el staff del Euromodelo Joven antes de convertirte en candidato/a de la votación.</span>
+            <button class="btn-primary" type="button" id="pfPostSubmitBtn">Enviar postulación</button>
+          </div>
+        </div>
+        <div class="success-panel" id="pfPostSuccess">
+          <div class="mark">&#10003;</div>
+          <h3>Postulación enviada</h3>
+          <p>Recibirás la confirmación de tu rol en la mesa directiva por parte del staff del Euromodelo Joven.</p>
+        </div>
+      </div>
+
       <div class="admin-tab-panel" id="pftab-propuesta" style="display:none;">
       <div id="pfPropuestaComisario" class="form-card" style="display:none;">
         <div class="section-head" style="margin-bottom:var(--space-2);">
@@ -320,6 +376,25 @@
       </div>
       </div>
 
+      <div class="admin-tab-panel" id="pftab-mesa" style="display:none;">
+        <div class="section-head">
+          <h2 style="font-size:20px;">Mesa Directiva</h2>
+          <p id="pfMesaCargoLabel" style="font-size:13px;"></p>
+        </div>
+
+        <div id="pfMesaComisionSection" style="display:none; margin-bottom:var(--space-4);">
+          <h3 class="subsection-title" style="margin-bottom:12px;">Propuestas de tu comisión</h3>
+          <div id="pfMesaComisionList"></div>
+        </div>
+
+        <div id="pfMesaPlenariaSection" style="display:none;">
+          <h3 class="subsection-title" style="margin-bottom:12px;">Propuestas en Plenaria</h3>
+          <div id="pfMesaPlenariaList"></div>
+        </div>
+
+        <p id="pfMesaEmpty" style="display:none; font-size:13.5px; color:var(--blue-slate);">Aún no hay propuestas para revisar.</p>
+      </div>
+
       </div>
 
       <div style="text-align:center; margin-top:var(--space-4);">
@@ -332,6 +407,15 @@
   <div class="modal-card">
     <button class="modal-close" aria-label="Cerrar">&#10005;</button>
     <div class="quiz-body"></div>
+  </div>
+</div>
+<div class="modal-overlay" id="conteoVotosModal">
+  <div class="modal-card">
+    <button class="modal-close" aria-label="Cerrar">&#10005;</button>
+    <h3 id="conteoVotosTitulo">Conteo de votos</h3>
+    <p class="modal-intro" id="conteoVotosIntro"></p>
+    <div id="conteoVotosTallies" style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px;"></div>
+    <div id="conteoVotosLista" style="max-height:340px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;"></div>
   </div>
 </div>
 <div class="modal-overlay" id="forcePasswordModal">
@@ -1075,7 +1159,192 @@
         document.querySelector('#pfVotacionSubTabs .admin-tab-btn[data-pf-subtab="parlamento"]').classList.add('active');
         document.getElementById('pfsubtab-parlamento').style.display = 'block';
       }
+
+      const esOficial = !!(result && (result.cargoParlamento || result.cargoComision));
+      document.getElementById('pfTabMesaBtn').style.display = esOficial ? '' : 'none';
+      if (esOficial) {
+        const cargos = [];
+        if (result.cargoParlamento) cargos.push(`${result.cargoParlamento} del Parlamento`);
+        if (result.cargoComision) cargos.push(`${result.cargoComision} de tu comisión`);
+        document.getElementById('pfMesaCargoLabel').textContent = 'Ganaste: ' + cargos.join(' · ');
+        renderMesaDirectiva(u);
+      }
     }
+
+    // ---------- Mesa Directiva electa: marcar resultado de propuestas y contar votos ----------
+    function mesaPropuestaRowHtml(p) {
+      const badge = p.resultadoVotacion === 'Aprobada'
+        ? '<span class="tag" style="background:var(--teal); color:#fff;">Aprobada</span>'
+        : p.resultadoVotacion === 'No aprobada'
+        ? '<span class="tag" style="background:#C0392B; color:#fff;">No aprobada</span>'
+        : '<span class="tag">Pendiente de resultado</span>';
+      return `
+        <div class="candidate-card">
+          <div class="candidate-info">
+            <div class="candidate-name">${p.nombre}${p.comision ? ' — ' + p.comision : ''}</div>
+            <div class="candidate-role">${badge}</div>
+          </div>
+          <a class="candidate-video-btn" style="text-decoration:none; display:inline-block;" href="${p.url}" target="_blank" rel="noopener">Ver PDF</a>
+          <button class="candidate-video-btn" type="button" style="background:var(--blue-pale); color:var(--blue-revel);" data-conteo-refcode="${p.refCode}">Contar votos</button>
+          <button class="candidate-video-btn" type="button" style="background:var(--teal); color:#fff;" data-resultado-refcode="${p.refCode}" data-resultado-valor="Aprobada">Aprobar</button>
+          <button class="candidate-video-btn" type="button" style="background:#C0392B; color:#fff;" data-resultado-refcode="${p.refCode}" data-resultado-valor="No aprobada">No aprobar</button>
+        </div>`;
+    }
+
+    function renderMesaDirectiva(u) {
+      fetch(EUROMODELO_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ form: 'list_mesa_propuestas', email: u.username, password: u.password }),
+      })
+        .then(res => res.json())
+        .then(result => {
+          if (!result || !result.ok) return;
+          const comisionSection = document.getElementById('pfMesaComisionSection');
+          const plenariaSection = document.getElementById('pfMesaPlenariaSection');
+          const propuestasComision = result.propuestasComision || [];
+          const propuestasPlenaria = result.propuestasPlenaria || [];
+
+          if (result.cargoComision) {
+            comisionSection.style.display = 'block';
+            document.getElementById('pfMesaComisionList').innerHTML = propuestasComision.length
+              ? propuestasComision.map(mesaPropuestaRowHtml).join('')
+              : '<p style="font-size:13px; color:var(--blue-slate);">Aún no hay propuestas aprobadas para debatir en tu comisión.</p>';
+          } else {
+            comisionSection.style.display = 'none';
+          }
+
+          if (result.cargoParlamento) {
+            plenariaSection.style.display = 'block';
+            document.getElementById('pfMesaPlenariaList').innerHTML = propuestasPlenaria.length
+              ? propuestasPlenaria.map(mesaPropuestaRowHtml).join('')
+              : '<p style="font-size:13px; color:var(--blue-slate);">Aún no hay propuestas que hayan llegado a Plenaria.</p>';
+          } else {
+            plenariaSection.style.display = 'none';
+          }
+
+          document.getElementById('pfMesaEmpty').style.display =
+            (propuestasComision.length === 0 && propuestasPlenaria.length === 0) ? 'block' : 'none';
+        })
+        .catch(err => console.error('No se pudo cargar las propuestas de la mesa directiva:', err));
+    }
+
+    document.getElementById('pftab-mesa').addEventListener('click', async (e) => {
+      const resultadoBtn = e.target.closest('[data-resultado-refcode]');
+      if (resultadoBtn) {
+        const refCode = resultadoBtn.dataset.resultadoRefcode;
+        const resultado = resultadoBtn.dataset.resultadoValor;
+        setButtonLoading(resultadoBtn, 'Guardando…');
+        try {
+          const res = await fetch(EUROMODELO_SCRIPT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ form: 'set_resultado_votacion', email: currentProfileUser.username, password: currentProfileUser.password, refCode, resultado }),
+          });
+          const result = await res.json();
+          if (result && result.ok) {
+            renderMesaDirectiva(currentProfileUser);
+          } else {
+            clearButtonLoading(resultadoBtn);
+            alert('No se pudo guardar el resultado. Intenta de nuevo.');
+          }
+        } catch (err) {
+          console.error('No se pudo guardar el resultado de la votación:', err);
+          clearButtonLoading(resultadoBtn);
+        }
+        return;
+      }
+
+      const conteoBtn = e.target.closest('[data-conteo-refcode]');
+      if (conteoBtn) {
+        openConteoVotos(conteoBtn.dataset.conteoRefcode);
+      }
+    });
+
+    const conteoVotosModal = createModalController('conteoVotosModal');
+    let conteoVotosRefCodeActual = '';
+
+    function conteoVotanteRowHtml(v) {
+      function btn(pos, label) {
+        const activo = v.posicion === pos;
+        return `<button class="admin-row-btn${activo ? ' save' : ''}" type="button" data-conteo-voter-key="${v.key}" data-conteo-voter-label="${v.label}" data-conteo-posicion="${pos}">${label}${activo ? ' ✓' : ''}</button>`;
+      }
+      return `
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 0; border-bottom:1px solid var(--line);">
+          <span style="font-size:13.5px; color:var(--navy-deep); font-weight:600;">${v.label}</span>
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            ${btn('A favor', 'A favor')}
+            ${btn('En contra', 'En contra')}
+            ${btn('Abstención', 'Abstención')}
+          </div>
+        </div>`;
+    }
+
+    function renderConteoTallies(votantes) {
+      const counts = { 'A favor': 0, 'En contra': 0, 'Abstención': 0 };
+      votantes.forEach(v => { if (counts[v.posicion] !== undefined) counts[v.posicion]++; });
+      document.getElementById('conteoVotosTallies').innerHTML = `
+        <span class="tag" style="background:var(--teal); color:#fff;">${counts['A favor']} a favor</span>
+        <span class="tag" style="background:#C0392B; color:#fff;">${counts['En contra']} en contra</span>
+        <span class="tag">${counts['Abstención']} abstención</span>`;
+    }
+
+    function loadConteoVotos(refCode) {
+      fetch(EUROMODELO_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ form: 'list_conteo_votantes', email: currentProfileUser.username, password: currentProfileUser.password, refCode }),
+      })
+        .then(res => res.json())
+        .then(result => {
+          if (!result || !result.ok) {
+            document.getElementById('conteoVotosLista').innerHTML = '<p style="font-size:13px; color:#C0392B;">No se pudo cargar el conteo.</p>';
+            return;
+          }
+          document.getElementById('conteoVotosIntro').textContent = result.esPlenaria
+            ? 'Cada bancada vota como bloque. Marca la posición de cada partido según se exprese en la sesión.'
+            : 'Marca la posición de cada participante de la comisión según se exprese en la sesión.';
+          renderConteoTallies(result.votantes || []);
+          document.getElementById('conteoVotosLista').innerHTML = (result.votantes || []).map(conteoVotanteRowHtml).join('');
+        })
+        .catch(err => {
+          console.error('No se pudo cargar el conteo de votos:', err);
+          document.getElementById('conteoVotosLista').innerHTML = '<p style="font-size:13px; color:#C0392B;">No se pudo cargar el conteo.</p>';
+        });
+    }
+
+    function openConteoVotos(refCode) {
+      conteoVotosRefCodeActual = refCode;
+      document.getElementById('conteoVotosTallies').innerHTML = '';
+      document.getElementById('conteoVotosLista').innerHTML = '<p style="font-size:13px; color:var(--blue-slate);">Cargando…</p>';
+      conteoVotosModal.open();
+      loadConteoVotos(refCode);
+    }
+
+    document.getElementById('conteoVotosLista').addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-conteo-voter-key]');
+      if (!btn) return;
+      const voterKey = btn.dataset.conteoVoterKey;
+      const voterLabel = btn.dataset.conteoVoterLabel;
+      const posicion = btn.dataset.conteoPosicion;
+      setButtonLoading(btn);
+      try {
+        const res = await fetch(EUROMODELO_SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ form: 'set_conteo_voto', email: currentProfileUser.username, password: currentProfileUser.password, refCode: conteoVotosRefCodeActual, voterKey, voterLabel, posicion }),
+        });
+        const result = await res.json();
+        if (result && result.ok) {
+          loadConteoVotos(conteoVotosRefCodeActual);
+        } else {
+          clearButtonLoading(btn);
+        }
+      } catch (err) {
+        console.error('No se pudo registrar el voto del conteo:', err);
+        clearButtonLoading(btn);
+      }
+    });
 
     function renderVotacion(u) {
       document.getElementById('pfVotacion').style.display = 'block';
@@ -1126,6 +1395,15 @@
 
     const PROPUESTA_MAX_BYTES = 8 * 1024 * 1024;
 
+    // resultadoVotacion lo pone la mesa directiva electa (comisión o Parlamento), aparte del
+    // propuesta_estado que ya venía del staff — por eso se muestra como un dato extra junto a
+    // cada propuesta, no como reemplazo del resto de la información.
+    function votacionBadgeHtml(resultadoVotacion) {
+      if (resultadoVotacion === 'Aprobada') return ' <span class="tag" style="background:var(--teal); color:#fff;">Aprobada por votación</span>';
+      if (resultadoVotacion === 'No aprobada') return ' <span class="tag" style="background:#C0392B; color:#fff;">No aprobada por votación</span>';
+      return '';
+    }
+
     function renderPropuestaSections(u) {
       document.getElementById('pfTabPropuestaBtn').style.display = u.rolAsignado === 'Comisario' ? '' : 'none';
       document.getElementById('pfPropuestaComisario').style.display = u.rolAsignado === 'Comisario' ? 'block' : 'none';
@@ -1172,7 +1450,7 @@
               listEl.innerHTML = '';
             } else {
               emptyEl.style.display = 'none';
-              listEl.innerHTML = proposals.map(p => `<li><a href="${p.url}" target="_blank">${p.nombre}</a></li>`).join('');
+              listEl.innerHTML = proposals.map(p => `<li><a href="${p.url}" target="_blank">${p.nombre}</a>${votacionBadgeHtml(p.resultadoVotacion)}</li>`).join('');
             }
           })
           .catch(err => console.error('No se pudo cargar las propuestas de la comisión:', err));
@@ -1198,11 +1476,52 @@
             listEl.innerHTML = '';
           } else {
             emptyEl.style.display = 'none';
-            listEl.innerHTML = proposals.map(p => `<li><a href="${p.url}" target="_blank">${p.nombre}</a> — ${p.comision}</li>`).join('');
+            listEl.innerHTML = proposals.map(p => `<li><a href="${p.url}" target="_blank">${p.nombre}</a> — ${p.comision}${votacionBadgeHtml(p.resultadoVotacion)}</li>`).join('');
           }
         })
         .catch(err => console.error('No se pudo cargar las propuestas de plenaria:', err));
     }
+
+    document.getElementById('pfPostSubmitBtn').addEventListener('click', async () => {
+      const errEl = document.getElementById('pfPostError');
+      errEl.style.display = 'none';
+      const dominio = document.getElementById('pfPostDominio').value;
+      const experiencia = document.getElementById('pfPostExperiencia').value.trim();
+      const motivacion = document.getElementById('pfPostMotivacion').value.trim();
+      const videoUrl = document.getElementById('pfPostVideoUrl').value.trim();
+      const disponible = document.getElementById('pfPostDisponible').checked;
+      if (!dominio || !experiencia || !motivacion || !videoUrl || !disponible) {
+        errEl.textContent = 'Completa todos los campos y confirma tu disponibilidad para la capacitación.';
+        errEl.style.display = 'block';
+        return;
+      }
+      const btn = document.getElementById('pfPostSubmitBtn');
+      setButtonLoading(btn, 'Enviando…');
+      try {
+        const res = await fetch(EUROMODELO_SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            form: 'postular_mesa', email: currentProfileUser.username, password: currentProfileUser.password,
+            dominio, experiencia, motivacion, videoUrl, disponibleCapacitacion: disponible,
+          }),
+        });
+        const result = await res.json();
+        if (result && result.ok) {
+          document.getElementById('pfPostulacionForm').style.display = 'none';
+          document.getElementById('pfPostSuccess').classList.add('show');
+        } else {
+          clearButtonLoading(btn);
+          errEl.textContent = 'No se pudo enviar tu postulación. Intenta de nuevo.';
+          errEl.style.display = 'block';
+        }
+      } catch (err) {
+        console.error('No se pudo enviar la postulación:', err);
+        clearButtonLoading(btn);
+        errEl.textContent = 'No se pudo enviar tu postulación. Intenta de nuevo.';
+        errEl.style.display = 'block';
+      }
+    });
 
     document.getElementById('pfPropuestaUploadBtn').addEventListener('click', () => {
       const uploadBtn = document.getElementById('pfPropuestaUploadBtn');

@@ -12,12 +12,12 @@ mentes.html                 Grandes Mentes
 roles.html                  Roles (incluye test "Brújula Legislativa")
 comisiones.html             Comisiones (7)
 partidos.html                Partidos Políticos (hemiciclo + test "Brújula de Partido Político")
-mesas-postulacion.html      Postulación a Mesas Directivas
 galeria.html                Galería "20 Años, Mil Historias"
 preinscripcion.html         Formulario de preinscripción (genera usuario/contraseña)
-perfil.html                 Área personal del estudiante: al iniciar sesión, si aún no se ha
-                             inscrito ve ahí mismo el formulario de rol/comisión/partido, y
-                             también la votación de mesas directivas (Parlamento + su comisión)
+perfil.html                 Área personal del estudiante: inscripción (rol/comisión/partido),
+                             postulación y votación de mesas directivas (Parlamento + su comisión),
+                             subida de propuestas, y — para quien gane un cargo de mesa — marcar
+                             el resultado de cada propuesta y contar los votos de su sesión
 
 assets/
   styles.css                 Hoja de estilos compartida (tokens de color, tipografía, componentes)

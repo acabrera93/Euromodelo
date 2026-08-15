@@ -178,10 +178,19 @@
       </div>
 
       <div class="admin-tab-panel" id="tab-candidatos" style="display:none;">
+        <div class="section-head"><h2 style="font-size:20px;">Postulaciones a mesa directiva</h2><p>Enviadas por los participantes desde su área personal. Revisa y, si decides incluirlos en la votación, agrégalos abajo como candidato eligiéndolos en el selector de participante.</p></div>
+        <div class="sim-table-wrap" style="margin-bottom:var(--space-5);">
+          <table class="sim-table">
+            <thead><tr><th>Nombre</th><th>Colegio</th><th>Dominio</th><th>Experiencia / Motivación</th><th>Video</th><th></th></tr></thead>
+            <tbody id="postulacionesMesaTableBody"></tbody>
+          </table>
+        </div>
+        <p id="postulacionesMesaEmpty" style="display:none; font-size:13.5px; color:var(--blue-slate); margin-top:-8px; margin-bottom:var(--space-5);">Aún no hay postulaciones para este bloque.</p>
+
         <div class="form-card" style="margin-bottom:var(--space-5);">
           <div class="section-head" style="margin-bottom:var(--space-2);">
             <h3 style="font-size:16px; color:var(--navy-deep); font-family:'Fraunces',serif;">Agregar candidato</h3>
-            <p style="font-size:13px;">Se agrega al bloque activo de arriba (Nacional o la sede Regional seleccionada). Los candidatos no eligen cargo: todos compiten juntos por el Parlamento (o por su comisión) en una sola votación, y el cargo se asigna solo según el ranking de votos al cerrarla.</p>
+            <p style="font-size:13px;">Se agrega al bloque activo de arriba (Nacional o la sede Regional seleccionada). Los candidatos no eligen cargo: todos compiten juntos por el Parlamento (o por su comisión) en una sola votación, y el cargo se asigna solo según el ranking de votos al cerrarla. El nombre y correo se toman del participante elegido — así el candidato siempre queda vinculado a una cuenta real.</p>
           </div>
           <div class="admin-filters">
             <select id="candAmbito">
@@ -189,7 +198,7 @@
               <option value="Comision">Mesa de una comisión</option>
             </select>
             <select id="candComision" style="display:none;"></select>
-            <input type="text" id="candNombre" placeholder="Nombre completo">
+            <select id="candParticipante"><option value="">Selecciona un participante</option></select>
             <input type="text" id="candVideoUrl" placeholder="Enlace al video (opcional)">
           </div>
           <div class="form-submit-row" style="justify-content:flex-start;">
@@ -477,6 +486,7 @@
     renderTable();
     renderColegios();
     renderPropuestas();
+    populateCandParticipanteSelect();
   }
 
   function getCreds() {
@@ -555,6 +565,7 @@
     showContent();
     await loadParticipants();
     loadCandidatos();
+    loadPostulacionesMesa();
     clearButtonLoading(submitBtn);
     if (result.mustChangePassword) openForcePasswordModal();
   });
@@ -681,6 +692,19 @@
   populateCandidatoForm();
   document.getElementById('candComisionVotacionSelect').innerHTML = COMISIONES.map(c => `<option value="${c}">${c}</option>`).join('');
 
+  // El nombre/correo de un candidato salen de elegir un participante real (nunca se escriben a
+  // mano), así el candidato siempre queda vinculado a una cuenta que existe de verdad.
+  function populateCandParticipanteSelect() {
+    const select = document.getElementById('candParticipante');
+    const current = select.value;
+    const estudiantes = bloqueRecords()
+      .filter(r => (r.tipo || '') !== 'Profesor' && r.email)
+      .sort((a, b) => (a.nombre_completo || '').localeCompare(b.nombre_completo || ''));
+    select.innerHTML = '<option value="">Selecciona un participante</option>' +
+      estudiantes.map(r => `<option value="${r.email}" data-nombre="${r.nombre_completo || ''}">${r.nombre_completo || r.email} — ${r.institucion_educativa || 'Sin colegio'}</option>`).join('');
+    select.value = current;
+  }
+
   function candRowHtml(c, showComisionCol) {
     const cols = showComisionCol ? `<td>${c.comision || ''}</td>` : '';
     const videoCell = c.video_url ? `<a href="${c.video_url}" target="_blank">Ver video</a>` : '—';
@@ -723,15 +747,54 @@
     renderCandidatos();
   }
 
+  function postulacionRowHtml(p) {
+    return `<tr data-ref-code="${p.ref_code || ''}">
+      <td>${p.nombre || ''}</td>
+      <td>${p.institucion || ''}</td>
+      <td>${p.dominio || ''}</td>
+      <td style="max-width:280px; white-space:normal;">${p.experiencia || ''}<br><i>${p.motivacion || ''}</i></td>
+      <td>${p.video_url ? `<a href="${p.video_url}" target="_blank">Ver video</a>` : '—'}</td>
+      <td><button class="admin-row-btn danger" data-action="borrar-postulacion">Eliminar</button></td>
+    </tr>`;
+  }
+
+  async function loadPostulacionesMesa() {
+    const creds = getCreds();
+    if (!creds) return;
+    const result = await apiCall({ form: 'admin_list_postulaciones_mesa', adminEmail: creds.email, adminPassword: creds.password, tipoEuromodelo: currentBloque.tipo, ciudad: currentBloque.ciudad });
+    if (!result || !result.ok) return;
+    const postulaciones = result.postulaciones || [];
+    document.getElementById('postulacionesMesaTableBody').innerHTML = postulaciones.map(postulacionRowHtml).join('');
+    document.getElementById('postulacionesMesaEmpty').style.display = postulaciones.length === 0 ? 'block' : 'none';
+  }
+
+  document.getElementById('postulacionesMesaTableBody').addEventListener('click', async (e) => {
+    if (e.target.dataset.action !== 'borrar-postulacion') return;
+    const tr = e.target.closest('tr');
+    const refCode = tr.dataset.refCode;
+    const sure = confirm('¿Eliminar esta postulación?');
+    if (!sure) return;
+    const creds = getCreds();
+    setButtonLoading(e.target);
+    const result = await apiCall({ form: 'admin_delete_postulacion_mesa', adminEmail: creds.email, adminPassword: creds.password, refCode });
+    if (result && result.ok) {
+      await loadPostulacionesMesa();
+    } else {
+      clearButtonLoading(e.target);
+    }
+  });
+
   document.getElementById('candAddBtn').addEventListener('click', async (e) => {
     const errEl = document.getElementById('candError');
     errEl.style.display = 'none';
     const ambito = document.getElementById('candAmbito').value;
     const comision = ambito === 'Comision' ? document.getElementById('candComision').value : '';
-    const nombre = document.getElementById('candNombre').value.trim();
+    const participanteSelect = document.getElementById('candParticipante');
+    const email = participanteSelect.value;
+    const nombre = participanteSelect.selectedOptions[0] ? participanteSelect.selectedOptions[0].dataset.nombre : '';
     const videoUrl = document.getElementById('candVideoUrl').value.trim();
-    if (!nombre) {
-      errEl.textContent = 'Escribe el nombre del candidato.';
+    if (!email) {
+      errEl.textContent = 'Elige el participante que se postula.';
       errEl.style.display = 'block';
       return;
     }
@@ -740,7 +803,7 @@
     const result = await apiCall({
       form: 'admin_add_candidato', adminEmail: creds.email, adminPassword: creds.password,
       tipoEuromodelo: currentBloque.tipo, ciudad: currentBloque.ciudad,
-      ambito, comision, nombre, videoUrl,
+      ambito, comision, email, nombre, videoUrl,
     });
     clearButtonLoading(e.target);
     if (!result || !result.ok) {
@@ -748,7 +811,7 @@
       errEl.style.display = 'block';
       return;
     }
-    document.getElementById('candNombre').value = '';
+    participanteSelect.value = '';
     document.getElementById('candVideoUrl').value = '';
     await loadCandidatos();
   });
@@ -894,6 +957,7 @@
     // confundir esos números con los del bloque recién seleccionado.
     resetSimulacionPreview();
     loadCandidatos();
+    loadPostulacionesMesa();
   }
 
   document.getElementById('bloqueTabs').querySelector('.admin-tab-btn[data-tipo="Nacional"]').addEventListener('click', () => {
@@ -1016,6 +1080,7 @@
     showContent();
     loadParticipants();
     loadCandidatos();
+    loadPostulacionesMesa();
   }
 </script>
 </body>

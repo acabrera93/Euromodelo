@@ -279,6 +279,10 @@ var CANONICAL_HEADERS_ = [
   // 'Aprobada' | 'Plenaria') y comentario del staff. Una nueva subida reemplaza url/estado/
   // comentario anteriores (mismo criterio que repetir una brújula).
   'propuesta_url', 'propuesta_estado', 'propuesta_comentario',
+  // '' | 'Aprobada' | 'No aprobada'. A diferencia de propuesta_estado (que decide el staff:
+  // si se debate y si pasa a Plenaria), esto lo pone la propia mesa directiva electa (comisión o
+  // Parlamento) con el resultado real del debate/votación — ver handleSetResultadoVotacion_.
+  'resultado_votacion',
   // '' | 'Manual' | 'Automática'. Se recalcula cada vez que rol_asignado/comision_asignada/
   // partido_asignado cambian, desde handleUpdateAssignment_ (Manual) o handleApplyAssignment_
   // (Automática); se limpia junto con esos tres campos al borrar o deshacer.
@@ -537,7 +541,7 @@ function handleListComisionPropuestas_(sheet, headers, data) {
       if (tipoEuromodelo === 'Regional' && (r.ciudad || '').toString() !== ciudad) return;
       if (PROPUESTA_ESTADOS_VISIBLES_COMISION_.indexOf((r.propuesta_estado || '').toString()) === -1) return;
       if (!r.propuesta_url) return;
-      proposals.push({ nombre: r.nombre_completo || '', url: r.propuesta_url });
+      proposals.push({ nombre: r.nombre_completo || '', url: r.propuesta_url, resultadoVotacion: r.resultado_votacion || '' });
     });
   }
   return jsonOut_({ ok: true, comision: comision, proposals: proposals });
@@ -572,10 +576,337 @@ function handleListPlenariaPropuestas_(sheet, headers, data) {
       if (tipoEuromodelo === 'Regional' && (r.ciudad || '').toString() !== ciudad) return;
       if ((r.propuesta_estado || '').toString() !== 'Plenaria') return;
       if (!r.propuesta_url) return;
-      proposals.push({ nombre: r.nombre_completo || '', comision: r.comision_asignada || '', url: r.propuesta_url });
+      proposals.push({ nombre: r.nombre_completo || '', comision: r.comision_asignada || '', url: r.propuesta_url, resultadoVotacion: r.resultado_votacion || '' });
     });
   }
   return jsonOut_({ ok: true, proposals: proposals });
+}
+
+// ---------- Postulación a mesas directivas ----------
+// Pestaña "postulaciones_mesa" aparte: el participante postula desde su área personal (ya no hay
+// formulario público en mesas-postulacion.html). Nombre/correo/ciudad/institución no se piden —
+// se toman de su propia fila en "preinscripciones", así nunca quedan desincronizados. El staff
+// revisa las postulaciones desde el panel de admin y decide a mano si convierte a alguien en
+// candidato real (admin_add_candidato) — postular no inscribe automáticamente en la votación.
+var POSTULACIONES_MESA_HEADERS_ = [
+  'ref_code', 'email', 'nombre', 'tipo_euromodelo', 'ciudad', 'institucion',
+  'dominio', 'experiencia', 'motivacion', 'video_url', 'disponible_capacitacion', 'enviado'
+];
+
+function ensurePostulacionesMesaSheet_(ss) {
+  var sheet = findOrCreateSheet_(ss, ['postulaciones_mesa'], 'postulaciones_mesa');
+  var headers = getHeaders_(sheet, POSTULACIONES_MESA_HEADERS_);
+  return { sheet: sheet, headers: headers };
+}
+
+function handlePostularMesa_(sheet, headers, ss, data) {
+  var email = (data.email || '').toString().trim().toLowerCase();
+  var password = (data.password || '').toString();
+  var rowNum = findRowByColumn_(sheet, headers, 'email', email, true);
+  if (rowNum === -1) return jsonOut_({ ok: false });
+
+  var rowValues = sheet.getRange(rowNum, 1, 1, headers.length).getValues()[0];
+  var record = {};
+  headers.forEach(function(h, i) { record[h] = rowValues[i]; });
+  if ((record.password || '').toString() !== password) return jsonOut_({ ok: false });
+
+  var dominio = (data.dominio || '').toString();
+  var experiencia = (data.experiencia || '').toString().trim();
+  var motivacion = (data.motivacion || '').toString().trim();
+  var videoUrl = (data.videoUrl || '').toString().trim();
+  if (!dominio || !experiencia || !motivacion || !videoUrl) return jsonOut_({ ok: false, error: 'campos_incompletos' });
+
+  var post = ensurePostulacionesMesaSheet_(ss);
+  var row = post.headers.map(function(h) {
+    if (h === 'ref_code') return 'POST-' + Math.random().toString(36).slice(2, 7).toUpperCase();
+    if (h === 'email') return email;
+    if (h === 'nombre') return record.nombre_completo || '';
+    if (h === 'tipo_euromodelo') return record.tipo_euromodelo || 'Nacional';
+    if (h === 'ciudad') return record.ciudad || '';
+    if (h === 'institucion') return record.institucion_educativa || '';
+    if (h === 'dominio') return dominio;
+    if (h === 'experiencia') return experiencia;
+    if (h === 'motivacion') return motivacion;
+    if (h === 'video_url') return videoUrl;
+    if (h === 'disponible_capacitacion') return data.disponibleCapacitacion ? 'Sí' : 'No';
+    if (h === 'enviado') return new Date().toISOString();
+    return '';
+  });
+  var targetRow = post.sheet.getLastRow() + 1;
+  var range = post.sheet.getRange(targetRow, 1, 1, row.length);
+  range.setNumberFormat('@');
+  range.setValues([row]);
+  return jsonOut_({ ok: true });
+}
+
+function handleAdminListPostulacionesMesa_(ss, data) {
+  if (!verifyAdminCredentials_(ss, data.adminEmail, data.adminPassword)) return jsonOut_({ ok: false });
+  var tipoEuromodelo = (data.tipoEuromodelo || 'Nacional').toString();
+  var ciudad = (data.ciudad || '').toString();
+  var post = ensurePostulacionesMesaSheet_(ss);
+  var lastRow = post.sheet.getLastRow();
+  var postulaciones = [];
+  if (lastRow >= 2) {
+    var values = post.sheet.getRange(2, 1, lastRow - 1, post.headers.length).getValues();
+    values.forEach(function(row) {
+      var r = {};
+      post.headers.forEach(function(h, i) { r[h] = row[i]; });
+      if ((r.tipo_euromodelo || 'Nacional').toString() !== tipoEuromodelo) return;
+      if (tipoEuromodelo === 'Regional' && (r.ciudad || '').toString() !== ciudad) return;
+      postulaciones.push(r);
+    });
+  }
+  return jsonOut_({ ok: true, postulaciones: postulaciones });
+}
+
+function handleAdminDeletePostulacionMesa_(ss, data) {
+  if (!verifyAdminCredentials_(ss, data.adminEmail, data.adminPassword)) return jsonOut_({ ok: false });
+  var post = ensurePostulacionesMesaSheet_(ss);
+  var rowNum = findRowByColumn_(post.sheet, post.headers, 'ref_code', data.refCode);
+  if (rowNum === -1) return jsonOut_({ ok: false, error: 'not_found' });
+  post.sheet.deleteRow(rowNum);
+  return jsonOut_({ ok: true });
+}
+
+// ---------- Mesa directiva electa: resultado de propuestas y conteo de votos ----------
+// A diferencia del resto del proyecto (donde "quién puede hacer qué" se decide por rol_asignado
+// en la Sheet), aquí la autorización sale de getMiCargoMesa_: cualquiera de los cargos ganadores
+// de la mesa correspondiente puede actuar — el Presidente, el Vicepresidente (solo existe en
+// Parlamento) y el Secretario General están todos igual de habilitados, no hace falta ser
+// específicamente el Presidente.
+function autorizacionMesaParaPropuesta_(propRecord, cargos, comisionPropia) {
+  var estado = (propRecord.propuesta_estado || '').toString();
+  if (estado === 'Plenaria') return !!cargos.cargoParlamento;
+  if (estado === 'Aprobada') return !!cargos.cargoComision && (propRecord.comision_asignada || '').toString() === comisionPropia;
+  return false;
+}
+
+// Devuelve, para quien pregunta, sus cargos y las propuestas donde puede actuar: las de su
+// comisión (si es su mesa) que el staff ya aprobó para debatir, y las que llegaron a Plenaria (si
+// es de la mesa del Parlamento) — venga de la comisión que venga.
+function handleListPropuestasParaOficial_(sheet, headers, ss, data) {
+  var email = (data.email || '').toString().trim().toLowerCase();
+  var password = (data.password || '').toString();
+  var rowNum = findRowByColumn_(sheet, headers, 'email', email, true);
+  if (rowNum === -1) return jsonOut_({ ok: false });
+  var rowValues = sheet.getRange(rowNum, 1, 1, headers.length).getValues()[0];
+  var record = {};
+  headers.forEach(function(h, i) { record[h] = rowValues[i]; });
+  if ((record.password || '').toString() !== password) return jsonOut_({ ok: false });
+
+  var tipoEuromodelo = (record.tipo_euromodelo || 'Nacional').toString();
+  var ciudad = (record.ciudad || '').toString();
+  var comisionPropia = (record.comision_asignada || record.comision_opcion1 || '').toString();
+  var cargos = getMiCargoMesa_(ss, email, tipoEuromodelo, ciudad, comisionPropia);
+  if (!cargos.cargoParlamento && !cargos.cargoComision) {
+    return jsonOut_({ ok: true, cargoParlamento: '', cargoComision: '', propuestasComision: [], propuestasPlenaria: [] });
+  }
+
+  var lastRow = sheet.getLastRow();
+  var propuestasComision = [];
+  var propuestasPlenaria = [];
+  if (lastRow >= 2) {
+    var values = sheet.getRange(2, 1, lastRow - 1, headers.length).getValues();
+    values.forEach(function(row) {
+      var r = {};
+      headers.forEach(function(h, i) { r[h] = row[i]; });
+      if ((r.rol_asignado || '').toString() !== 'Comisario') return;
+      if (!r.propuesta_url) return;
+      if ((r.tipo_euromodelo || 'Nacional').toString() !== tipoEuromodelo) return;
+      if (tipoEuromodelo === 'Regional' && (r.ciudad || '').toString() !== ciudad) return;
+      var estado = (r.propuesta_estado || '').toString();
+      var item = { refCode: r.ref_code || '', nombre: r.nombre_completo || '', comision: r.comision_asignada || '', url: r.propuesta_url, resultadoVotacion: r.resultado_votacion || '' };
+      if (cargos.cargoComision && estado === 'Aprobada' && (r.comision_asignada || '').toString() === comisionPropia) {
+        propuestasComision.push(item);
+      }
+      if (cargos.cargoParlamento && estado === 'Plenaria') {
+        propuestasPlenaria.push(item);
+      }
+    });
+  }
+  return jsonOut_({ ok: true, cargoParlamento: cargos.cargoParlamento, cargoComision: cargos.cargoComision, propuestasComision: propuestasComision, propuestasPlenaria: propuestasPlenaria });
+}
+
+// La mesa directiva electa marca el resultado real del debate/votación de una propuesta.
+function handleSetResultadoVotacion_(sheet, headers, ss, data) {
+  var email = (data.email || '').toString().trim().toLowerCase();
+  var password = (data.password || '').toString();
+  var rowNum = findRowByColumn_(sheet, headers, 'email', email, true);
+  if (rowNum === -1) return jsonOut_({ ok: false });
+  var rowValues = sheet.getRange(rowNum, 1, 1, headers.length).getValues()[0];
+  var record = {};
+  headers.forEach(function(h, i) { record[h] = rowValues[i]; });
+  if ((record.password || '').toString() !== password) return jsonOut_({ ok: false });
+
+  var resultado = (data.resultado || '').toString();
+  if (['Aprobada', 'No aprobada', ''].indexOf(resultado) === -1) return jsonOut_({ ok: false, error: 'resultado_invalido' });
+
+  var refCode = (data.refCode || '').toString();
+  var propRowNum = findRowByColumn_(sheet, headers, 'ref_code', refCode);
+  if (propRowNum === -1) return jsonOut_({ ok: false, error: 'not_found' });
+  var propValues = sheet.getRange(propRowNum, 1, 1, headers.length).getValues()[0];
+  var propRecord = {};
+  headers.forEach(function(h, i) { propRecord[h] = propValues[i]; });
+
+  var tipoEuromodelo = (record.tipo_euromodelo || 'Nacional').toString();
+  var ciudad = (record.ciudad || '').toString();
+  var comisionPropia = (record.comision_asignada || record.comision_opcion1 || '').toString();
+  var cargos = getMiCargoMesa_(ss, email, tipoEuromodelo, ciudad, comisionPropia);
+  if (!autorizacionMesaParaPropuesta_(propRecord, cargos, comisionPropia)) return jsonOut_({ ok: false, error: 'no_autorizado' });
+
+  var colIdx = headers.indexOf('resultado_votacion');
+  if (colIdx !== -1) {
+    var cell = sheet.getRange(propRowNum, colIdx + 1);
+    cell.setNumberFormat('@');
+    cell.setValue(resultado);
+  }
+  return jsonOut_({ ok: true });
+}
+
+// ---------- Conteo de votos orales, asistido para la mesa directiva ----------
+// No reemplaza la votación oral en la sesión: es solo una lista donde la mesa va marcando lo que
+// ya se dijo en voz alta, para no perder la cuenta. En comisión vota cada participante de esa
+// comisión; en Plenaria vota cada bancada (partido político) como bloque, no cada persona.
+var CONTEO_VOTOS_HEADERS_ = ['id', 'propuesta_ref_code', 'voter_key', 'voter_label', 'posicion', 'enviado'];
+var CONTEO_POSICIONES_ = ['A favor', 'En contra', 'Abstención'];
+
+function ensureConteoVotosSheet_(ss) {
+  var sheet = findOrCreateSheet_(ss, ['conteo_votos'], 'conteo_votos');
+  var headers = getHeaders_(sheet, CONTEO_VOTOS_HEADERS_);
+  return { sheet: sheet, headers: headers };
+}
+
+// Quiénes votan una propuesta puntual: si llegó a Plenaria, las 7 bancadas; si no, los propios
+// participantes (sin profesores) de la comisión donde se está debatiendo.
+function resolveVotantesParaPropuesta_(sheet, headers, propRecord) {
+  var estado = (propRecord.propuesta_estado || '').toString();
+  if (estado === 'Plenaria') {
+    return SIM_PARTIDOS_.map(function(p) { return { key: p.title, label: p.title }; });
+  }
+  var tipoEuromodelo = (propRecord.tipo_euromodelo || 'Nacional').toString();
+  var ciudad = (propRecord.ciudad || '').toString();
+  var comision = (propRecord.comision_asignada || '').toString();
+  var lastRow = sheet.getLastRow();
+  var votantes = [];
+  if (lastRow >= 2) {
+    var values = sheet.getRange(2, 1, lastRow - 1, headers.length).getValues();
+    values.forEach(function(row) {
+      var r = {};
+      headers.forEach(function(h, i) { r[h] = row[i]; });
+      if ((r.tipo || '').toString() === 'Profesor') return;
+      if ((r.tipo_euromodelo || 'Nacional').toString() !== tipoEuromodelo) return;
+      if (tipoEuromodelo === 'Regional' && (r.ciudad || '').toString() !== ciudad) return;
+      if ((r.comision_asignada || '').toString() !== comision) return;
+      votantes.push({ key: (r.email || '').toString().trim().toLowerCase(), label: r.nombre_completo || r.email || '' });
+    });
+  }
+  return votantes;
+}
+
+function handleListConteoVotantes_(sheet, headers, ss, data) {
+  var email = (data.email || '').toString().trim().toLowerCase();
+  var password = (data.password || '').toString();
+  var rowNum = findRowByColumn_(sheet, headers, 'email', email, true);
+  if (rowNum === -1) return jsonOut_({ ok: false });
+  var rowValues = sheet.getRange(rowNum, 1, 1, headers.length).getValues()[0];
+  var record = {};
+  headers.forEach(function(h, i) { record[h] = rowValues[i]; });
+  if ((record.password || '').toString() !== password) return jsonOut_({ ok: false });
+
+  var refCode = (data.refCode || '').toString();
+  var propRowNum = findRowByColumn_(sheet, headers, 'ref_code', refCode);
+  if (propRowNum === -1) return jsonOut_({ ok: false, error: 'not_found' });
+  var propValues = sheet.getRange(propRowNum, 1, 1, headers.length).getValues()[0];
+  var propRecord = {};
+  headers.forEach(function(h, i) { propRecord[h] = propValues[i]; });
+
+  var tipoEuromodelo = (record.tipo_euromodelo || 'Nacional').toString();
+  var ciudad = (record.ciudad || '').toString();
+  var comisionPropia = (record.comision_asignada || record.comision_opcion1 || '').toString();
+  var cargos = getMiCargoMesa_(ss, email, tipoEuromodelo, ciudad, comisionPropia);
+  if (!autorizacionMesaParaPropuesta_(propRecord, cargos, comisionPropia)) return jsonOut_({ ok: false, error: 'no_autorizado' });
+
+  var votantes = resolveVotantesParaPropuesta_(sheet, headers, propRecord);
+  var conteo = ensureConteoVotosSheet_(ss);
+  var posiciones = {};
+  var lastRowConteo = conteo.sheet.getLastRow();
+  if (lastRowConteo >= 2) {
+    var values = conteo.sheet.getRange(2, 1, lastRowConteo - 1, conteo.headers.length).getValues();
+    values.forEach(function(row) {
+      var r = {};
+      conteo.headers.forEach(function(h, i) { r[h] = row[i]; });
+      if ((r.propuesta_ref_code || '').toString() !== refCode) return;
+      posiciones[(r.voter_key || '').toString()] = (r.posicion || '').toString();
+    });
+  }
+  var votantesConPosicion = votantes.map(function(v) {
+    return { key: v.key, label: v.label, posicion: posiciones[v.key] || '' };
+  });
+  var esPlenaria = (propRecord.propuesta_estado || '').toString() === 'Plenaria';
+  return jsonOut_({ ok: true, votantes: votantesConPosicion, esPlenaria: esPlenaria, resultadoVotacion: propRecord.resultado_votacion || '' });
+}
+
+function handleSetConteoVoto_(sheet, headers, ss, data) {
+  var email = (data.email || '').toString().trim().toLowerCase();
+  var password = (data.password || '').toString();
+  var rowNum = findRowByColumn_(sheet, headers, 'email', email, true);
+  if (rowNum === -1) return jsonOut_({ ok: false });
+  var rowValues = sheet.getRange(rowNum, 1, 1, headers.length).getValues()[0];
+  var record = {};
+  headers.forEach(function(h, i) { record[h] = rowValues[i]; });
+  if ((record.password || '').toString() !== password) return jsonOut_({ ok: false });
+
+  var refCode = (data.refCode || '').toString();
+  var propRowNum = findRowByColumn_(sheet, headers, 'ref_code', refCode);
+  if (propRowNum === -1) return jsonOut_({ ok: false, error: 'not_found' });
+  var propValues = sheet.getRange(propRowNum, 1, 1, headers.length).getValues()[0];
+  var propRecord = {};
+  headers.forEach(function(h, i) { propRecord[h] = propValues[i]; });
+
+  var tipoEuromodelo = (record.tipo_euromodelo || 'Nacional').toString();
+  var ciudad = (record.ciudad || '').toString();
+  var comisionPropia = (record.comision_asignada || record.comision_opcion1 || '').toString();
+  var cargos = getMiCargoMesa_(ss, email, tipoEuromodelo, ciudad, comisionPropia);
+  if (!autorizacionMesaParaPropuesta_(propRecord, cargos, comisionPropia)) return jsonOut_({ ok: false, error: 'no_autorizado' });
+
+  var voterKey = (data.voterKey || '').toString();
+  var voterLabel = (data.voterLabel || '').toString();
+  var posicion = (data.posicion || '').toString();
+  if (!voterKey) return jsonOut_({ ok: false, error: 'voter_requerido' });
+  if (CONTEO_POSICIONES_.indexOf(posicion) === -1) return jsonOut_({ ok: false, error: 'posicion_invalida' });
+
+  var conteo = ensureConteoVotosSheet_(ss);
+  var lastRow = conteo.sheet.getLastRow();
+  var existingRow = -1;
+  if (lastRow >= 2) {
+    var values = conteo.sheet.getRange(2, 1, lastRow - 1, conteo.headers.length).getValues();
+    for (var i = 0; i < values.length; i++) {
+      var r = {};
+      conteo.headers.forEach(function(h, j) { r[h] = values[i][j]; });
+      if ((r.propuesta_ref_code || '').toString() === refCode && (r.voter_key || '').toString() === voterKey) { existingRow = i + 2; break; }
+    }
+  }
+  if (existingRow !== -1) {
+    var posIdx = conteo.headers.indexOf('posicion');
+    var cell = conteo.sheet.getRange(existingRow, posIdx + 1);
+    cell.setNumberFormat('@');
+    cell.setValue(posicion);
+  } else {
+    var row = conteo.headers.map(function(h) {
+      if (h === 'id') return 'CV-' + Math.random().toString(36).slice(2, 7).toUpperCase();
+      if (h === 'propuesta_ref_code') return refCode;
+      if (h === 'voter_key') return voterKey;
+      if (h === 'voter_label') return voterLabel;
+      if (h === 'posicion') return posicion;
+      if (h === 'enviado') return new Date().toISOString();
+      return '';
+    });
+    var targetRow = conteo.sheet.getLastRow() + 1;
+    var range = conteo.sheet.getRange(targetRow, 1, 1, row.length);
+    range.setNumberFormat('@');
+    range.setValues([row]);
+  }
+  return jsonOut_({ ok: true });
 }
 
 // ---------- Panel de administración: login individual de staff ----------
@@ -733,9 +1064,10 @@ function handleUpdateAssignment_(sheet, headers, ss, data) {
 }
 
 // ---------- Candidatos y votación de mesas directivas ----------
-// Pestaña "candidatos" aparte: el staff los carga desde el panel de admin (no hay postulación
-// pública automática todavía — mesas-postulacion.html sigue siendo solo informativo hasta que se
-// conecte). Un candidato es de 'Parlamento' (mesa plenaria de un bloque completo) o de 'Comision'
+// Pestaña "candidatos" aparte: el staff la carga a mano desde el panel de admin. Postularse
+// (pestaña "postulaciones_mesa", ver más arriba) no inscribe automáticamente en la votación — el
+// staff revisa las postulaciones y decide quién pasa a ser candidato real. Un candidato es de
+// 'Parlamento' (mesa plenaria de un bloque completo) o de 'Comision'
 // (mesa de una comisión puntual dentro de ese bloque); 'comision' queda en blanco para los de
 // Parlamento.
 //
@@ -746,7 +1078,11 @@ function handleUpdateAssignment_(sheet, headers, ss, data) {
 // Vicepresidente, 3º Secretario General; en comisión, 1º Presidente, 2º Secretario General (sin
 // vicepresidente). Por eso 'candidatos' ya no guarda un cargo al crearse — el cargo es un
 // resultado, no un dato de entrada.
-var CANDIDATOS_HEADERS_ = ['id', 'tipo_euromodelo', 'ciudad', 'ambito', 'comision', 'nombre', 'video_url', 'enviado'];
+// 'email' vincula al candidato con su propia cuenta de participante (fila en "preinscripciones")
+// — es lo que permite saber, cuando alguien inicia sesión, si esa persona ganó un cargo de mesa
+// directiva. El panel de admin lo completa solo, eligiendo al participante de una lista — nunca
+// se escribe a mano, para que siempre coincida con una cuenta real.
+var CANDIDATOS_HEADERS_ = ['id', 'tipo_euromodelo', 'ciudad', 'ambito', 'comision', 'email', 'nombre', 'video_url', 'enviado'];
 var CARGOS_PARLAMENTO_RANKING_ = ['Presidente', 'Vicepresidente', 'Secretario General'];
 var CARGOS_COMISION_RANKING_ = ['Presidente', 'Secretario General'];
 
@@ -784,6 +1120,8 @@ function handleAdminAddCandidato_(ss, data) {
   var ambito = (data.ambito || '').toString();
   if (ambito !== 'Parlamento' && ambito !== 'Comision') return jsonOut_({ ok: false, error: 'ambito_invalido' });
 
+  var email = (data.email || '').toString().trim().toLowerCase();
+  if (!email) return jsonOut_({ ok: false, error: 'email_requerido' });
   var nombre = (data.nombre || '').toString().trim();
   if (!nombre) return jsonOut_({ ok: false, error: 'nombre_requerido' });
 
@@ -798,6 +1136,7 @@ function handleAdminAddCandidato_(ss, data) {
     if (h === 'ciudad') return (data.ciudad || '').toString();
     if (h === 'ambito') return ambito;
     if (h === 'comision') return comision;
+    if (h === 'email') return email;
     if (h === 'nombre') return nombre;
     if (h === 'video_url') return (data.videoUrl || '').toString();
     if (h === 'enviado') return new Date().toISOString();
@@ -856,6 +1195,43 @@ function rankCandidatos_(candidatos, counts, ambito) {
   });
   withVotes.forEach(function(c, i) { c.cargoFinal = ranking[i] || ''; });
   return withVotes;
+}
+
+// Determina si un participante (por email) ganó un cargo de mesa directiva: cruza 'candidatos'
+// (por email) con el ranking de su propio pool, y solo cuenta si esa votación ya está cerrada
+// (mientras sigue abierta, nadie "es" nada todavía). Se usa tanto para mostrarle su cargo en el
+// área personal como para autorizar las acciones de mesa directiva (marcar resultado de una
+// propuesta, contar votos).
+function getMiCargoMesa_(ss, email, tipoEuromodelo, ciudad, comision) {
+  var result = { cargoParlamento: '', cargoComision: '' };
+  var cand = ensureCandidatosSheet_(ss);
+  var lastRow = cand.sheet.getLastRow();
+  if (lastRow < 2) return result;
+  var values = cand.sheet.getRange(2, 1, lastRow - 1, cand.headers.length).getValues();
+  var parlamentoCandidatos = [], comisionCandidatos = [];
+  values.forEach(function(row) {
+    var r = {};
+    cand.headers.forEach(function(h, i) { r[h] = row[i]; });
+    if ((r.tipo_euromodelo || 'Nacional').toString() !== tipoEuromodelo) return;
+    if (tipoEuromodelo === 'Regional' && (r.ciudad || '').toString() !== ciudad) return;
+    var ambito = (r.ambito || '').toString();
+    if (ambito === 'Parlamento') parlamentoCandidatos.push(r);
+    else if (ambito === 'Comision' && comision && (r.comision || '').toString() === comision) comisionCandidatos.push(r);
+  });
+
+  if (parlamentoCandidatos.length && isVotacionCerrada_(tipoEuromodelo, ciudad, 'Parlamento', '')) {
+    var countsP = tallyVotos_(ss, tipoEuromodelo, ciudad, 'Parlamento', '');
+    var rankedP = rankCandidatos_(parlamentoCandidatos, countsP, 'Parlamento');
+    var mineP = rankedP.filter(function(c) { return (c.email || '').toString().trim().toLowerCase() === email; })[0];
+    if (mineP && mineP.cargoFinal) result.cargoParlamento = mineP.cargoFinal;
+  }
+  if (comisionCandidatos.length && comision && isVotacionCerrada_(tipoEuromodelo, ciudad, 'Comision', comision)) {
+    var countsC = tallyVotos_(ss, tipoEuromodelo, ciudad, 'Comision', comision);
+    var rankedC = rankCandidatos_(comisionCandidatos, countsC, 'Comision');
+    var mineC = rankedC.filter(function(c) { return (c.email || '').toString().trim().toLowerCase() === email; })[0];
+    if (mineC && mineC.cargoFinal) result.cargoComision = mineC.cargoFinal;
+  }
+  return result;
 }
 
 function handleAdminSetVotacionCerrada_(ss, data) {
@@ -1073,12 +1449,14 @@ function handleListCandidatos_(sheet, headers, ss, data) {
 
   var parlamentoPool = buildPool('Parlamento', '', parlamentoCandidatos);
   var comisionPool = comision ? buildPool('Comision', comision, comisionCandidatosRaw) : { candidatos: [], cerrada: false, yaVoto: false };
+  var cargos = getMiCargoMesa_(ss, email, tipoEuromodelo, ciudad, comision);
 
   return jsonOut_({
     ok: true,
     parlamento: parlamentoPool.candidatos, parlamentoCerrada: parlamentoPool.cerrada, parlamentoYaVoto: parlamentoPool.yaVoto,
     comision: comisionPool.candidatos, comisionCerrada: comisionPool.cerrada, comisionYaVoto: comisionPool.yaVoto,
     comisionNombre: comision,
+    cargoParlamento: cargos.cargoParlamento, cargoComision: cargos.cargoComision,
   });
 }
 
@@ -1493,6 +1871,13 @@ function doPost(e) {
   if (data.form === 'admin_list_candidatos') return handleAdminListCandidatos_(ss, data);
   if (data.form === 'vote_candidato') return handleVoteCandidato_(sheet, headers, ss, data);
   if (data.form === 'admin_set_votacion_cerrada') return handleAdminSetVotacionCerrada_(ss, data);
+  if (data.form === 'postular_mesa') return handlePostularMesa_(sheet, headers, ss, data);
+  if (data.form === 'admin_list_postulaciones_mesa') return handleAdminListPostulacionesMesa_(ss, data);
+  if (data.form === 'admin_delete_postulacion_mesa') return handleAdminDeletePostulacionMesa_(ss, data);
+  if (data.form === 'list_mesa_propuestas') return handleListPropuestasParaOficial_(sheet, headers, ss, data);
+  if (data.form === 'set_resultado_votacion') return handleSetResultadoVotacion_(sheet, headers, ss, data);
+  if (data.form === 'list_conteo_votantes') return handleListConteoVotantes_(sheet, headers, ss, data);
+  if (data.form === 'set_conteo_voto') return handleSetConteoVoto_(sheet, headers, ss, data);
 
   var isPre = data.form === 'preinscripcion';
 
