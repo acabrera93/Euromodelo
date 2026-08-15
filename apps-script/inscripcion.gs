@@ -32,7 +32,7 @@ var FIELD_LABELS_ = {
   partido: 'Partido político',
   resultado_brujula: 'Resultado Brújula Legislativa',
   resultado_brujula_comision: 'Resultado Brújula de Comisión',
-  resultado_brujula_partido: 'Resultado Match Europeo',
+  resultado_brujula_partido: 'Resultado Brújula de Partido Político',
   autoriza_datos: 'Autoriza tratamiento de datos',
   es_menor: 'Es menor de edad',
   autoriza_imagen: 'Autoriza derechos de imagen',

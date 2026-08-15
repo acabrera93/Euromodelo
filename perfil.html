@@ -193,11 +193,11 @@
           <p class="field-warning" id="comisionWarning">Esa comisión ya fue seleccionada — se descartó automáticamente. Elige una diferente.</p>
 
           <div class="section-head" style="margin:var(--space-3) 0 var(--space-2);">
-            <h3 style="font-size:15px; color:var(--navy-deep); font-family:'Fraunces',serif;">Match Europeo</h3>
+            <h3 style="font-size:15px; color:var(--navy-deep); font-family:'Fraunces',serif;">Brújula de Partido Político</h3>
             <p style="font-size:13px;">Completa este test de 10 preguntas antes de elegir tu bancada. Es obligatorio para enviar tu inscripción.</p>
           </div>
           <div class="field full" style="margin-bottom:var(--space-3);">
-            <button type="button" class="btn-solid" id="openPartidoInsQuizBtn" style="background:var(--navy-deep); color:var(--white);">&#128153; Hacer el Match Europeo</button>
+            <button type="button" class="btn-solid" id="openPartidoInsQuizBtn" style="background:var(--navy-deep); color:var(--white);">&#129517; Hacer la Brújula de Partido Político</button>
             <p id="partidoBrujulaResultText" style="font-size:13px; color:var(--teal); font-weight:600; margin-top:10px; display:none;">&#10003; Tu resultado: <span id="partidoBrujulaResultValue"></span> · <a href="#" id="retakePartidoInsQuizLink">Volver a hacer el test</a></p>
             <input type="hidden" name="resultadoBrujulaPartido" id="resultadoBrujulaPartido" required>
           </div>
@@ -250,7 +250,7 @@
             <div class="card-foot"><a href="#" id="retakeComisionLinkProfile" class="link-btn">Volver a hacer el test &rarr;</a></div>
           </div>
           <div class="card">
-            <h3>Match Europeo</h3>
+            <h3>Brújula de Partido Político</h3>
             <p id="pfBrujulaPartido" style="font-weight:600; color:var(--blue-revel);"></p>
             <div class="card-foot"><a href="#" id="retakePartidoLinkProfile" class="link-btn">Volver a hacer el test &rarr;</a></div>
           </div>
@@ -496,7 +496,7 @@
     return pickQuizWinner(tally);
   }
 
-  /* ---- Match Europeo (test de afinidad con partidos) ---- */
+  /* ---- Brújula de Partido Político (test de afinidad con partidos) ---- */
   const partidoQuizQuestions = [
     { q:'Para reactivar la economía juvenil, tú apostarías por...', options:[
       {label:'Incentivos fiscales para que las empresas contraten jóvenes', value:'PPE'},
@@ -730,8 +730,8 @@
     function startPartidoInsQuiz() {
       initQuiz({
         modalId: 'quizModal',
-        emoji: '&#128153;',
-        title: 'Match Europeo',
+        emoji: '&#129517;',
+        title: 'Brújula de Partido Político',
         intro: 'No hay respuestas correctas ni incorrectas, responde con lo primero que te identifique.',
         questions: partidoQuizQuestions,
         shuffleQuestions: true,
@@ -744,7 +744,7 @@
           body.innerHTML = `
             <div class="quiz-result">
               <div class="result-icon" style="background:${p.color}">${p.code}</div>
-              <h3>¡Tu Match Europeo es: ${p.title}!</h3>
+              <h3>¡Tu Brújula de Partido Político es: ${p.title}!</h3>
               <p>${p.desc}</p>
               <button class="btn-primary" id="partidoQuizContinueBtn" type="button">Continuar con mi inscripción</button><br>
               <button class="quiz-restart" id="partidoQuizRestartBtn">Volver a intentar</button>
@@ -783,7 +783,7 @@
       };
       if (!form.checkValidity() || !data.rol1 || !data.rol2 || data.rol1 === data.rol2 || !data.comision1 || !data.comision2 || !data.comision3 || !data.partido || !data.resultadoBrujula || !data.resultadoBrujulaComision || !data.resultadoBrujulaPartido) {
         form.reportValidity();
-        alert('Completa tus dos opciones de rol (diferentes entre sí), las tres opciones de comisión, tu partido, y las tres Brújulas (Legislativa, de Comisión y Match Europeo) antes de enviar.');
+        alert('Completa tus dos opciones de rol (diferentes entre sí), las tres opciones de comisión, tu partido, y las tres Brújulas (Legislativa, de Comisión y de Partido Político) antes de enviar.');
         return;
       }
       const code = user.refCode || refCode('INSC');
@@ -1236,8 +1236,8 @@
     function startPartidoProfileQuiz() {
       initQuiz({
         modalId: 'quizModal',
-        emoji: '&#128153;',
-        title: 'Match Europeo',
+        emoji: '&#129517;',
+        title: 'Brújula de Partido Político',
         intro: 'No hay respuestas correctas ni incorrectas, responde con lo primero que te identifique.',
         questions: partidoQuizQuestions,
         shuffleQuestions: true,
@@ -1250,7 +1250,7 @@
           body.innerHTML = `
             <div class="quiz-result">
               <div class="result-icon" style="background:${p.color}">${p.code}</div>
-              <h3>¡Tu nuevo Match Europeo es: ${p.title}!</h3>
+              <h3>¡Tu nueva Brújula de Partido Político es: ${p.title}!</h3>
               <p>${p.desc}</p>
               <button class="btn-primary" id="partidoQuizCloseBtn2" type="button">Cerrar</button><br>
               <button class="quiz-restart" id="partidoQuizRestartBtn2">Volver a intentar</button>

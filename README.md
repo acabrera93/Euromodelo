@@ -11,7 +11,7 @@ campus.html                 Campus Euromodelo - Capacitaciones
 mentes.html                 Grandes Mentes
 roles.html                  Roles (incluye test "Brújula Legislativa")
 comisiones.html             Comisiones (7)
-partidos.html                Partidos Políticos (hemiciclo + test "Match Europeo")
+partidos.html                Partidos Políticos (hemiciclo + test "Brújula de Partido Político")
 mesas-postulacion.html      Postulación a Mesas Directivas
 galeria.html                Galería "20 Años, Mil Historias"
 preinscripcion.html         Formulario de preinscripción (genera usuario/contraseña)
@@ -70,7 +70,7 @@ Esto significa que:
 - `renderDetailModal(controller, item)` — renderiza el modal de detalle genérico
   (roles, comisiones, partidos, mesas).
 - `initQuiz(config)` — motor genérico de tests de selección múltiple (usado por "Brújula
-  Legislativa" y "Match Europeo").
+  Legislativa" y "Brújula de Partido Político").
 - `buildHemiciclo(containerId, parties, onDotClick)` — genera el hemiciclo SVG interactivo.
 - `createUser`, `loginUser`, `logoutUser`, `currentUserData`, `saveInscripcion` — sistema de
   autenticación piloto basado en localStorage.
