@@ -336,9 +336,7 @@
             </ul>
           </div>
 
-          <div class="field full">
-            <label class="checkline"><input required type="checkbox" id="pfPostDisponible"> Estoy disponible para asistir a la capacitación previa obligatoria de mesas directivas.</label>
-          </div>
+          <p style="font-size:13px; color:var(--navy-deep); font-weight:600; margin:0 0 var(--space-2);">Al postularte, confirmas tu disponibilidad para asistir a la capacitación previa obligatoria de mesas directivas.</p>
           <p id="pfPostError" style="display:none; color:#C0392B; font-size:13px; margin:8px 0 0;"></p>
           <div class="form-submit-row">
             <span class="form-note">Las postulaciones son evaluadas por el staff del Euromodelo Joven antes de convertirte en candidato/a de la votación.</span>
@@ -1566,11 +1564,10 @@
       const necesitaComision = tipoPostulacion === 'Comision' || tipoPostulacion === 'Ambos';
       const videoUrlParlamento = document.getElementById('pfPostVideoUrlParlamento').value.trim();
       const videoUrlComision = document.getElementById('pfPostVideoUrlComision').value.trim();
-      const disponible = document.getElementById('pfPostDisponible').checked;
-      if (!tipoPostulacion || !dominio || !experiencia || !motivacion || !disponible
+      if (!tipoPostulacion || !dominio || !experiencia || !motivacion
         || (necesitaParlamento && !videoUrlParlamento)
         || (necesitaComision && !videoUrlComision)) {
-        errEl.textContent = 'Completa todos los campos — incluido un video por cada mesa a la que te postulas — y confirma tu disponibilidad para la capacitación.';
+        errEl.textContent = 'Completa todos los campos — incluido un video por cada mesa a la que te postulas.';
         errEl.style.display = 'block';
         return;
       }
@@ -1582,7 +1579,7 @@
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify({
             form: 'postular_mesa', email: currentProfileUser.username, password: currentProfileUser.password,
-            dominio, experiencia, motivacion, tipoPostulacion, videoUrlParlamento, videoUrlComision, disponibleCapacitacion: disponible,
+            dominio, experiencia, motivacion, tipoPostulacion, videoUrlParlamento, videoUrlComision, disponibleCapacitacion: true,
           }),
         });
         const result = await res.json();
