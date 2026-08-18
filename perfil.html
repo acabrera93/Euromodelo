@@ -239,7 +239,10 @@
           <div class="card">
             <h3 id="pfPartidoTitle">Bancada de preferencia</h3>
             <span class="origen-badge sin-asignar" id="pfPartidoPendiente" style="display:none; margin-bottom:8px;">Pendiente de asignar</span>
-            <p id="pfPartido" style="font-weight:600; color:var(--blue-revel);"></p>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <img id="pfPartidoLogo" onerror="this.style.display='none';" style="display:none; width:36px; height:36px; object-fit:contain; border-radius:6px; flex-shrink:0;">
+              <p id="pfPartido" style="font-weight:600; color:var(--blue-revel); margin:0;"></p>
+            </div>
           </div>
         </div>
       </div>
@@ -1071,14 +1074,27 @@
             `<li>Opción 1: ${ins.comision1}</li><li>Opción 2: ${ins.comision2}</li><li>Opción 3: ${ins.comision3}</li>`;
         }
 
+        function setPartidoDisplay(partidoTitle) {
+          document.getElementById('pfPartido').textContent = partidoTitle;
+          const logoEl = document.getElementById('pfPartidoLogo');
+          const match = PARTIDOS.find(p => p.title === partidoTitle);
+          if (match) {
+            logoEl.src = match.logo;
+            logoEl.alt = match.code;
+            logoEl.style.display = 'block';
+          } else {
+            logoEl.style.display = 'none';
+          }
+        }
+
         if (u.partidoAsignado) {
           document.getElementById('pfPartidoTitle').textContent = 'Bancada asignada';
           document.getElementById('pfPartidoPendiente').style.display = 'none';
-          document.getElementById('pfPartido').textContent = u.partidoAsignado;
+          setPartidoDisplay(u.partidoAsignado);
         } else {
           document.getElementById('pfPartidoTitle').textContent = 'Bancada de preferencia';
           document.getElementById('pfPartidoPendiente').style.display = 'inline-block';
-          document.getElementById('pfPartido').textContent = ins.partido;
+          setPartidoDisplay(ins.partido);
         }
       } else {
         document.getElementById('pfInscripcionData').style.display = 'none';
