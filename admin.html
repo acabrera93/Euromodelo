@@ -428,9 +428,11 @@
     const pdfCell = r._mock ? '<span style="color:#8695AC;">PDF de prueba</span>' : `<a href="${r.propuesta_url}" target="_blank">Ver PDF</a>`;
     const actionsCell = r._mock
       ? '<span style="font-size:12px; color:#8695AC;">Solo vista previa</span>'
-      : `<button class="admin-row-btn" data-action="guardar-comentario">Guardar</button>
-        <button class="admin-row-btn save" data-action="aprobar">Aprobar</button>
-        <button class="admin-row-btn save" data-action="plenaria">Enviar a Plenaria</button>`;
+      : `<div class="admin-row-actions">
+          <button class="admin-row-btn" data-action="guardar-comentario">Guardar</button>
+          <button class="admin-row-btn save" data-action="aprobar">Aprobar</button>
+          <button class="admin-row-btn plenaria" data-action="plenaria">Enviar a Plenaria</button>
+        </div>`;
     return `<tr data-ref-code="${r.ref_code || ''}">
       <td>${r.nombre_completo || ''}${mockTag}</td>
       <td>${r.comision_asignada || ''}</td>
