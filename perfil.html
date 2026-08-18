@@ -1638,7 +1638,9 @@
           .then(result => {
             if (!result || !result.ok) {
               clearButtonLoading(uploadBtn);
-              errEl.textContent = 'No se pudo subir la propuesta. Intenta de nuevo.';
+              errEl.textContent = result && result.message
+                ? 'No se pudo subir la propuesta: ' + result.message
+                : 'No se pudo subir la propuesta. Intenta de nuevo.';
               errEl.style.display = 'block';
               return;
             }

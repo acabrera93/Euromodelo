@@ -485,10 +485,21 @@ function handleUploadPropuesta_(sheet, headers, data) {
 
   var fileName = 'Propuesta - ' + (record.nombre_completo || email) + ' (' + (record.ref_code || '') + ').pdf';
   var blob = Utilities.newBlob(bytes, 'application/pdf', fileName);
-  var folder = resolvePropuestaFolder_(record);
-  var file = folder.createFile(blob);
-  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-  var url = file.getUrl();
+  // Todo lo que toca Drive va en su propio try/catch: si algo falla acá (p.ej. una política del
+  // dominio de Workspace que bloquea compartir "cualquiera con el enlace", o un problema de cuota),
+  // sin este bloque la excepción se escapa sin control y Apps Script sirve una página de error de
+  // Google en vez del JSON esperado — esa página no trae cabeceras CORS, así que el navegador lo
+  // reporta como un bloqueo de CORS en vez de mostrar el error real. Atrapándolo acá, el mensaje
+  // real (err.message) llega al frontend y se puede ver en la consola sin entrar a Apps Script.
+  var url;
+  try {
+    var folder = resolvePropuestaFolder_(record);
+    var file = folder.createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    url = file.getUrl();
+  } catch (err) {
+    return jsonOut_({ ok: false, error: 'drive_error', message: err && err.message ? err.message : String(err) });
+  }
 
   ['propuesta_url', 'propuesta_estado', 'propuesta_comentario'].forEach(function(field) {
     var colIdx = headers.indexOf(field);
