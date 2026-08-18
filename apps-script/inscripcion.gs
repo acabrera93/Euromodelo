@@ -417,6 +417,17 @@ function handleListStudents_(sheet, headers, data) {
 var PROPUESTAS_FOLDER_NAME_ = 'Propuestas Euromodelo Joven 2026';
 var PROPUESTA_MAX_BYTES_ = 8 * 1024 * 1024; // ~8MB, de sobra para un PDF de propuesta
 
+// Ejecutar UNA VEZ manualmente desde el editor (▶ Ejecutar, con esta función seleccionada en el
+// desplegable de arriba) para que Google muestre la pantalla de consentimiento de permisos y el
+// dueño del script autorice el alcance de Drive (DriveApp.getFoldersByName exige explícitamente
+// drive o drive.readonly, que create/setSharing por sí solos no habían pedido todavía). Después de
+// autorizar, hace falta una implementación nueva para que el Web App en producción quede con el
+// permiso. Se puede borrar esta función una vez confirmado que las propuestas se suben bien.
+function autorizarDrive_() {
+  var folder = DriveApp.getFoldersByName(PROPUESTAS_FOLDER_NAME_);
+  Logger.log(folder.hasNext() ? 'Carpeta encontrada: ' + folder.next().getUrl() : 'Carpeta no existe todavía (se creará sola en la primera subida).');
+}
+
 function findOrCreateFolder_(name) {
   var folders = DriveApp.getFoldersByName(name);
   if (folders.hasNext()) return folders.next();
