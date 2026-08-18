@@ -178,28 +178,54 @@
       </div>
 
       <div class="admin-tab-panel" id="tab-candidatos" style="display:none;">
-        <div class="section-head"><h2 style="font-size:20px;">Postulaciones a mesa directiva</h2><p>Enviadas por los participantes desde su área personal. Revisa y, si decides incluirlos en la votación, agrégalos abajo como candidato eligiéndolos en el selector de participante.</p></div>
-        <div class="sim-table-wrap" style="margin-bottom:var(--space-5);">
-          <table class="sim-table">
-            <thead><tr><th>Nombre</th><th>Colegio</th><th>Dominio</th><th>Se postula a</th><th>Experiencia / Motivación</th><th>Video(s)</th><th></th></tr></thead>
-            <tbody id="postulacionesMesaTableBody"></tbody>
-          </table>
-        </div>
-        <p id="postulacionesMesaEmpty" style="display:none; font-size:13.5px; color:var(--blue-slate); margin-top:-8px; margin-bottom:var(--space-5);">Aún no hay postulaciones para este bloque.</p>
-
-        <div class="form-card" style="margin-bottom:var(--space-5);">
-          <div class="section-head" style="margin-bottom:var(--space-2);">
-            <h3 style="font-size:16px; color:var(--navy-deep); font-family:'Fraunces',serif;">Agregar candidato</h3>
-            <p style="font-size:13px;">Se agrega al bloque activo de arriba (Nacional o la sede Regional seleccionada). Los candidatos no eligen cargo: todos compiten juntos por el Parlamento (o por su comisión) en una sola votación, y el cargo se asigna solo según el ranking de votos al cerrarla. El nombre y correo se toman del participante elegido — así el candidato siempre queda vinculado a una cuenta real.</p>
+        <div class="stat-strip" style="margin:0 0 var(--space-5); border-radius:var(--radius); overflow:hidden;">
+          <div class="container" style="max-width:none; padding-left:0; padding-right:0;">
+            <div class="stat"><div class="n" id="statCandPostulaciones">0</div><div class="l">Postulaciones por revisar</div></div>
+            <div class="stat"><div class="n" id="statCandTotal">0</div><div class="l">Candidatos agregados a la votación</div></div>
+            <div class="stat"><div class="n" id="statCandParlamentoEstado">—</div><div class="l">Votación del Parlamento Europeo</div></div>
+            <div class="stat"><div class="n" id="statCandComisionesAbiertas">—</div><div class="l">Comisiones con votación abierta</div></div>
           </div>
-          <div class="admin-filters">
-            <select id="candAmbito">
-              <option value="Parlamento">Mesa del Parlamento Europeo</option>
-              <option value="Comision">Mesa de una comisión</option>
-            </select>
-            <select id="candComision" style="display:none;"></select>
-            <select id="candParticipante"><option value="">Selecciona un participante</option></select>
-            <input type="text" id="candVideoUrl" placeholder="Enlace al video (opcional)">
+        </div>
+
+        <div class="card accent" style="--accent:var(--gold-star); margin-bottom:var(--space-5);">
+          <div class="section-head" style="margin-bottom:var(--space-3);">
+            <h2 style="font-size:19px;">① Revisa las postulaciones</h2>
+            <p>Enviadas por los participantes desde su área personal. Decide a quién agregar como candidato real en el paso ②, eligiéndolo ahí del selector de participante.</p>
+          </div>
+          <div class="sim-table-wrap">
+            <table class="sim-table">
+              <thead><tr><th>Nombre</th><th>Colegio</th><th>Dominio</th><th>Se postula a</th><th>Experiencia / Motivación</th><th>Video(s)</th><th></th></tr></thead>
+              <tbody id="postulacionesMesaTableBody"></tbody>
+            </table>
+          </div>
+          <p id="postulacionesMesaEmpty" style="display:none; font-size:13.5px; color:var(--blue-slate); margin:var(--space-2) 0 0;">Aún no hay postulaciones para este bloque.</p>
+        </div>
+
+        <div class="card accent" style="--accent:var(--teal); margin-bottom:var(--space-5);">
+          <div class="section-head" style="margin-bottom:var(--space-2);">
+            <h2 style="font-size:19px;">② Agrega el candidato a la votación</h2>
+            <p style="font-size:13.5px;">Se agrega al bloque activo de arriba (Nacional o la sede Regional seleccionada). Nadie elige cargo al agregarse: todos compiten juntos por el Parlamento (o por su comisión) en una sola votación, y el cargo sale solo del ranking de votos al cerrarla.</p>
+          </div>
+          <div class="form-grid">
+            <div class="field">
+              <label>¿A qué mesa se postula?</label>
+              <select id="candAmbito">
+                <option value="Parlamento">Mesa del Parlamento Europeo</option>
+                <option value="Comision">Mesa de una comisión</option>
+              </select>
+            </div>
+            <div class="field" id="candComisionField" style="display:none;">
+              <label>Comisión</label>
+              <select id="candComision"></select>
+            </div>
+            <div class="field">
+              <label>Participante <span class="hint">(el nombre y correo del candidato salen de aquí — nunca se escriben a mano)</span></label>
+              <select id="candParticipante"><option value="">Selecciona un participante</option></select>
+            </div>
+            <div class="field">
+              <label>Video de presentación <span class="hint">(opcional)</span></label>
+              <input type="text" id="candVideoUrl" placeholder="Enlace al video">
+            </div>
           </div>
           <div class="form-submit-row" style="justify-content:flex-start;">
             <button class="btn-primary" id="candAddBtn" type="button">Agregar candidato</button>
@@ -207,38 +233,46 @@
           <p id="candError" style="display:none; color:#C0392B; font-size:13px; margin-top:8px;"></p>
         </div>
 
-        <div class="form-card" style="margin-bottom:var(--space-3); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
-          <div>
-            <h3 style="font-size:15px; color:var(--navy-deep); font-family:'Fraunces',serif; margin:0 0 4px;">Votación — Mesa del Parlamento Europeo</h3>
-            <p id="candParlamentoEstado" style="font-size:13px; margin:0; color:#54637C;">—</p>
-          </div>
-          <button class="btn-ghost" id="candParlamentoToggleBtn" type="button" style="border-color:var(--blue-slate); color:var(--blue-revel);">—</button>
-        </div>
-        <div class="sim-table-wrap" style="margin-bottom:var(--space-5);">
-          <table class="sim-table">
-            <thead><tr><th>Nombre</th><th>Votos</th><th>Cargo</th><th>Video</th><th></th></tr></thead>
-            <tbody id="candParlamentoTableBody"></tbody>
-          </table>
+        <div class="section-head" style="margin-bottom:var(--space-3);">
+          <h2 style="font-size:19px;">③ Administra la votación y los resultados</h2>
+          <p style="font-size:13.5px;">Mientras una votación esté abierta, los participantes pueden emitir su voto. Ciérrala cuando corresponda para que el cargo de cada candidato quede definido según los votos.</p>
         </div>
 
-        <div class="form-card" style="margin-bottom:var(--space-3); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
-          <div>
-            <h3 style="font-size:15px; color:var(--navy-deep); font-family:'Fraunces',serif; margin:0 0 4px;">Votación por comisión</h3>
-            <p id="candComisionVotacionEstado" style="font-size:13px; margin:0; color:#54637C;">—</p>
+        <div class="card accent" style="--accent:var(--gold-star); margin-bottom:var(--space-5);">
+          <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:var(--space-3);">
+            <div>
+              <h3 style="font-size:15px; color:var(--navy-deep); font-family:'Fraunces',serif; margin:0 0 4px;">🏛️ Mesa del Parlamento Europeo</h3>
+              <p id="candParlamentoEstado" style="font-size:13px; margin:0; color:#54637C;">—</p>
+            </div>
+            <button class="btn-ghost" id="candParlamentoToggleBtn" type="button" style="border-color:var(--blue-slate); color:var(--blue-revel);">—</button>
           </div>
-          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-            <select id="candComisionVotacionSelect"></select>
-            <button class="btn-ghost" id="candComisionToggleBtn" type="button" style="border-color:var(--blue-slate); color:var(--blue-revel);">—</button>
+          <div class="sim-table-wrap">
+            <table class="sim-table">
+              <thead><tr><th>Nombre</th><th>Votos</th><th>Cargo</th><th>Video</th><th></th></tr></thead>
+              <tbody id="candParlamentoTableBody"></tbody>
+            </table>
           </div>
         </div>
-        <div class="section-head"><h2 style="font-size:20px;">Mesas por comisión</h2></div>
-        <div class="sim-table-wrap">
-          <table class="sim-table">
-            <thead><tr><th>Comisión</th><th>Nombre</th><th>Votos</th><th>Cargo</th><th>Video</th><th></th></tr></thead>
-            <tbody id="candComisionTableBody"></tbody>
-          </table>
+
+        <div class="card accent" style="--accent:var(--blue-slate);">
+          <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:var(--space-3);">
+            <div>
+              <h3 style="font-size:15px; color:var(--navy-deep); font-family:'Fraunces',serif; margin:0 0 4px;">🏢 Mesas por comisión</h3>
+              <p id="candComisionVotacionEstado" style="font-size:13px; margin:0; color:#54637C;">—</p>
+            </div>
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+              <select id="candComisionVotacionSelect"></select>
+              <button class="btn-ghost" id="candComisionToggleBtn" type="button" style="border-color:var(--blue-slate); color:var(--blue-revel);">—</button>
+            </div>
+          </div>
+          <div class="sim-table-wrap">
+            <table class="sim-table">
+              <thead><tr><th>Comisión</th><th>Nombre</th><th>Votos</th><th>Cargo</th><th>Video</th><th></th></tr></thead>
+              <tbody id="candComisionTableBody"></tbody>
+            </table>
+          </div>
+          <p id="candEmpty" style="display:none; font-size:13.5px; color:var(--blue-slate); margin:var(--space-2) 0 0;">Aún no hay candidatos cargados para este bloque.</p>
         </div>
-        <p id="candEmpty" style="display:none; font-size:13.5px; color:var(--blue-slate); margin-top:var(--space-2);">Aún no hay candidatos cargados para este bloque.</p>
       </div>
     </div>
 
@@ -685,7 +719,7 @@
   function populateCandidatoForm() {
     const ambito = document.getElementById('candAmbito').value;
     const comisionSelect = document.getElementById('candComision');
-    comisionSelect.style.display = ambito === 'Comision' ? '' : 'none';
+    document.getElementById('candComisionField').style.display = ambito === 'Comision' ? '' : 'none';
     if (ambito === 'Comision' && !comisionSelect.innerHTML) {
       comisionSelect.innerHTML = COMISIONES.map(c => `<option value="${c}">${c}</option>`).join('');
     }
@@ -737,6 +771,16 @@
     document.getElementById('candParlamentoToggleBtn').textContent = pCerrada ? 'Reabrir votación' : 'Cerrar votación';
 
     updateComisionVotacionUI();
+    renderCandStats();
+  }
+
+  function renderCandStats() {
+    document.getElementById('statCandTotal').textContent = allCandidatos.length;
+    document.getElementById('statCandParlamentoEstado').textContent = candidatosPools.parlamento.cerrada ? 'Cerrada' : 'Abierta';
+    const comisionesConCandidatos = Object.keys(candidatosPools.comisiones || {});
+    const comisionesAbiertas = comisionesConCandidatos.filter(c => !candidatosPools.comisiones[c].cerrada).length;
+    document.getElementById('statCandComisionesAbiertas').textContent = comisionesConCandidatos.length
+      ? `${comisionesAbiertas} / ${comisionesConCandidatos.length}` : '—';
   }
 
   async function loadCandidatos() {
@@ -774,6 +818,7 @@
     const postulaciones = result.postulaciones || [];
     document.getElementById('postulacionesMesaTableBody').innerHTML = postulaciones.map(postulacionRowHtml).join('');
     document.getElementById('postulacionesMesaEmpty').style.display = postulaciones.length === 0 ? 'block' : 'none';
+    document.getElementById('statCandPostulaciones').textContent = postulaciones.length;
   }
 
   document.getElementById('postulacionesMesaTableBody').addEventListener('click', async (e) => {
