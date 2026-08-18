@@ -525,3 +525,41 @@ textarea.propuesta-comentario{
   width:100%; min-height:50px; border:1px solid var(--line); border-radius:8px; padding:6px 8px;
   font-size:12.5px; font-family:inherit; resize:vertical;
 }
+
+/* ---- Candidatos de mesa: grid de resultados (Plenaria vs Comisiones) ---- */
+.cand-results-grid{
+  display:grid; grid-template-columns:1fr 1fr; gap:var(--space-3); align-items:start;
+}
+.cand-result-card{gap:var(--space-2);}
+.cand-result-head{
+  display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap;
+  border-bottom:1px solid var(--line); padding-bottom:14px; margin-bottom:4px;
+}
+.cand-result-title{display:flex; align-items:center; gap:12px;}
+.cand-result-icon{
+  width:42px; height:42px; border-radius:10px; background:var(--blue-pale);
+  display:flex; align-items:center; justify-content:center; font-size:19px; flex-shrink:0;
+}
+.cand-result-title h3{font-family:'Fraunces',serif; font-size:15.5px; color:var(--navy-deep); margin:0 0 4px; font-weight:600;}
+.cand-status-badge{
+  display:inline-block; font-size:11.5px; font-weight:600; color:#5A6B85; background:var(--blue-pale);
+  padding:3px 10px; border-radius:20px; margin:0; line-height:1.4;
+}
+.cand-status-badge.is-open{color:#1B6E52; background:#E3F3EC;}
+.cand-status-badge.is-closed{color:#8695AC; background:#EDF1F6;}
+.cand-toggle-btn{
+  border-color:var(--blue-slate); color:var(--blue-revel); font-size:12.5px; padding:8px 14px; white-space:nowrap;
+}
+
+/* Tablas de ranking: medalla en la primera celda de las 3 primeras filas */
+.cand-rank-table tbody tr{transition:background .12s;}
+.cand-rank-table tbody tr:hover{background:var(--blue-pale);}
+.cand-rank-table tbody tr td:first-child{width:26px; text-align:center; font-size:15px;}
+.cand-rank-table tbody tr:nth-child(1) td:first-child::before{content:'🥇';}
+.cand-rank-table tbody tr:nth-child(2) td:first-child::before{content:'🥈';}
+.cand-rank-table tbody tr:nth-child(3) td:first-child::before{content:'🥉';}
+.cand-rank-table tbody tr:nth-child(1){background:rgba(201,162,39,.07);}
+
+@media (max-width:900px){
+  .cand-results-grid{grid-template-columns:1fr;}
+}

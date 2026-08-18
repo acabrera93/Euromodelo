@@ -238,41 +238,49 @@
           <p style="font-size:13.5px;">Mientras una votación esté abierta, los participantes pueden emitir su voto. Ciérrala cuando corresponda para que el cargo de cada candidato quede definido según los votos.</p>
         </div>
 
-        <div class="card accent" style="--accent:var(--gold-star); margin-bottom:var(--space-5);">
-          <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:var(--space-3);">
-            <div>
-              <h3 style="font-size:15px; color:var(--navy-deep); font-family:'Fraunces',serif; margin:0 0 4px;">🏛️ Mesa del Parlamento Europeo</h3>
-              <p id="candParlamentoEstado" style="font-size:13px; margin:0; color:#54637C;">—</p>
+        <div class="cand-results-grid">
+          <div class="card accent cand-result-card" style="--accent:var(--gold-star);">
+            <div class="cand-result-head">
+              <div class="cand-result-title">
+                <div class="cand-result-icon">🏛️</div>
+                <div>
+                  <h3>Mesa del Parlamento Europeo</h3>
+                  <span id="candParlamentoEstado" class="cand-status-badge">—</span>
+                </div>
+              </div>
+              <button class="btn-ghost cand-toggle-btn" id="candParlamentoToggleBtn" type="button">—</button>
             </div>
-            <button class="btn-ghost" id="candParlamentoToggleBtn" type="button" style="border-color:var(--blue-slate); color:var(--blue-revel);">—</button>
+            <div class="sim-table-wrap">
+              <table class="sim-table cand-rank-table">
+                <thead><tr><th></th><th>Nombre</th><th>Votos</th><th>Cargo</th><th>Video</th><th></th></tr></thead>
+                <tbody id="candParlamentoTableBody"></tbody>
+              </table>
+            </div>
           </div>
-          <div class="sim-table-wrap">
-            <table class="sim-table">
-              <thead><tr><th>Nombre</th><th>Votos</th><th>Cargo</th><th>Video</th><th></th></tr></thead>
-              <tbody id="candParlamentoTableBody"></tbody>
-            </table>
-          </div>
-        </div>
 
-        <div class="card accent" style="--accent:var(--blue-slate);">
-          <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:var(--space-3);">
-            <div>
-              <h3 style="font-size:15px; color:var(--navy-deep); font-family:'Fraunces',serif; margin:0 0 4px;">🏢 Mesas por comisión</h3>
-              <p id="candComisionVotacionEstado" style="font-size:13px; margin:0; color:#54637C;">—</p>
+          <div class="card accent cand-result-card" style="--accent:var(--blue-slate);">
+            <div class="cand-result-head">
+              <div class="cand-result-title">
+                <div class="cand-result-icon">🏢</div>
+                <div>
+                  <h3>Mesas por comisión</h3>
+                  <span id="candComisionVotacionEstado" class="cand-status-badge">—</span>
+                </div>
+              </div>
+              <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                <select id="candComisionVotacionSelect"></select>
+                <button class="btn-ghost cand-toggle-btn" id="candComisionToggleBtn" type="button">—</button>
+              </div>
             </div>
-            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-              <select id="candComisionVotacionSelect"></select>
-              <button class="btn-ghost" id="candComisionToggleBtn" type="button" style="border-color:var(--blue-slate); color:var(--blue-revel);">—</button>
+            <div class="sim-table-wrap">
+              <table class="sim-table cand-rank-table">
+                <thead><tr><th></th><th>Nombre</th><th>Votos</th><th>Cargo</th><th>Video</th><th></th></tr></thead>
+                <tbody id="candComisionTableBody"></tbody>
+              </table>
             </div>
           </div>
-          <div class="sim-table-wrap">
-            <table class="sim-table">
-              <thead><tr><th>Comisión</th><th>Nombre</th><th>Votos</th><th>Cargo</th><th>Video</th><th></th></tr></thead>
-              <tbody id="candComisionTableBody"></tbody>
-            </table>
-          </div>
-          <p id="candEmpty" style="display:none; font-size:13.5px; color:var(--blue-slate); margin:var(--space-2) 0 0;">Aún no hay candidatos cargados para este bloque.</p>
         </div>
+        <p id="candEmpty" style="display:none; font-size:13.5px; color:var(--blue-slate); margin:var(--space-3) 0 0;">Aún no hay candidatos cargados para este bloque.</p>
       </div>
     </div>
 
@@ -741,36 +749,46 @@
     select.value = current;
   }
 
-  function candRowHtml(c, showComisionCol) {
-    const cols = showComisionCol ? `<td>${c.comision || ''}</td>` : '';
+  function candRowHtml(c) {
     const videoCell = c.video_url ? `<a href="${c.video_url}" target="_blank">Ver video</a>` : '—';
     const cargoCell = c.cargoFinal ? `<span class="tag">${c.cargoFinal}</span>` : '—';
-    return `<tr data-id="${c.id}">${cols}<td>${c.nombre || ''}</td><td>${c.votos || 0}</td><td>${cargoCell}</td><td>${videoCell}</td><td><button class="admin-row-btn danger" data-action="borrar-candidato">Eliminar</button></td></tr>`;
+    return `<tr data-id="${c.id}"><td></td><td>${c.nombre || ''}</td><td>${c.votos || 0}</td><td>${cargoCell}</td><td>${videoCell}</td><td><button class="admin-row-btn danger" data-action="borrar-candidato">Eliminar</button></td></tr>`;
   }
 
-  function updateComisionVotacionUI() {
-    const comision = document.getElementById('candComisionVotacionSelect').value;
-    const info = candidatosPools.comisiones[comision];
+  function setStatusBadge(elId, cerrada, textoAbierta, textoCerrada) {
+    const el = document.getElementById(elId);
+    el.textContent = cerrada ? textoCerrada : textoAbierta;
+    el.classList.toggle('is-open', !cerrada);
+    el.classList.toggle('is-closed', cerrada);
+  }
+
+  // Tabla de comisión: solo la comisión elegida en el desplegable (una sola mesa a la vez), así el
+  // ranking con medallas corresponde a un solo pool real y no mezcla candidatos de comisiones
+  // distintas en la misma lista.
+  function renderComisionTable() {
+    const comisionSeleccionada = document.getElementById('candComisionVotacionSelect').value;
+    const candidatos = allCandidatos.filter(c => (c.ambito || '') === 'Comision' && c.comision === comisionSeleccionada);
+    document.getElementById('candComisionTableBody').innerHTML = candidatos.map(candRowHtml).join('');
+
+    const info = candidatosPools.comisiones[comisionSeleccionada];
     const cerrada = info ? info.cerrada : false;
-    document.getElementById('candComisionVotacionEstado').textContent = cerrada
-      ? 'Votación cerrada — cargos asignados según los votos.' : 'Votación abierta — los participantes de esta comisión pueden votar.';
+    setStatusBadge('candComisionVotacionEstado', cerrada,
+      'Abierta — los participantes de esta comisión pueden votar.', 'Cerrada — cargos asignados según los votos.');
     document.getElementById('candComisionToggleBtn').textContent = cerrada ? 'Reabrir votación' : 'Cerrar votación';
   }
-  document.getElementById('candComisionVotacionSelect').addEventListener('change', updateComisionVotacionUI);
+  document.getElementById('candComisionVotacionSelect').addEventListener('change', renderComisionTable);
 
   function renderCandidatos() {
     const parlamento = allCandidatos.filter(c => (c.ambito || '') === 'Parlamento');
-    const comision = allCandidatos.filter(c => (c.ambito || '') === 'Comision');
-    document.getElementById('candParlamentoTableBody').innerHTML = parlamento.map(c => candRowHtml(c, false)).join('');
-    document.getElementById('candComisionTableBody').innerHTML = comision.map(c => candRowHtml(c, true)).join('');
+    document.getElementById('candParlamentoTableBody').innerHTML = parlamento.map(candRowHtml).join('');
     document.getElementById('candEmpty').style.display = allCandidatos.length === 0 ? 'block' : 'none';
 
     const pCerrada = candidatosPools.parlamento.cerrada;
-    document.getElementById('candParlamentoEstado').textContent = pCerrada
-      ? 'Votación cerrada — cargos asignados según los votos.' : 'Votación abierta — los participantes pueden votar.';
+    setStatusBadge('candParlamentoEstado', pCerrada,
+      'Abierta — los participantes pueden votar.', 'Cerrada — cargos asignados según los votos.');
     document.getElementById('candParlamentoToggleBtn').textContent = pCerrada ? 'Reabrir votación' : 'Cerrar votación';
 
-    updateComisionVotacionUI();
+    renderComisionTable();
     renderCandStats();
   }
 
