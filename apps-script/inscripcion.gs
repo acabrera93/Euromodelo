@@ -1913,7 +1913,42 @@ function handleSimulate_(sheet, headers, ss, data) {
   return jsonOut_({ ok: true, summary: summary });
 }
 
+// Cualquier excepción no controlada en cualquier parte de doPost_ (incluyendo el propio
+// JSON.parse del body) hace que Apps Script sirva una página de error de Google en vez del JSON
+// esperado — esa página no trae cabeceras CORS, así que el navegador lo reporta como un bloqueo
+// de CORS en vez de mostrar el error real (el mismo patrón enmascarado que ya se resolvió puntual
+// para Drive en handleUploadPropuesta_). Este try/catch de nivel superior cubre TODO el request:
+// guarda el error real en PropertiesService (LAST_ERROR_KEY_) para poder leerlo por API con
+// admin_get_last_error sin depender del panel de Ejecuciones, y además lo devuelve en la propia
+// respuesta JSON.
+var LAST_ERROR_KEY_ = 'LAST_ERROR_LOG_';
+
 function doPost(e) {
+  try {
+    return doPost_(e);
+  } catch (err) {
+    var message = err && err.message ? err.message : String(err);
+    var stack = err && err.stack ? err.stack : '';
+    try {
+      PropertiesService.getScriptProperties().setProperty(LAST_ERROR_KEY_, JSON.stringify({
+        message: message, stack: stack, enviado: new Date().toISOString(),
+        form: (function() { try { return JSON.parse(e.postData.contents).form; } catch (e2) { return ''; } })(),
+      }));
+    } catch (logErr) {
+      console.error('No se pudo guardar el error en PropertiesService: ' + logErr);
+    }
+    console.error('doPost_ lanzó una excepción no controlada: ' + message + '\n' + stack);
+    return jsonOut_({ ok: false, error: 'server_error', message: message });
+  }
+}
+
+function handleAdminGetLastError_(ss, data) {
+  if (!verifyAdminCredentials_(ss, data.adminEmail, data.adminPassword)) return jsonOut_({ ok: false });
+  var raw = PropertiesService.getScriptProperties().getProperty(LAST_ERROR_KEY_);
+  return jsonOut_({ ok: true, lastError: raw ? JSON.parse(raw) : null });
+}
+
+function doPost_(e) {
   var data = JSON.parse(e.postData.contents);
   var ss = SpreadsheetApp.getActiveSpreadsheet();
 
@@ -1952,6 +1987,7 @@ function doPost(e) {
   if (data.form === 'set_resultado_votacion') return handleSetResultadoVotacion_(sheet, headers, ss, data);
   if (data.form === 'list_conteo_votantes') return handleListConteoVotantes_(sheet, headers, ss, data);
   if (data.form === 'set_conteo_voto') return handleSetConteoVoto_(sheet, headers, ss, data);
+  if (data.form === 'admin_get_last_error') return handleAdminGetLastError_(ss, data);
 
   var isPre = data.form === 'preinscripcion';
 
