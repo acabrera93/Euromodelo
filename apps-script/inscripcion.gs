@@ -646,15 +646,34 @@ function handleListPlenariaPropuestas_(sheet, headers, data) {
 var POSTULACIONES_MESA_HEADERS_ = [
   'ref_code', 'email', 'nombre', 'tipo_euromodelo', 'ciudad', 'institucion',
   'dominio', 'experiencia', 'motivacion', 'tipo_postulacion', 'video_url_parlamento', 'video_url_comision',
-  'disponible_capacitacion', 'enviado'
+  'foto_url', 'disponible_capacitacion', 'enviado'
 ];
 // tipo_postulacion: 'Parlamento' | 'Comision' | 'Ambos'. Determina cuál(es) de los dos
 // enlaces de video son obligatorios — ver handlePostularMesa_.
+// foto_url: foto de perfil del candidato, obligatoria — se muestra grande en el área de votación
+// (buildEmailToPostulacionMap_ + handleListCandidatos_) para que los participantes vean a quién
+// están votando.
 
 function ensurePostulacionesMesaSheet_(ss) {
   var sheet = findOrCreateSheet_(ss, ['postulaciones_mesa'], 'postulaciones_mesa');
   var headers = getHeaders_(sheet, POSTULACIONES_MESA_HEADERS_);
   return { sheet: sheet, headers: headers };
+}
+
+var FOTOS_MESA_FOLDER_NAME_ = 'Fotos Mesa Directiva Euromodelo Joven 2026';
+var FOTO_MAX_BYTES_ = 4 * 1024 * 1024; // ~4MB, de sobra para una foto de perfil
+
+// Árbol de carpetas más simple que el de propuestas: <raíz>/Nacional ó <raíz>/Regionales/<ciudad>
+// — no hace falta separar por comisión, es solo la foto de la persona.
+function resolveFotoMesaFolder_(record) {
+  var root = findOrCreateFolder_(FOTOS_MESA_FOLDER_NAME_);
+  var tipoEuromodelo = (record.tipo_euromodelo || 'Nacional').toString();
+  if (tipoEuromodelo === 'Regional') {
+    var regionalesFolder = findOrCreateSubfolder_(root, 'Regionales');
+    var ciudad = (record.ciudad || 'Sin ciudad').toString();
+    return findOrCreateSubfolder_(regionalesFolder, ciudad);
+  }
+  return findOrCreateSubfolder_(root, 'Nacional');
 }
 
 function handlePostularMesa_(sheet, headers, ss, data) {
@@ -679,10 +698,33 @@ function handlePostularMesa_(sheet, headers, ss, data) {
   var videoUrlComision = (data.videoUrlComision || '').toString().trim();
   var necesitaParlamento = tipoPostulacion === 'Parlamento' || tipoPostulacion === 'Ambos';
   var necesitaComision = tipoPostulacion === 'Comision' || tipoPostulacion === 'Ambos';
-  if (!dominio || !experiencia || !motivacion
+  var fotoBase64 = (data.fotoBase64 || '').toString();
+  if (!dominio || !experiencia || !motivacion || !fotoBase64
     || (necesitaParlamento && !videoUrlParlamento)
     || (necesitaComision && !videoUrlComision)) {
     return jsonOut_({ ok: false, error: 'campos_incompletos' });
+  }
+
+  var fotoBytes;
+  try {
+    fotoBytes = Utilities.base64Decode(fotoBase64);
+  } catch (err) {
+    return jsonOut_({ ok: false, error: 'invalid_file' });
+  }
+  if (fotoBytes.length > FOTO_MAX_BYTES_) return jsonOut_({ ok: false, error: 'file_too_large' });
+
+  // Misma razón que en handleUploadPropuesta_: todo lo que toca Drive va en su propio try/catch
+  // para no dejar que una excepción sin control (p.ej. permisos de Drive) tumbe la respuesta JSON.
+  var fotoUrl;
+  try {
+    var fotoFileName = 'Foto - ' + (record.nombre_completo || email) + ' (' + (record.ref_code || '') + ')';
+    var fotoBlob = Utilities.newBlob(fotoBytes, 'image/jpeg', fotoFileName);
+    var fotoFolder = resolveFotoMesaFolder_(record);
+    var fotoFile = fotoFolder.createFile(fotoBlob);
+    fotoFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    fotoUrl = fotoFile.getUrl();
+  } catch (err) {
+    return jsonOut_({ ok: false, error: 'drive_error', message: err && err.message ? err.message : String(err) });
   }
 
   var post = ensurePostulacionesMesaSheet_(ss);
@@ -699,6 +741,7 @@ function handlePostularMesa_(sheet, headers, ss, data) {
     if (h === 'tipo_postulacion') return tipoPostulacion;
     if (h === 'video_url_parlamento') return necesitaParlamento ? videoUrlParlamento : '';
     if (h === 'video_url_comision') return necesitaComision ? videoUrlComision : '';
+    if (h === 'foto_url') return fotoUrl;
     if (h === 'disponible_capacitacion') return data.disponibleCapacitacion ? 'Sí' : 'No';
     if (h === 'enviado') return new Date().toISOString();
     return '';
@@ -786,7 +829,10 @@ function handleListPropuestasParaOficial_(sheet, headers, ss, data) {
       if ((r.tipo_euromodelo || 'Nacional').toString() !== tipoEuromodelo) return;
       if (tipoEuromodelo === 'Regional' && (r.ciudad || '').toString() !== ciudad) return;
       var estado = (r.propuesta_estado || '').toString();
-      var item = { refCode: r.ref_code || '', nombre: r.nombre_completo || '', comision: r.comision_asignada || '', url: r.propuesta_url, resultadoVotacion: r.resultado_votacion || '' };
+      var item = {
+        refCode: r.ref_code || '', nombre: r.nombre_completo || '', nombreArchivo: r.propuesta_nombre_archivo || '',
+        comision: r.comision_asignada || '', url: r.propuesta_url, resultadoVotacion: r.resultado_votacion || '',
+      };
       if (cargos.cargoComision && estado === 'Aprobada' && (r.comision_asignada || '').toString() === comisionPropia) {
         propuestasComision.push(item);
       }
@@ -1608,6 +1654,7 @@ function handleListCandidatos_(sheet, headers, ss, data) {
       return {
         id: r.id, nombre: r.nombre || '', videoUrl: r.video_url || '', enviado: r.enviado || '',
         partido: emailToPartido[candEmail] || '',
+        fotoUrl: postulacion ? (postulacion.foto_url || '') : '',
         dominio: postulacion ? (postulacion.dominio || '') : '',
         experiencia: postulacion ? (postulacion.experiencia || '') : '',
         motivacion: postulacion ? (postulacion.motivacion || '') : '',

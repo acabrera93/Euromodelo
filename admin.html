@@ -195,7 +195,7 @@
           </div>
           <div class="sim-table-wrap">
             <table class="sim-table">
-              <thead><tr><th>Nombre</th><th>Colegio</th><th>Dominio</th><th>Se postula a</th><th>Experiencia / Motivación</th><th>Video(s)</th><th></th></tr></thead>
+              <thead><tr><th>Foto</th><th>Nombre</th><th>Colegio</th><th>Dominio</th><th>Se postula a</th><th>Experiencia / Motivación</th><th>Video(s)</th><th></th></tr></thead>
               <tbody id="postulacionesMesaTableBody"></tbody>
             </table>
           </div>
@@ -917,7 +917,9 @@
     const videos = [];
     if (p.video_url_parlamento) videos.push(`<a href="${p.video_url_parlamento}" target="_blank">Ver video (Parlamento)</a>`);
     if (p.video_url_comision) videos.push(`<a href="${p.video_url_comision}" target="_blank">Ver video (Comisión)</a>`);
+    const fotoCell = p.foto_url ? `<a href="${p.foto_url}" target="_blank"><img src="${p.foto_url}" alt="${p.nombre || ''}" style="width:44px; height:44px; border-radius:8px; object-fit:cover; display:block;"></a>` : '—';
     return `<tr data-ref-code="${p.ref_code || ''}">
+      <td>${fotoCell}</td>
       <td>${p.nombre || ''}</td>
       <td>${p.institucion || ''}</td>
       <td>${p.dominio || ''}</td>

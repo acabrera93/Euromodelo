@@ -195,6 +195,9 @@ nav.links .nav-dropdown-menu a.active{background:var(--blue-pale); color:var(--b
 .photo-placeholder.ph-avatar-lg{width:120px; height:120px; border-radius:50%; margin:0 auto;}
 .photo-placeholder.ph-avatar-lg .ph-icon{font-size:30px;}
 .photo-placeholder.ph-wide{width:100%; height:150px; border-radius:10px;}
+.photo-placeholder.ph-profile{width:100%; height:220px; border-radius:10px;}
+.photo-placeholder.ph-profile .ph-icon{font-size:28px;}
+.photo-placeholder.ph-profile .ph-label{font-size:10.5px;}
 .hero-photo{
   width:100%; aspect-ratio:4/3; border-radius:var(--radius); overflow:hidden;
   box-shadow:0 24px 60px rgba(0,0,0,.35); border:1px solid rgba(255,255,255,.12);
@@ -386,6 +389,13 @@ details[open] summary::after{content:'\2013';}
 .candidate-info{flex-grow:1;}
 .candidate-name{font-size:13.5px; font-weight:700; color:var(--navy-deep);}
 .candidate-role{font-size:11.5px; color:#8695AC;}
+/* Tarjeta de candidato a mesa directiva, con foto grande arriba (área de votación) */
+.candidate-profile-card{border:1px solid var(--line); border-radius:10px; margin-bottom:14px; background:var(--white); overflow:hidden;}
+.candidate-profile-card.has-postulacion{margin-bottom:0; border-radius:10px 10px 0 0;}
+.candidate-photo-lg{width:100%; height:220px; object-fit:cover; display:block;}
+.candidate-profile-body{padding:14px 16px;}
+.candidate-profile-body .candidate-name{font-size:15px;}
+.candidate-profile-actions{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;}
 .candidate-video-btn{
   background:var(--blue-pale); color:var(--blue-revel); border:none; padding:7px 13px; border-radius:8px;
   font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap;
@@ -573,3 +583,11 @@ textarea.propuesta-comentario{
 .live-voto-count{margin-left:auto; font-family:'Fraunces',serif; font-size:20px; font-weight:600; color:var(--blue-revel);}
 .live-voto-bar-track{height:14px; border-radius:8px; background:var(--blue-pale); overflow:hidden;}
 .live-voto-bar-fill{height:100%; border-radius:8px; background:linear-gradient(90deg, var(--blue-revel), var(--gold-star)); transition:width .5s ease;}
+
+/* ---- Conteo de votos: contador grande arriba del modal ---- */
+.conteo-tally-item{
+  flex:1; min-width:100px; text-align:center; background:var(--white); border:2px solid var(--line);
+  border-radius:var(--radius); padding:14px 10px;
+}
+.conteo-tally-n{font-family:'Fraunces',serif; font-size:40px; font-weight:700; line-height:1;}
+.conteo-tally-l{font-size:12.5px; font-weight:600; color:#5A6B85; text-transform:uppercase; letter-spacing:.04em; margin-top:6px;}

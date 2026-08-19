@@ -320,6 +320,12 @@
             </div>
           </div>
 
+          <div class="field full">
+            <label>Foto de perfil <span class="hint">(se muestra grande en el área de votación, para que sepan a quién están votando)</span></label>
+            <input required type="file" id="pfPostFoto" accept="image/*">
+          </div>
+          <p style="font-size:12px; color:#8695AC; margin:-4px 0 var(--space-2);">Usa una foto tuya reciente, de buena calidad y de frente — no un logo ni una foto de grupo. Máximo 4MB.</p>
+
           <div class="field full" id="pfPostVideoParlamentoWrap" style="display:none;">
             <label>Enlace a tu video de presentación para el Parlamento Europeo (YouTube o Drive)</label>
             <input type="url" id="pfPostVideoUrlParlamento" placeholder="https://youtube.com/watch?v=... o https://drive.google.com/...">
@@ -431,6 +437,10 @@
     <p class="modal-intro" id="conteoVotosIntro"></p>
     <div id="conteoVotosTallies" style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px;"></div>
     <div id="conteoVotosLista" style="max-height:340px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;"></div>
+    <p id="conteoResultadoMensaje" style="display:none; margin:14px 0 0; font-size:14px; font-weight:700; text-align:center; border-radius:10px; padding:12px;"></p>
+    <div class="form-submit-row" style="justify-content:flex-end; margin-top:14px;">
+      <button class="btn-primary" id="conteoFinalizarBtn" type="button">Finalizar votación</button>
+    </div>
   </div>
 </div>
 <div class="modal-overlay" id="forcePasswordModal">
@@ -1132,6 +1142,16 @@
       return candidate.partido ? `<span class="party-badge" style="margin-top:4px; display:inline-block;">${candidate.partido}</span>` : '';
     }
 
+    // Foto grande arriba de la tarjeta (en vez del ícono chiquito): así los participantes ven
+    // bien a quién están votando. Si el candidato no subió foto en su postulación (p.ej. lo
+    // cargó el staff a mano sin pasar por ese formulario), cae en el mismo placeholder que ya
+    // usa el resto del sitio.
+    function candidatePhotoHtml(candidate) {
+      return candidate.fotoUrl
+        ? `<img src="${candidate.fotoUrl}" class="candidate-photo-lg" alt="${candidate.nombre}">`
+        : `<div class="photo-placeholder ph-profile"><span class="ph-icon">&#128247;</span><span class="ph-label">Sin foto</span></div>`;
+    }
+
     function votingCandidateCardHtml(candidate, ambito, yaVoto) {
       const videoBtn = candidate.videoUrl
         ? `<a class="candidate-video-btn" style="text-decoration:none; display:inline-block;" href="${candidate.videoUrl}" target="_blank" rel="noopener">&#127909; Ver video</a>`
@@ -1139,14 +1159,16 @@
       const voteBtn = yaVoto ? '' : `<button class="candidate-video-btn" type="button" style="background:var(--gold-star); color:var(--navy-deep);" data-vote-candidato="${candidate.id}" data-vote-ambito="${ambito}" data-vote-nombre="${candidate.nombre}">Votar</button>`;
       const postulacionHtml = candidatePostulacionHtml(candidate);
       return `
-        <div class="candidate-card"${postulacionHtml ? ' style="margin-bottom:0; border-radius:10px 10px 0 0;"' : ''}>
-          <div class="photo-placeholder ph-sq"><span class="ph-icon">&#128247;</span><span class="ph-label">Foto</span></div>
-          <div class="candidate-info">
+        <div class="candidate-profile-card${postulacionHtml ? ' has-postulacion' : ''}">
+          ${candidatePhotoHtml(candidate)}
+          <div class="candidate-profile-body">
             <div class="candidate-name">${candidate.nombre}</div>
             ${partidoBadgeHtml(candidate)}
+            <div class="candidate-profile-actions">
+              ${videoBtn}
+              ${voteBtn}
+            </div>
           </div>
-          ${videoBtn}
-          ${voteBtn}
         </div>
         ${postulacionHtml}`;
     }
@@ -1155,9 +1177,9 @@
       const cargoBadge = candidate.cargoFinal ? ` <span class="tag">${candidate.cargoFinal}</span>` : '';
       const postulacionHtml = candidatePostulacionHtml(candidate);
       return `
-        <div class="candidate-card"${postulacionHtml ? ' style="margin-bottom:0; border-radius:10px 10px 0 0;"' : ''}>
-          <div class="photo-placeholder ph-sq"><span class="ph-icon">&#128247;</span><span class="ph-label">Foto</span></div>
-          <div class="candidate-info">
+        <div class="candidate-profile-card${postulacionHtml ? ' has-postulacion' : ''}">
+          ${candidatePhotoHtml(candidate)}
+          <div class="candidate-profile-body">
             <div class="candidate-name">${candidate.nombre}${cargoBadge}</div>
             <div class="candidate-role">${candidate.votos} voto${candidate.votos === 1 ? '' : 's'}</div>
             ${partidoBadgeHtml(candidate)}
@@ -1235,10 +1257,10 @@
         ? '<span class="tag" style="background:#C0392B; color:#fff;">No aprobada</span>'
         : '<span class="tag">Pendiente de resultado</span>';
       return `
-        <div class="candidate-card">
-          <div class="candidate-info">
-            <div class="candidate-name">${p.nombre}${p.comision ? ' — ' + p.comision : ''}</div>
-            <div class="candidate-role">${badge}</div>
+        <div class="candidate-card" style="flex-wrap:wrap;">
+          <div class="candidate-info" style="flex-basis:100%;">
+            <div class="candidate-name">${p.nombre}${p.comision ? ' — ' + p.comision : ''}${propuestaNombreArchivoHtml(p)}</div>
+            <div class="candidate-role" style="margin-top:4px;">${badge}</div>
           </div>
           <a class="candidate-video-btn" style="text-decoration:none; display:inline-block;" href="${p.url}" target="_blank" rel="noopener">Ver PDF</a>
           <button class="candidate-video-btn" type="button" style="background:var(--blue-pale); color:var(--blue-revel);" data-conteo-refcode="${p.refCode}">Contar votos</button>
@@ -1319,11 +1341,19 @@
 
     const conteoVotosModal = createModalController('conteoVotosModal');
     let conteoVotosRefCodeActual = '';
+    // Copia local de los votantes ya cargados: al marcar una posición no hace falta volver a
+    // pedirle al backend la lista completa (que reescanea todo el bloque) — alcanza con
+    // actualizar este arreglo y volver a pintar. Antes cada clic disparaba un list_conteo_votantes
+    // completo, lo que hacía muy lento marcar el conteo en vivo durante la sesión.
+    let conteoVotantesActuales = [];
+
+    const CONTEO_POSICION_COLOR_ = { 'A favor': 'var(--teal)', 'En contra': '#C0392B', 'Abstención': 'var(--blue-slate)' };
 
     function conteoVotanteRowHtml(v) {
       function btn(pos, label) {
         const activo = v.posicion === pos;
-        return `<button class="admin-row-btn${activo ? ' save' : ''}" type="button" data-conteo-voter-key="${v.key}" data-conteo-voter-label="${v.label}" data-conteo-posicion="${pos}">${label}${activo ? ' ✓' : ''}</button>`;
+        const style = activo ? `background:${CONTEO_POSICION_COLOR_[pos]}; border-color:${CONTEO_POSICION_COLOR_[pos]}; color:#fff;` : '';
+        return `<button class="admin-row-btn" type="button" style="${style}" data-conteo-voter-key="${v.key}" data-conteo-voter-label="${v.label}" data-conteo-posicion="${pos}">${label}${activo ? ' ✓' : ''}</button>`;
       }
       return `
         <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 0; border-bottom:1px solid var(--line);">
@@ -1339,10 +1369,28 @@
     function renderConteoTallies(votantes) {
       const counts = { 'A favor': 0, 'En contra': 0, 'Abstención': 0 };
       votantes.forEach(v => { if (counts[v.posicion] !== undefined) counts[v.posicion]++; });
-      document.getElementById('conteoVotosTallies').innerHTML = `
-        <span class="tag" style="background:var(--teal); color:#fff;">${counts['A favor']} a favor</span>
-        <span class="tag" style="background:#C0392B; color:#fff;">${counts['En contra']} en contra</span>
-        <span class="tag">${counts['Abstención']} abstención</span>`;
+      document.getElementById('conteoVotosTallies').innerHTML = ['A favor', 'En contra', 'Abstención'].map(pos => `
+        <div class="conteo-tally-item" style="border-color:${CONTEO_POSICION_COLOR_[pos]};">
+          <div class="conteo-tally-n" style="color:${CONTEO_POSICION_COLOR_[pos]};">${counts[pos]}</div>
+          <div class="conteo-tally-l">${pos}</div>
+        </div>`).join('');
+    }
+
+    function mostrarResultadoConteo(resultado) {
+      const el = document.getElementById('conteoResultadoMensaje');
+      if (resultado === 'Aprobada') {
+        el.textContent = '✅ La propuesta fue aprobada.';
+        el.style.background = '#E3F3EC';
+        el.style.color = '#1B6E52';
+        el.style.display = 'block';
+      } else if (resultado === 'No aprobada') {
+        el.textContent = '🗄️ La propuesta fue archivada (no aprobada).';
+        el.style.background = '#FBEAE8';
+        el.style.color = '#C0392B';
+        el.style.display = 'block';
+      } else {
+        el.style.display = 'none';
+      }
     }
 
     function loadConteoVotos(refCode) {
@@ -1360,8 +1408,10 @@
           document.getElementById('conteoVotosIntro').textContent = result.esPlenaria
             ? 'Cada bancada vota como bloque. Marca la posición de cada partido según se exprese en la sesión.'
             : 'Marca la posición de cada participante de la comisión según se exprese en la sesión.';
-          renderConteoTallies(result.votantes || []);
-          document.getElementById('conteoVotosLista').innerHTML = (result.votantes || []).map(conteoVotanteRowHtml).join('');
+          conteoVotantesActuales = result.votantes || [];
+          renderConteoTallies(conteoVotantesActuales);
+          document.getElementById('conteoVotosLista').innerHTML = conteoVotantesActuales.map(conteoVotanteRowHtml).join('');
+          mostrarResultadoConteo(result.resultadoVotacion || '');
         })
         .catch(err => {
           console.error('No se pudo cargar el conteo de votos:', err);
@@ -1373,6 +1423,7 @@
       conteoVotosRefCodeActual = refCode;
       document.getElementById('conteoVotosTallies').innerHTML = '';
       document.getElementById('conteoVotosLista').innerHTML = '<p style="font-size:13px; color:var(--blue-slate);">Cargando…</p>';
+      document.getElementById('conteoResultadoMensaje').style.display = 'none';
       conteoVotosModal.open();
       loadConteoVotos(refCode);
     }
@@ -1392,13 +1443,51 @@
         });
         const result = await res.json();
         if (result && result.ok) {
-          loadConteoVotos(conteoVotosRefCodeActual);
+          const votante = conteoVotantesActuales.find(v => v.key === voterKey);
+          if (votante) votante.posicion = posicion;
+          renderConteoTallies(conteoVotantesActuales);
+          document.getElementById('conteoVotosLista').innerHTML = conteoVotantesActuales.map(conteoVotanteRowHtml).join('');
         } else {
           clearButtonLoading(btn);
         }
       } catch (err) {
         console.error('No se pudo registrar el voto del conteo:', err);
         clearButtonLoading(btn);
+      }
+    });
+
+    document.getElementById('conteoFinalizarBtn').addEventListener('click', async (e) => {
+      const counts = { 'A favor': 0, 'En contra': 0, 'Abstención': 0 };
+      let sinMarcar = 0;
+      conteoVotantesActuales.forEach(v => {
+        if (counts[v.posicion] !== undefined) counts[v.posicion]++;
+        else sinMarcar++;
+      });
+      if (sinMarcar > 0) {
+        const seguir = confirm(`Todavía hay ${sinMarcar} sin marcar su posición. ¿Finalizar la votación de todas formas?`);
+        if (!seguir) return;
+      }
+      const resultado = counts['A favor'] > counts['En contra'] ? 'Aprobada' : 'No aprobada';
+
+      setButtonLoading(e.target, 'Finalizando…');
+      try {
+        const res = await fetch(EUROMODELO_SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ form: 'set_resultado_votacion', email: currentProfileUser.username, password: currentProfileUser.password, refCode: conteoVotosRefCodeActual, resultado }),
+        });
+        const result = await res.json();
+        clearButtonLoading(e.target);
+        if (result && result.ok) {
+          mostrarResultadoConteo(resultado);
+          renderMesaDirectiva(currentProfileUser);
+        } else {
+          alert('No se pudo guardar el resultado. Intenta de nuevo.');
+        }
+      } catch (err) {
+        console.error('No se pudo finalizar la votación:', err);
+        clearButtonLoading(e.target);
+        alert('No se pudo guardar el resultado. Intenta de nuevo.');
       }
     });
 
@@ -1450,6 +1539,7 @@
     });
 
     const PROPUESTA_MAX_BYTES = 8 * 1024 * 1024;
+    const FOTO_MAX_BYTES = 4 * 1024 * 1024;
 
     // resultadoVotacion lo pone la mesa directiva electa (comisión o Parlamento), aparte del
     // propuesta_estado que ya venía del staff — por eso se muestra como un dato extra junto a
@@ -1584,39 +1674,58 @@
       const necesitaComision = tipoPostulacion === 'Comision' || tipoPostulacion === 'Ambos';
       const videoUrlParlamento = document.getElementById('pfPostVideoUrlParlamento').value.trim();
       const videoUrlComision = document.getElementById('pfPostVideoUrlComision').value.trim();
-      if (!tipoPostulacion || !dominio || !experiencia || !motivacion
+      const fotoInput = document.getElementById('pfPostFoto');
+      const fotoFile = fotoInput.files && fotoInput.files[0];
+      if (!tipoPostulacion || !dominio || !experiencia || !motivacion || !fotoFile
         || (necesitaParlamento && !videoUrlParlamento)
         || (necesitaComision && !videoUrlComision)) {
-        errEl.textContent = 'Completa todos los campos — incluido un video por cada mesa a la que te postulas.';
+        errEl.textContent = 'Completa todos los campos — incluida tu foto de perfil y un video por cada mesa a la que te postulas.';
         errEl.style.display = 'block';
         return;
       }
+      if (!fotoFile.type.startsWith('image/')) {
+        errEl.textContent = 'La foto de perfil debe ser una imagen.';
+        errEl.style.display = 'block';
+        return;
+      }
+      if (fotoFile.size > FOTO_MAX_BYTES) {
+        errEl.textContent = 'La foto supera el tamaño máximo de 4MB.';
+        errEl.style.display = 'block';
+        return;
+      }
+
       const btn = document.getElementById('pfPostSubmitBtn');
       setButtonLoading(btn, 'Enviando…');
-      try {
-        const res = await fetch(EUROMODELO_SCRIPT_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({
-            form: 'postular_mesa', email: currentProfileUser.username, password: currentProfileUser.password,
-            dominio, experiencia, motivacion, tipoPostulacion, videoUrlParlamento, videoUrlComision, disponibleCapacitacion: true,
-          }),
-        });
-        const result = await res.json();
-        if (result && result.ok) {
-          document.getElementById('pfPostulacionForm').style.display = 'none';
-          document.getElementById('pfPostSuccess').classList.add('show');
-        } else {
+
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const fotoBase64 = reader.result.split(',')[1] || '';
+        try {
+          const res = await fetch(EUROMODELO_SCRIPT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({
+              form: 'postular_mesa', email: currentProfileUser.username, password: currentProfileUser.password,
+              dominio, experiencia, motivacion, tipoPostulacion, videoUrlParlamento, videoUrlComision, fotoBase64, disponibleCapacitacion: true,
+            }),
+          });
+          const result = await res.json();
+          if (result && result.ok) {
+            document.getElementById('pfPostulacionForm').style.display = 'none';
+            document.getElementById('pfPostSuccess').classList.add('show');
+          } else {
+            clearButtonLoading(btn);
+            errEl.textContent = 'No se pudo enviar tu postulación. Intenta de nuevo.';
+            errEl.style.display = 'block';
+          }
+        } catch (err) {
+          console.error('No se pudo enviar la postulación:', err);
           clearButtonLoading(btn);
           errEl.textContent = 'No se pudo enviar tu postulación. Intenta de nuevo.';
           errEl.style.display = 'block';
         }
-      } catch (err) {
-        console.error('No se pudo enviar la postulación:', err);
-        clearButtonLoading(btn);
-        errEl.textContent = 'No se pudo enviar tu postulación. Intenta de nuevo.';
-        errEl.style.display = 'block';
-      }
+      };
+      reader.readAsDataURL(fotoFile);
     });
 
     document.getElementById('pfPropuestaUploadBtn').addEventListener('click', () => {
