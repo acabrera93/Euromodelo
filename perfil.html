@@ -1454,6 +1454,10 @@
     // resultadoVotacion lo pone la mesa directiva electa (comisión o Parlamento), aparte del
     // propuesta_estado que ya venía del staff — por eso se muestra como un dato extra junto a
     // cada propuesta, no como reemplazo del resto de la información.
+    function propuestaNombreArchivoHtml(p) {
+      return p.nombreArchivo ? ` <span style="color:#8695AC; font-size:12.5px;">— ${p.nombreArchivo}</span>` : '';
+    }
+
     function votacionBadgeHtml(resultadoVotacion) {
       if (resultadoVotacion === 'Aprobada') return ' <span class="tag" style="background:var(--teal); color:#fff;">Aprobada por votación</span>';
       if (resultadoVotacion === 'No aprobada') return ' <span class="tag" style="background:#C0392B; color:#fff;">No aprobada por votación</span>';
@@ -1506,7 +1510,7 @@
               listEl.innerHTML = '';
             } else {
               emptyEl.style.display = 'none';
-              listEl.innerHTML = proposals.map(p => `<li><a href="${p.url}" target="_blank">${p.nombre}</a>${votacionBadgeHtml(p.resultadoVotacion)}</li>`).join('');
+              listEl.innerHTML = proposals.map(p => `<li><a href="${p.url}" target="_blank">${p.nombre}</a>${propuestaNombreArchivoHtml(p)}${votacionBadgeHtml(p.resultadoVotacion)}</li>`).join('');
             }
           })
           .catch(err => console.error('No se pudo cargar las propuestas de la comisión:', err));
@@ -1531,7 +1535,7 @@
       return Object.keys(groups).sort().map(comisionTitle => {
         const info = comisionInfoByTitle(comisionTitle);
         const color = info ? info.color : 'var(--blue-slate)';
-        const items = groups[comisionTitle].map(p => `<li><a href="${p.url}" target="_blank">${p.nombre}</a>${votacionBadgeHtml(p.resultadoVotacion)}</li>`).join('');
+        const items = groups[comisionTitle].map(p => `<li><a href="${p.url}" target="_blank">${p.nombre}</a>${propuestaNombreArchivoHtml(p)}${votacionBadgeHtml(p.resultadoVotacion)}</li>`).join('');
         return `
           <div class="card accent" style="--accent:${color};">
             <h3>${info ? info.code + ' — ' : ''}${comisionTitle}</h3>

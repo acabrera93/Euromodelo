@@ -276,9 +276,11 @@ var CANONICAL_HEADERS_ = [
   // las trata como 'Estudiante' por defecto, sin necesidad de migrar la Sheet.
   'tipo',
   // Propuesta legislativa del comisario: URL del PDF en Drive, estado ('' | 'Pendiente' |
-  // 'Aprobada' | 'Plenaria') y comentario del staff. Una nueva subida reemplaza url/estado/
-  // comentario anteriores (mismo criterio que repetir una brújula).
-  'propuesta_url', 'propuesta_estado', 'propuesta_comentario',
+  // 'Aprobada' | 'Plenaria'), comentario del staff, y el nombre original del archivo tal como lo
+  // subió el comisario (no el nombre que le pone Drive internamente) — para mostrarlo junto al
+  // nombre del participante donde aparezca la propuesta. Una nueva subida reemplaza los cuatro
+  // valores anteriores (mismo criterio que repetir una brújula).
+  'propuesta_url', 'propuesta_estado', 'propuesta_comentario', 'propuesta_nombre_archivo',
   // '' | 'Aprobada' | 'No aprobada'. A diferencia de propuesta_estado (que decide el staff:
   // si se debate y si pasa a Plenaria), esto lo pone la propia mesa directiva electa (comisión o
   // Parlamento) con el resultado real del debate/votación — ver handleSetResultadoVotacion_.
@@ -538,10 +540,15 @@ function handleUploadPropuesta_(sheet, headers, data) {
     }
   }
 
-  ['propuesta_url', 'propuesta_estado', 'propuesta_comentario'].forEach(function(field) {
+  var nombreArchivo = (data.fileName || '').toString();
+
+  ['propuesta_url', 'propuesta_estado', 'propuesta_comentario', 'propuesta_nombre_archivo'].forEach(function(field) {
     var colIdx = headers.indexOf(field);
     if (colIdx === -1) return;
-    var value = field === 'propuesta_url' ? url : (field === 'propuesta_estado' ? 'Pendiente' : '');
+    var value = field === 'propuesta_url' ? url
+      : field === 'propuesta_estado' ? 'Pendiente'
+      : field === 'propuesta_nombre_archivo' ? nombreArchivo
+      : '';
     var cell = sheet.getRange(rowNum, colIdx + 1);
     cell.setNumberFormat('@');
     cell.setValue(value);
@@ -589,7 +596,7 @@ function handleListComisionPropuestas_(sheet, headers, data) {
       if (tipoEuromodelo === 'Regional' && (r.ciudad || '').toString() !== ciudad) return;
       if (PROPUESTA_ESTADOS_VISIBLES_COMISION_.indexOf((r.propuesta_estado || '').toString()) === -1) return;
       if (!r.propuesta_url) return;
-      proposals.push({ nombre: r.nombre_completo || '', url: r.propuesta_url, resultadoVotacion: r.resultado_votacion || '' });
+      proposals.push({ nombre: r.nombre_completo || '', nombreArchivo: r.propuesta_nombre_archivo || '', url: r.propuesta_url, resultadoVotacion: r.resultado_votacion || '' });
     });
   }
   return jsonOut_({ ok: true, comision: comision, proposals: proposals });
@@ -624,7 +631,7 @@ function handleListPlenariaPropuestas_(sheet, headers, data) {
       if (tipoEuromodelo === 'Regional' && (r.ciudad || '').toString() !== ciudad) return;
       if ((r.propuesta_estado || '').toString() !== 'Plenaria') return;
       if (!r.propuesta_url) return;
-      proposals.push({ nombre: r.nombre_completo || '', comision: r.comision_asignada || '', url: r.propuesta_url, resultadoVotacion: r.resultado_votacion || '' });
+      proposals.push({ nombre: r.nombre_completo || '', nombreArchivo: r.propuesta_nombre_archivo || '', comision: r.comision_asignada || '', url: r.propuesta_url, resultadoVotacion: r.resultado_votacion || '' });
     });
   }
   return jsonOut_({ ok: true, proposals: proposals });
