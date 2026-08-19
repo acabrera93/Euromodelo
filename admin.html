@@ -81,6 +81,7 @@
         <button type="button" class="admin-tab-btn" data-tab="simulacion">Simulación y sorteo</button>
         <button type="button" class="admin-tab-btn" data-tab="propuestas">Propuestas de comisarios</button>
         <button type="button" class="admin-tab-btn" data-tab="candidatos">Candidatos a mesas</button>
+        <button type="button" class="admin-tab-btn" data-tab="votacion-vivo">Votación en vivo</button>
       </div>
 
       <div class="admin-tab-panel" id="tab-participantes">
@@ -233,9 +234,12 @@
           <p id="candError" style="display:none; color:#C0392B; font-size:13px; margin-top:8px;"></p>
         </div>
 
-        <div class="section-head" style="margin-bottom:var(--space-3);">
-          <h2 style="font-size:19px;">③ Administra la votación y los resultados</h2>
-          <p style="font-size:13.5px;">Mientras una votación esté abierta, los participantes pueden emitir su voto. Ciérrala cuando corresponda para que el cargo de cada candidato quede definido según los votos.</p>
+        <div class="section-head" style="margin-bottom:var(--space-3); display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+          <div>
+            <h2 style="font-size:19px;">③ Administra la votación y los resultados</h2>
+            <p style="font-size:13.5px;">Un candidato recién agregado queda <b>pendiente de aprobar</b> y no lo ven los participantes hasta que lo apruebes. Mientras una votación esté abierta, los participantes pueden emitir su voto; ciérrala cuando corresponda para que el cargo de cada candidato quede definido según los votos.</p>
+          </div>
+          <button class="btn-primary" id="candApproveAllBtn" type="button" style="white-space:nowrap;">Aprobar todas <span id="candPendientesCount"></span></button>
         </div>
 
         <div class="cand-results-grid">
@@ -281,6 +285,24 @@
           </div>
         </div>
         <p id="candEmpty" style="display:none; font-size:13.5px; color:var(--blue-slate); margin:var(--space-3) 0 0;">Aún no hay candidatos cargados para este bloque.</p>
+      </div>
+
+      <div class="admin-tab-panel" id="tab-votacion-vivo" style="display:none;">
+        <div class="section-head" style="margin-bottom:var(--space-3);">
+          <h2 style="font-size:20px;">Votación en vivo</h2>
+          <p>Los votos se actualizan solos cada pocos segundos mientras esta pestaña esté abierta — pensada para proyectar durante la sesión de votación.</p>
+        </div>
+
+        <div class="form-card" style="margin-bottom:var(--space-4); display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+          <div class="field" style="margin:0; flex:1; min-width:240px;">
+            <label>Mesa a mostrar</label>
+            <select id="liveVotoPoolSelect"></select>
+          </div>
+          <p id="liveVotoUpdated" style="font-size:12.5px; color:#8695AC; margin:0;">—</p>
+        </div>
+
+        <div id="liveVotoBars" class="live-voto-bars"></div>
+        <p id="liveVotoEmpty" style="display:none; font-size:13.5px; color:var(--blue-slate);">No hay candidatos cargados en esta mesa todavía.</p>
       </div>
     </div>
 
@@ -468,12 +490,14 @@
     const badgeClass = estado === 'Plenaria' ? 'plenaria' : estado === 'Aprobada' ? 'aprobada' : 'pendiente';
     const mockTag = r._mock ? ' <span class="tag">PRUEBA</span>' : '';
     const pdfCell = r._mock ? '<span style="color:#8695AC;">PDF de prueba</span>' : `<a href="${r.propuesta_url}" target="_blank">Ver PDF</a>`;
+    const deshacerBtn = estado === 'Aprobada' ? '<button class="admin-row-btn danger" data-action="deshacer-aprobar">Deshacer</button>' : '';
     const actionsCell = r._mock
       ? '<span style="font-size:12px; color:#8695AC;">Solo vista previa</span>'
       : `<div class="admin-row-actions">
           <button class="admin-row-btn" data-action="guardar-comentario">Guardar</button>
           <button class="admin-row-btn save" data-action="aprobar">Aprobar</button>
           <button class="admin-row-btn plenaria" data-action="plenaria">Enviar a Plenaria</button>
+          ${deshacerBtn}
         </div>`;
     return `<tr data-ref-code="${r.ref_code || ''}">
       <td>${r.nombre_completo || ''}${mockTag}</td>
@@ -705,12 +729,14 @@
     };
     if (action === 'aprobar') payload.propuesta_estado = 'Aprobada';
     if (action === 'plenaria') payload.propuesta_estado = 'Plenaria';
+    if (action === 'deshacer-aprobar') payload.propuesta_estado = 'Pendiente';
     setButtonLoading(e.target);
     const result = await apiCall(payload);
     if (result && result.ok) {
       record.propuesta_comentario = comentario;
       if (action === 'aprobar') record.propuesta_estado = 'Aprobada';
       if (action === 'plenaria') record.propuesta_estado = 'Plenaria';
+      if (action === 'deshacer-aprobar') record.propuesta_estado = 'Pendiente';
       renderPropuestas();
     } else {
       clearButtonLoading(e.target);
@@ -752,7 +778,12 @@
   function candRowHtml(c) {
     const videoCell = c.video_url ? `<a href="${c.video_url}" target="_blank">Ver video</a>` : '—';
     const cargoCell = c.cargoFinal ? `<span class="tag">${c.cargoFinal}</span>` : '—';
-    return `<tr data-id="${c.id}"><td></td><td>${c.nombre || ''}</td><td>${c.votos || 0}</td><td>${cargoCell}</td><td>${videoCell}</td><td><button class="admin-row-btn danger" data-action="borrar-candidato">Eliminar</button></td></tr>`;
+    const aprobado = (c.aprobado || '') === 'Sí';
+    const estadoBadge = aprobado
+      ? '<span class="cand-status-badge is-open" style="margin-left:8px;">Aprobado</span>'
+      : '<span class="cand-status-badge is-closed" style="margin-left:8px;">Pendiente</span>';
+    const aprobarBtn = aprobado ? '' : '<button class="admin-row-btn save" data-action="aprobar-candidato">Aprobar</button>';
+    return `<tr data-id="${c.id}"><td></td><td>${c.nombre || ''}${estadoBadge}</td><td>${c.votos || 0}</td><td>${cargoCell}</td><td>${videoCell}</td><td>${aprobarBtn}<button class="admin-row-btn danger" data-action="borrar-candidato">Eliminar</button></td></tr>`;
   }
 
   function setStatusBadge(elId, cerrada, textoAbierta, textoCerrada) {
@@ -799,6 +830,75 @@
     const comisionesAbiertas = comisionesConCandidatos.filter(c => !candidatosPools.comisiones[c].cerrada).length;
     document.getElementById('statCandComisionesAbiertas').textContent = comisionesConCandidatos.length
       ? `${comisionesAbiertas} / ${comisionesConCandidatos.length}` : '—';
+
+    const pendientes = allCandidatos.filter(c => (c.aprobado || '') !== 'Sí').length;
+    const approveAllBtn = document.getElementById('candApproveAllBtn');
+    document.getElementById('candPendientesCount').textContent = pendientes ? `(${pendientes})` : '';
+    approveAllBtn.disabled = pendientes === 0;
+    approveAllBtn.style.opacity = pendientes === 0 ? '.5' : '1';
+    approveAllBtn.style.cursor = pendientes === 0 ? 'default' : 'pointer';
+  }
+
+  document.getElementById('candApproveAllBtn').addEventListener('click', async (e) => {
+    const creds = getCreds();
+    setButtonLoading(e.target, 'Aprobando…');
+    const result = await apiCall({
+      form: 'admin_approve_all_candidatos', adminEmail: creds.email, adminPassword: creds.password,
+      tipoEuromodelo: currentBloque.tipo, ciudad: currentBloque.ciudad,
+    });
+    clearButtonLoading(e.target);
+    if (result && result.ok) await loadCandidatos();
+  });
+
+  // ---------- Votación en vivo ----------
+  // Reusa el mismo admin_list_candidatos (ya trae el conteo de votos siempre en vivo, esté
+  // cerrada la votación o no) — no hace falta un endpoint nuevo. Solo pide datos mientras esta
+  // pestaña está abierta: se detiene el polling al salir de ella para no gastar llamadas de más.
+  let liveVotoTimer = null;
+
+  document.getElementById('liveVotoPoolSelect').innerHTML =
+    '<option value="Parlamento">Mesa del Parlamento Europeo</option>' +
+    COMISIONES.map(c => `<option value="${c}">${c}</option>`).join('');
+  document.getElementById('liveVotoPoolSelect').addEventListener('change', refreshLiveVotacion);
+
+  function liveVotoRowHtml(c, maxVotos) {
+    const votos = c.votos || 0;
+    const pct = maxVotos > 0 ? Math.round(votos / maxVotos * 100) : 0;
+    const cargoTag = c.cargoFinal ? ` <span class="tag">${c.cargoFinal}</span>` : '';
+    return `
+      <div class="live-voto-row">
+        <div class="live-voto-row-head">
+          <span class="live-voto-name">${c.nombre || ''}</span>${cargoTag}
+          <span class="live-voto-count">${votos}</span>
+        </div>
+        <div class="live-voto-bar-track"><div class="live-voto-bar-fill" style="width:${pct}%;"></div></div>
+      </div>`;
+  }
+
+  async function refreshLiveVotacion() {
+    const creds = getCreds();
+    if (!creds) return;
+    const result = await apiCall({ form: 'admin_list_candidatos', adminEmail: creds.email, adminPassword: creds.password, tipoEuromodelo: currentBloque.tipo, ciudad: currentBloque.ciudad });
+    if (!result || !result.ok) return;
+    const poolValue = document.getElementById('liveVotoPoolSelect').value;
+    const candidatos = (result.candidatos || [])
+      .filter(c => poolValue === 'Parlamento' ? (c.ambito || '') === 'Parlamento' : c.comision === poolValue)
+      .slice()
+      .sort((a, b) => (b.votos || 0) - (a.votos || 0));
+    const maxVotos = candidatos.reduce((m, c) => Math.max(m, c.votos || 0), 0);
+    document.getElementById('liveVotoBars').innerHTML = candidatos.map(c => liveVotoRowHtml(c, maxVotos)).join('');
+    document.getElementById('liveVotoEmpty').style.display = candidatos.length === 0 ? 'block' : 'none';
+    document.getElementById('liveVotoUpdated').textContent = 'Actualizado: ' + new Date().toLocaleTimeString('es-CO');
+  }
+
+  function startLiveVotacionPolling() {
+    refreshLiveVotacion();
+    if (liveVotoTimer) clearInterval(liveVotoTimer);
+    liveVotoTimer = setInterval(refreshLiveVotacion, 5000);
+  }
+  function stopLiveVotacionPolling() {
+    if (liveVotoTimer) clearInterval(liveVotoTimer);
+    liveVotoTimer = null;
   }
 
   async function loadCandidatos() {
@@ -921,15 +1021,28 @@
     if (result && result.ok) await loadCandidatos();
   });
 
-  document.getElementById('candParlamentoTableBody').addEventListener('click', handleCandDelete);
-  document.getElementById('candComisionTableBody').addEventListener('click', handleCandDelete);
-  async function handleCandDelete(e) {
-    if (e.target.dataset.action !== 'borrar-candidato') return;
+  document.getElementById('candParlamentoTableBody').addEventListener('click', handleCandRowAction);
+  document.getElementById('candComisionTableBody').addEventListener('click', handleCandRowAction);
+  async function handleCandRowAction(e) {
+    const action = e.target.dataset.action;
+    if (action !== 'borrar-candidato' && action !== 'aprobar-candidato') return;
     const tr = e.target.closest('tr');
     const id = tr.dataset.id;
+    const creds = getCreds();
+
+    if (action === 'aprobar-candidato') {
+      setButtonLoading(e.target);
+      const result = await apiCall({ form: 'admin_approve_candidato', adminEmail: creds.email, adminPassword: creds.password, id });
+      if (result && result.ok) {
+        await loadCandidatos();
+      } else {
+        clearButtonLoading(e.target);
+      }
+      return;
+    }
+
     const sure = confirm('¿Eliminar este candidato?');
     if (!sure) return;
-    const creds = getCreds();
     setButtonLoading(e.target);
     const result = await apiCall({ form: 'admin_delete_candidato', adminEmail: creds.email, adminPassword: creds.password, id });
     if (result && result.ok) {
@@ -999,6 +1112,8 @@
     btn.addEventListener('click', () => {
       document.querySelectorAll('.admin-tab-panel').forEach(p => { p.style.display = p.id === 'tab-' + btn.dataset.tab ? 'block' : 'none'; });
       document.querySelectorAll('#sectionTabs .admin-tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+      if (btn.dataset.tab === 'votacion-vivo') startLiveVotacionPolling();
+      else stopLiveVotacionPolling();
     });
   });
 

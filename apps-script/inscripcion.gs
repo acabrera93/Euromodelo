@@ -453,6 +453,14 @@ function comisionFolderName_(comisionTitle) {
 // Árbol de carpetas: <raíz>/Nacional/<comisión>  ó  <raíz>/Regionales/<ciudad>/<comisión>.
 // Cada nivel se crea automáticamente la primera vez que hace falta (mismo patrón find-or-create
 // que ya usa findOrCreateFolder_), así que no hay que crear nada a mano en Drive.
+// No hay columna de ID de archivo de Drive guardada en la Sheet — solo propuesta_url. El ID se
+// extrae de esa URL con este patrón, el mismo que produce file.getUrl() en todo el script
+// (.../file/d/<ID>/...), así que es fiable: toda URL guardada la generó este mismo código.
+function extractDriveFileId_(url) {
+  var match = (url || '').toString().match(/\/d\/([a-zA-Z0-9_-]+)/);
+  return match ? match[1] : '';
+}
+
 function resolvePropuestaFolder_(record) {
   var root = findOrCreateFolder_(PROPUESTAS_FOLDER_NAME_);
   var tipoEuromodelo = (record.tipo_euromodelo || 'Nacional').toString();
@@ -510,6 +518,24 @@ function handleUploadPropuesta_(sheet, headers, data) {
     url = file.getUrl();
   } catch (err) {
     return jsonOut_({ ok: false, error: 'drive_error', message: err && err.message ? err.message : String(err) });
+  }
+
+  // Si ya tenía una propuesta subida antes, la versión anterior se manda a la papelera de Drive
+  // (setTrashed, no borrado permanente — queda recuperable desde ahí si hace falta) para no dejar
+  // PDFs viejos acumulándose. record.propuesta_url es la fila leída al principio de la función,
+  // antes de escribir la URL nueva, así que todavía es la versión anterior. No bloquea la subida
+  // del PDF nuevo si falla: un ID inválido o un archivo ya borrado a mano no debería tumbar el
+  // resto del flujo, igual que el correo de notificación no tumba el guardado en la Sheet.
+  var oldUrl = (record.propuesta_url || '').toString();
+  if (oldUrl) {
+    var oldFileId = extractDriveFileId_(oldUrl);
+    if (oldFileId) {
+      try {
+        DriveApp.getFileById(oldFileId).setTrashed(true);
+      } catch (err) {
+        console.error('No se pudo mover a la papelera la propuesta anterior (' + oldFileId + '): ' + err);
+      }
+    }
   }
 
   ['propuesta_url', 'propuesta_estado', 'propuesta_comentario'].forEach(function(field) {
@@ -1120,7 +1146,11 @@ function handleUpdateAssignment_(sheet, headers, ss, data) {
 // — es lo que permite saber, cuando alguien inicia sesión, si esa persona ganó un cargo de mesa
 // directiva. El panel de admin lo completa solo, eligiendo al participante de una lista — nunca
 // se escribe a mano, para que siempre coincida con una cuenta real.
-var CANDIDATOS_HEADERS_ = ['id', 'tipo_euromodelo', 'ciudad', 'ambito', 'comision', 'email', 'nombre', 'video_url', 'enviado'];
+// 'aprobado': 'Sí' | 'No'. Un candidato recién agregado nace en 'No' — el staff debe aprobarlo a
+// mano (uno por uno o con "Aprobar todas") antes de que sea visible para los participantes en la
+// votación (handleListCandidatos_) o votable (handleVoteCandidato_). El panel de admin sí ve
+// siempre todos, aprobados o no, para poder revisarlos.
+var CANDIDATOS_HEADERS_ = ['id', 'tipo_euromodelo', 'ciudad', 'ambito', 'comision', 'email', 'nombre', 'video_url', 'aprobado', 'enviado'];
 var CARGOS_PARLAMENTO_RANKING_ = ['Presidente', 'Vicepresidente', 'Secretario General'];
 var CARGOS_COMISION_RANKING_ = ['Presidente', 'Secretario General'];
 
@@ -1177,6 +1207,7 @@ function handleAdminAddCandidato_(ss, data) {
     if (h === 'email') return email;
     if (h === 'nombre') return nombre;
     if (h === 'video_url') return (data.videoUrl || '').toString();
+    if (h === 'aprobado') return 'No';
     if (h === 'enviado') return new Date().toISOString();
     return '';
   });
@@ -1185,6 +1216,45 @@ function handleAdminAddCandidato_(ss, data) {
   range.setNumberFormat('@');
   range.setValues([row]);
   return jsonOut_({ ok: true, id: id });
+}
+
+function handleAdminApproveCandidato_(ss, data) {
+  if (!verifyAdminCredentials_(ss, data.adminEmail, data.adminPassword)) return jsonOut_({ ok: false });
+  var cand = ensureCandidatosSheet_(ss);
+  var rowNum = findRowByColumn_(cand.sheet, cand.headers, 'id', data.id);
+  if (rowNum === -1) return jsonOut_({ ok: false, error: 'not_found' });
+  var colIdx = cand.headers.indexOf('aprobado');
+  var cell = cand.sheet.getRange(rowNum, colIdx + 1);
+  cell.setNumberFormat('@');
+  cell.setValue('Sí');
+  return jsonOut_({ ok: true });
+}
+
+// Aprueba de una sola vez a todos los candidatos pendientes del bloque activo (Parlamento y todas
+// sus comisiones juntas) — el mismo alcance que ya usa admin_list_candidatos.
+function handleAdminApproveAllCandidatos_(ss, data) {
+  if (!verifyAdminCredentials_(ss, data.adminEmail, data.adminPassword)) return jsonOut_({ ok: false });
+  var tipoEuromodelo = (data.tipoEuromodelo || 'Nacional').toString();
+  var ciudad = (data.ciudad || '').toString();
+  var cand = ensureCandidatosSheet_(ss);
+  var lastRow = cand.sheet.getLastRow();
+  var aprobados = 0;
+  if (lastRow >= 2) {
+    var colIdx = cand.headers.indexOf('aprobado');
+    var values = cand.sheet.getRange(2, 1, lastRow - 1, cand.headers.length).getValues();
+    for (var i = 0; i < values.length; i++) {
+      var r = {};
+      cand.headers.forEach(function(h, j) { r[h] = values[i][j]; });
+      if ((r.tipo_euromodelo || 'Nacional').toString() !== tipoEuromodelo) continue;
+      if (tipoEuromodelo === 'Regional' && (r.ciudad || '').toString() !== ciudad) continue;
+      if ((r.aprobado || '').toString() === 'Sí') continue;
+      var cell = cand.sheet.getRange(i + 2, colIdx + 1);
+      cell.setNumberFormat('@');
+      cell.setValue('Sí');
+      aprobados++;
+    }
+  }
+  return jsonOut_({ ok: true, aprobados: aprobados });
 }
 
 function handleAdminDeleteCandidato_(ss, data) {
@@ -1221,9 +1291,16 @@ function tallyVotos_(ss, tipoEuromodelo, ciudad, ambito, comision) {
 // ranking de ese ámbito. Empates se desempatan por orden de inscripción del candidato (quien se
 // cargó primero en el panel de admin queda arriba) — es una regla arbitraria pero determinista;
 // un empate real debería resolverlo el staff a mano si hace falta.
+// Un candidato pendiente de aprobar (ver CANDIDATOS_HEADERS_) nunca puede ganar un cargo — no
+// puede recibir votos (handleVoteCandidato_ lo bloquea), así que queda fuera del ranking. Se
+// devuelve igual al final de la lista (con votos=0 y sin cargoFinal) para que el panel de admin
+// lo siga viendo y pueda aprobarlo.
 function rankCandidatos_(candidatos, counts, ambito) {
   var ranking = ambito === 'Parlamento' ? CARGOS_PARLAMENTO_RANKING_ : CARGOS_COMISION_RANKING_;
-  var withVotes = candidatos.map(function(c) {
+  var aprobados = candidatos.filter(function(c) { return (c.aprobado || '').toString() === 'Sí'; });
+  var pendientes = candidatos.filter(function(c) { return (c.aprobado || '').toString() !== 'Sí'; });
+
+  var withVotes = aprobados.map(function(c) {
     var votos = counts[c.id] || 0;
     return Object.assign({}, c, { votos: votos });
   });
@@ -1232,7 +1309,9 @@ function rankCandidatos_(candidatos, counts, ambito) {
     return new Date(a.enviado).getTime() - new Date(b.enviado).getTime();
   });
   withVotes.forEach(function(c, i) { c.cargoFinal = ranking[i] || ''; });
-  return withVotes;
+
+  var sinRanking = pendientes.map(function(c) { return Object.assign({}, c, { votos: counts[c.id] || 0, cargoFinal: '' }); });
+  return withVotes.concat(sinRanking);
 }
 
 // Determina si un participante (por email) ganó un cargo de mesa directiva: cruza 'candidatos'
@@ -1326,6 +1405,7 @@ function handleVoteCandidato_(sheet, headers, ss, data) {
     && (candRecord.ambito || '').toString() === ambito
     && (ambito !== 'Comision' || (candRecord.comision || '').toString() === comision);
   if (!pertenece) return jsonOut_({ ok: false, error: 'candidato_no_pertenece' });
+  if ((candRecord.aprobado || '').toString() !== 'Sí') return jsonOut_({ ok: false, error: 'candidato_no_aprobado' });
 
   if (isVotacionCerrada_(tipoEuromodelo, ciudad, ambito, comision)) return jsonOut_({ ok: false, error: 'votacion_cerrada' });
 
@@ -1482,6 +1562,7 @@ function handleListCandidatos_(sheet, headers, ss, data) {
       cand.headers.forEach(function(h, i) { r[h] = row[i]; });
       if ((r.tipo_euromodelo || 'Nacional').toString() !== tipoEuromodelo) return;
       if (tipoEuromodelo === 'Regional' && (r.ciudad || '').toString() !== ciudad) return;
+      if ((r.aprobado || '').toString() !== 'Sí') return; // pendiente de aprobar: aún no se muestra a los participantes
       var ambito = (r.ambito || '').toString();
       if (ambito === 'Parlamento') {
         parlamentoCandidatos.push(r);
@@ -1987,6 +2068,8 @@ function doPost_(e) {
   if (data.form === 'admin_undo_assignment') return handleUndoAssignment_(sheet, headers, ss, data);
   if (data.form === 'list_candidatos') return handleListCandidatos_(sheet, headers, ss, data);
   if (data.form === 'admin_add_candidato') return handleAdminAddCandidato_(ss, data);
+  if (data.form === 'admin_approve_candidato') return handleAdminApproveCandidato_(ss, data);
+  if (data.form === 'admin_approve_all_candidatos') return handleAdminApproveAllCandidatos_(ss, data);
   if (data.form === 'admin_delete_candidato') return handleAdminDeleteCandidato_(ss, data);
   if (data.form === 'admin_list_candidatos') return handleAdminListCandidatos_(ss, data);
   if (data.form === 'vote_candidato') return handleVoteCandidato_(sheet, headers, ss, data);

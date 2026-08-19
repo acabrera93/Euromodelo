@@ -563,3 +563,13 @@ textarea.propuesta-comentario{
 @media (max-width:900px){
   .cand-results-grid{grid-template-columns:1fr;}
 }
+
+/* ---- Votación en vivo: barras que crecen con los votos ---- */
+.live-voto-bars{display:flex; flex-direction:column; gap:16px;}
+.live-voto-row{background:var(--white); border:1px solid var(--line); border-radius:var(--radius); padding:14px 18px;}
+.live-voto-row:first-child{border-color:var(--gold-star); box-shadow:0 0 0 1px var(--gold-star) inset;}
+.live-voto-row-head{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;}
+.live-voto-name{font-family:'Fraunces',serif; font-size:16px; font-weight:600; color:var(--navy-deep);}
+.live-voto-count{margin-left:auto; font-family:'Fraunces',serif; font-size:20px; font-weight:600; color:var(--blue-revel);}
+.live-voto-bar-track{height:14px; border-radius:8px; background:var(--blue-pale); overflow:hidden;}
+.live-voto-bar-fill{height:100%; border-radius:8px; background:linear-gradient(90deg, var(--blue-revel), var(--gold-star)); transition:width .5s ease;}
