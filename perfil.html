@@ -88,11 +88,21 @@
 
 <div id="perfilLoggedIn" style="display:none;">
   <div class="profile-hero">
-    <div class="container profile-card">
-      <div>
-        <p class="profile-name" id="pfNombre"></p>
-        <p class="profile-meta" id="pfMeta"></p>
-        <div class="profile-badges" id="pfBadges"></div>
+    <div class="container">
+      <div class="profile-badge-card">
+        <div class="profile-badge-ribbon"></div>
+        <div class="profile-badge-body">
+          <div class="profile-badge-avatar" id="pfHeroAvatar"></div>
+          <p class="profile-badge-name" id="pfNombre"></p>
+          <p class="profile-badge-meta" id="pfMeta"></p>
+          <div class="profile-badge-role" id="pfHeroRol"></div>
+          <div class="profile-badge-divider"></div>
+          <div class="profile-badge-fields">
+            <div class="profile-badge-field"><div class="k">Usuario</div><div class="v" id="pfHeroUsuario"></div></div>
+            <div class="profile-badge-field"><div class="k">Bancada</div><div class="v" id="pfHeroBancada"></div></div>
+            <div class="profile-badge-field full"><div class="k">Comisión</div><div class="v" id="pfHeroComision"></div></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -949,6 +959,35 @@
 </script>
 <script>
   const user = currentUserData();
+
+  // Iniciales para el avatar del gafete: primera letra de las dos primeras palabras del nombre.
+  function initialsFromName(nombre) {
+    const parts = (nombre || '').trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return '';
+    const first = parts[0][0] || '';
+    const second = parts.length > 1 ? (parts[1][0] || '') : '';
+    return (first + second).toUpperCase();
+  }
+
+  // Bancada del gafete: reusa el mismo array PARTIDOS (con su ruta de logo real, ya definida a
+  // mano por partido) y el mismo criterio de lookup por título que ya usa setPartidoDisplay más
+  // abajo — no existe una convención de slug para esto, los logos ni siquiera comparten
+  // extensión (webp/svg/png). Si el archivo del logo falla al cargar, cae en el texto plano en
+  // vez de dejar un <img> roto.
+  function setHeroBancada(partidoTitle) {
+    const el = document.getElementById('pfHeroBancada');
+    el.innerHTML = '';
+    if (!partidoTitle) { el.textContent = 'Pendiente'; return; }
+    const match = PARTIDOS.find(p => p.title === partidoTitle);
+    if (!match) { el.textContent = partidoTitle; return; }
+    const img = document.createElement('img');
+    img.className = 'profile-badge-party-logo';
+    img.src = match.logo;
+    img.alt = partidoTitle;
+    img.onerror = () => { el.textContent = partidoTitle; };
+    el.appendChild(img);
+  }
+
   if (!user) {
     document.getElementById('perfilLoggedOut').style.display = 'block';
     const loginFormPerfil = document.getElementById('loginFormPerfil');
@@ -997,13 +1036,16 @@
   } else {
     document.getElementById('perfilLoggedIn').style.display = 'block';
     document.getElementById('pfNombre').textContent = user.nombre || user.username;
+    document.getElementById('pfHeroAvatar').textContent = initialsFromName(user.nombre || user.username);
     document.getElementById('pfMeta').textContent = user.tipo === 'Profesor'
       ? (user.institucion || 'Institución por confirmar') + ' · Profesor'
       : (user.institucion || 'Institución por confirmar') + ' · ' + (user.ciudad || 'Ciudad por confirmar');
 
     function renderProfesorView(u) {
-      document.getElementById('pfBadges').innerHTML =
-        `<span class="profile-badge"><b>Usuario</b>${u.username}</span><span class="profile-badge">Profesor</span>`;
+      document.getElementById('pfHeroRol').textContent = 'Profesor';
+      document.getElementById('pfHeroUsuario').textContent = u.username;
+      document.getElementById('pfHeroBancada').textContent = '—';
+      document.getElementById('pfHeroComision').textContent = '—';
       document.getElementById('pfProfesorView').style.display = 'block';
       document.getElementById('pfProfesorColegio').textContent = u.institucion || 'tu colegio';
       fetch(EUROMODELO_SCRIPT_URL, {
@@ -1045,17 +1087,10 @@
     // por el staff, para que reemplacen las preferencias sin recargar la página.
     function renderInscripcionSummary(u) {
       currentProfileUser = u;
-      const badges = [];
-      badges.push(`<span class="profile-badge"><b>Usuario</b>${u.username}</span>`);
-      badges.push(`<span class="profile-badge"><b>Ciudad</b>${u.ciudad || 'Por confirmar'}</span>`);
-      if (u.inscripcion) {
-        badges.push(`<span class="profile-badge"><b>Rol</b>${u.rolAsignado || u.inscripcion.rol1}</span>`);
-        badges.push(`<span class="profile-badge"><b>Comisión</b>${u.comisionAsignada || u.inscripcion.comision1}</span>`);
-        badges.push(`<span class="profile-badge"><b>Bancada</b>${u.partidoAsignado || u.inscripcion.partido}</span>`);
-      } else {
-        badges.push(`<span class="profile-badge">Inscripción pendiente</span>`);
-      }
-      document.getElementById('pfBadges').innerHTML = badges.join('');
+      document.getElementById('pfHeroUsuario').textContent = u.username;
+      document.getElementById('pfHeroRol').textContent = u.inscripcion ? (u.rolAsignado || u.inscripcion.rol1) : 'Inscripción pendiente';
+      document.getElementById('pfHeroComision').textContent = u.inscripcion ? (u.comisionAsignada || u.inscripcion.comision1) : 'Pendiente';
+      setHeroBancada(u.inscripcion ? (u.partidoAsignado || u.inscripcion.partido) : '');
 
       if (u.inscripcion) {
         document.getElementById('pfNoInscripcion').style.display = 'none';

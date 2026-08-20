@@ -190,8 +190,8 @@
 
         <div class="card accent" style="--accent:var(--gold-star); margin-bottom:var(--space-5);">
           <div class="section-head" style="margin-bottom:var(--space-3);">
-            <h2 style="font-size:19px;">① Revisa las postulaciones</h2>
-            <p>Enviadas por los participantes desde su área personal. Decide a quién agregar como candidato real en el paso ②, eligiéndolo ahí del selector de participante.</p>
+            <h2 style="font-size:19px;">① Postulaciones y candidaturas</h2>
+            <p>Enviadas por los participantes desde su área personal, con lo que escribieron en su postulación. Agrega a alguien como candidato directamente desde su fila — el nombre, correo y video salen de ahí, no hay que volver a buscarlo en otro formulario.</p>
           </div>
           <div class="sim-table-wrap">
             <table class="sim-table">
@@ -202,41 +202,9 @@
           <p id="postulacionesMesaEmpty" style="display:none; font-size:13.5px; color:var(--blue-slate); margin:var(--space-2) 0 0;">Aún no hay postulaciones para este bloque.</p>
         </div>
 
-        <div class="card accent" style="--accent:var(--teal); margin-bottom:var(--space-5);">
-          <div class="section-head" style="margin-bottom:var(--space-2);">
-            <h2 style="font-size:19px;">② Agrega el candidato a la votación</h2>
-            <p style="font-size:13.5px;">Se agrega al bloque activo de arriba (Nacional o la sede Regional seleccionada). Nadie elige cargo al agregarse: todos compiten juntos por el Parlamento (o por su comisión) en una sola votación, y el cargo sale solo del ranking de votos al cerrarla.</p>
-          </div>
-          <div class="form-grid">
-            <div class="field">
-              <label>¿A qué mesa se postula?</label>
-              <select id="candAmbito">
-                <option value="Parlamento">Mesa del Parlamento Europeo</option>
-                <option value="Comision">Mesa de una comisión</option>
-              </select>
-            </div>
-            <div class="field" id="candComisionField" style="display:none;">
-              <label>Comisión</label>
-              <select id="candComision"></select>
-            </div>
-            <div class="field">
-              <label>Participante <span class="hint">(el nombre y correo del candidato salen de aquí — nunca se escriben a mano)</span></label>
-              <select id="candParticipante"><option value="">Selecciona un participante</option></select>
-            </div>
-            <div class="field">
-              <label>Video de presentación <span class="hint">(opcional)</span></label>
-              <input type="text" id="candVideoUrl" placeholder="Enlace al video">
-            </div>
-          </div>
-          <div class="form-submit-row" style="justify-content:flex-start;">
-            <button class="btn-primary" id="candAddBtn" type="button">Agregar candidato</button>
-          </div>
-          <p id="candError" style="display:none; color:#C0392B; font-size:13px; margin-top:8px;"></p>
-        </div>
-
         <div class="section-head" style="margin-bottom:var(--space-3); display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap;">
           <div>
-            <h2 style="font-size:19px;">③ Administra la votación y los resultados</h2>
+            <h2 style="font-size:19px;">② Candidaturas aprobadas y votación</h2>
             <p style="font-size:13.5px;">Un candidato recién agregado queda <b>pendiente de aprobar</b> y no lo ven los participantes hasta que lo apruebes. Mientras una votación esté abierta, los participantes pueden emitir su voto; ciérrala cuando corresponda para que el cargo de cada candidato quede definido según los votos.</p>
           </div>
           <button class="btn-primary" id="candApproveAllBtn" type="button" style="white-space:nowrap;">Aprobar todas <span id="candPendientesCount"></span></button>
@@ -554,7 +522,6 @@
     renderTable();
     renderColegios();
     renderPropuestas();
-    populateCandParticipanteSelect();
   }
 
   function getCreds() {
@@ -632,7 +599,7 @@
     sessionStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify({ email, password }));
     showContent();
     await loadParticipants();
-    loadCandidatos();
+    await loadCandidatos();
     loadPostulacionesMesa();
     clearButtonLoading(submitBtn);
     if (result.mustChangePassword) openForcePasswordModal();
@@ -750,29 +717,14 @@
   let allCandidatos = [];
   let candidatosPools = { parlamento: { cerrada: false }, comisiones: {} };
 
-  function populateCandidatoForm() {
-    const ambito = document.getElementById('candAmbito').value;
-    const comisionSelect = document.getElementById('candComision');
-    document.getElementById('candComisionField').style.display = ambito === 'Comision' ? '' : 'none';
-    if (ambito === 'Comision' && !comisionSelect.innerHTML) {
-      comisionSelect.innerHTML = COMISIONES.map(c => `<option value="${c}">${c}</option>`).join('');
-    }
-  }
-  document.getElementById('candAmbito').addEventListener('change', populateCandidatoForm);
-  populateCandidatoForm();
   document.getElementById('candComisionVotacionSelect').innerHTML = COMISIONES.map(c => `<option value="${c}">${c}</option>`).join('');
 
-  // El nombre/correo de un candidato salen de elegir un participante real (nunca se escriben a
-  // mano), así el candidato siempre queda vinculado a una cuenta que existe de verdad.
-  function populateCandParticipanteSelect() {
-    const select = document.getElementById('candParticipante');
-    const current = select.value;
-    const estudiantes = bloqueRecords()
-      .filter(r => (r.tipo || '') !== 'Profesor' && r.email)
-      .sort((a, b) => (a.nombre_completo || '').localeCompare(b.nombre_completo || ''));
-    select.innerHTML = '<option value="">Selecciona un participante</option>' +
-      estudiantes.map(r => `<option value="${r.email}" data-nombre="${r.nombre_completo || ''}">${r.nombre_completo || r.email} — ${r.institucion_educativa || 'Sin colegio'}</option>`).join('');
-    select.value = current;
+  // Busca la comisión ya asignada (o, si aún no la tiene, su 1ª preferencia) de un participante
+  // por correo — hace falta para agregarlo como candidato de comisión directamente desde su fila
+  // de postulación, sin tener que volver a buscarlo en un formulario aparte.
+  function comisionDeParticipante(email) {
+    const r = bloqueRecords().find(x => (x.email || '').toLowerCase() === (email || '').toLowerCase());
+    return r ? (r.comision_asignada || r.comision_opcion1 || '') : '';
   }
 
   function candRowHtml(c) {
@@ -913,6 +865,35 @@
 
   const TIPO_POSTULACION_LABELS_ = { Parlamento: 'Parlamento Europeo', Comision: 'Comisión', Ambos: 'Ambas' };
 
+  // Botón(es) "Agregar como candidato" por fila: usa directamente lo que la persona puso en su
+  // postulación (email, nombre, video, y a qué mesa(s) se postuló) — si ya es candidato de esa
+  // mesa, muestra un badge en vez del botón, para no duplicar.
+  function postulacionAccionesHtml(p) {
+    const necesitaParlamento = p.tipo_postulacion === 'Parlamento' || p.tipo_postulacion === 'Ambos';
+    const necesitaComision = p.tipo_postulacion === 'Comision' || p.tipo_postulacion === 'Ambos';
+    const emailLower = (p.email || '').toLowerCase();
+    const partes = [];
+
+    if (necesitaParlamento) {
+      const yaEs = allCandidatos.some(c => c.ambito === 'Parlamento' && (c.email || '').toLowerCase() === emailLower);
+      partes.push(yaEs
+        ? '<span class="cand-status-badge is-open">Ya es candidato (Parlamento)</span>'
+        : `<button class="admin-row-btn save" data-action="agregar-candidato" data-postulacion-email="${p.email || ''}" data-postulacion-nombre="${p.nombre || ''}" data-cand-ambito="Parlamento" data-cand-video="${p.video_url_parlamento || ''}">Agregar a Parlamento</button>`);
+    }
+    if (necesitaComision) {
+      const comisionPropia = comisionDeParticipante(p.email);
+      if (!comisionPropia) {
+        partes.push('<span class="cand-status-badge is-closed">Sin comisión asignada</span>');
+      } else {
+        const yaEs = allCandidatos.some(c => c.ambito === 'Comision' && (c.email || '').toLowerCase() === emailLower && c.comision === comisionPropia);
+        partes.push(yaEs
+          ? '<span class="cand-status-badge is-open">Ya es candidato (Comisión)</span>'
+          : `<button class="admin-row-btn save" data-action="agregar-candidato" data-postulacion-email="${p.email || ''}" data-postulacion-nombre="${p.nombre || ''}" data-cand-ambito="Comision" data-cand-comision="${comisionPropia}" data-cand-video="${p.video_url_comision || ''}">Agregar a mi comisión</button>`);
+      }
+    }
+    return partes.join('');
+  }
+
   function postulacionRowHtml(p) {
     const videos = [];
     if (p.video_url_parlamento) videos.push(`<a href="${p.video_url_parlamento}" target="_blank">Ver video (Parlamento)</a>`);
@@ -926,7 +907,7 @@
       <td>${TIPO_POSTULACION_LABELS_[p.tipo_postulacion] || p.tipo_postulacion || '—'}</td>
       <td style="max-width:280px; white-space:normal;">${p.experiencia || ''}<br><i>${p.motivacion || ''}</i></td>
       <td>${videos.length ? videos.join('<br>') : '—'}</td>
-      <td><button class="admin-row-btn danger" data-action="borrar-postulacion">Eliminar</button></td>
+      <td><div class="admin-row-actions">${postulacionAccionesHtml(p)}<button class="admin-row-btn danger" data-action="borrar-postulacion">Eliminar</button></div></td>
     </tr>`;
   }
 
@@ -942,51 +923,43 @@
   }
 
   document.getElementById('postulacionesMesaTableBody').addEventListener('click', async (e) => {
-    if (e.target.dataset.action !== 'borrar-postulacion') return;
-    const tr = e.target.closest('tr');
-    const refCode = tr.dataset.refCode;
-    const sure = confirm('¿Eliminar esta postulación?');
-    if (!sure) return;
-    const creds = getCreds();
-    setButtonLoading(e.target);
-    const result = await apiCall({ form: 'admin_delete_postulacion_mesa', adminEmail: creds.email, adminPassword: creds.password, refCode });
-    if (result && result.ok) {
-      await loadPostulacionesMesa();
-    } else {
-      clearButtonLoading(e.target);
+    const action = e.target.dataset.action;
+    if (action === 'borrar-postulacion') {
+      const tr = e.target.closest('tr');
+      const refCode = tr.dataset.refCode;
+      const sure = confirm('¿Eliminar esta postulación?');
+      if (!sure) return;
+      const creds = getCreds();
+      setButtonLoading(e.target);
+      const result = await apiCall({ form: 'admin_delete_postulacion_mesa', adminEmail: creds.email, adminPassword: creds.password, refCode });
+      if (result && result.ok) {
+        await loadPostulacionesMesa();
+      } else {
+        clearButtonLoading(e.target);
+      }
+      return;
     }
-  });
 
-  document.getElementById('candAddBtn').addEventListener('click', async (e) => {
-    const errEl = document.getElementById('candError');
-    errEl.style.display = 'none';
-    const ambito = document.getElementById('candAmbito').value;
-    const comision = ambito === 'Comision' ? document.getElementById('candComision').value : '';
-    const participanteSelect = document.getElementById('candParticipante');
-    const email = participanteSelect.value;
-    const nombre = participanteSelect.selectedOptions[0] ? participanteSelect.selectedOptions[0].dataset.nombre : '';
-    const videoUrl = document.getElementById('candVideoUrl').value.trim();
-    if (!email) {
-      errEl.textContent = 'Elige el participante que se postula.';
-      errEl.style.display = 'block';
-      return;
+    if (action === 'agregar-candidato') {
+      const creds = getCreds();
+      setButtonLoading(e.target, 'Agregando…');
+      const result = await apiCall({
+        form: 'admin_add_candidato', adminEmail: creds.email, adminPassword: creds.password,
+        tipoEuromodelo: currentBloque.tipo, ciudad: currentBloque.ciudad,
+        ambito: e.target.dataset.candAmbito,
+        comision: e.target.dataset.candComision || '',
+        email: e.target.dataset.postulacionEmail,
+        nombre: e.target.dataset.postulacionNombre,
+        videoUrl: e.target.dataset.candVideo || '',
+      });
+      if (result && result.ok) {
+        await loadCandidatos();
+        await loadPostulacionesMesa();
+      } else {
+        clearButtonLoading(e.target);
+        alert('No se pudo agregar el candidato. Intenta de nuevo.');
+      }
     }
-    const creds = getCreds();
-    setButtonLoading(e.target, 'Agregando…');
-    const result = await apiCall({
-      form: 'admin_add_candidato', adminEmail: creds.email, adminPassword: creds.password,
-      tipoEuromodelo: currentBloque.tipo, ciudad: currentBloque.ciudad,
-      ambito, comision, email, nombre, videoUrl,
-    });
-    clearButtonLoading(e.target);
-    if (!result || !result.ok) {
-      errEl.textContent = 'No se pudo agregar el candidato. Intenta de nuevo.';
-      errEl.style.display = 'block';
-      return;
-    }
-    participanteSelect.value = '';
-    document.getElementById('candVideoUrl').value = '';
-    await loadCandidatos();
   });
 
   document.getElementById('candParlamentoToggleBtn').addEventListener('click', async (e) => {
@@ -1144,8 +1117,7 @@
     // La vista previa de simulación mostrada corresponde al bloque anterior: se limpia para no
     // confundir esos números con los del bloque recién seleccionado.
     resetSimulacionPreview();
-    loadCandidatos();
-    loadPostulacionesMesa();
+    loadCandidatos().then(loadPostulacionesMesa);
   }
 
   document.getElementById('bloqueTabs').querySelector('.admin-tab-btn[data-tipo="Nacional"]').addEventListener('click', () => {
@@ -1267,8 +1239,7 @@
   if (savedCreds) {
     showContent();
     loadParticipants();
-    loadCandidatos();
-    loadPostulacionesMesa();
+    loadCandidatos().then(loadPostulacionesMesa);
   }
 </script>
 </body>
