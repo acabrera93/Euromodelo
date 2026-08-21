@@ -366,9 +366,9 @@
       <div class="admin-tab-panel" id="pftab-propuestas" style="display:none;">
       <div id="pfComisionPropuestas" style="display:none;">
         <div class="section-head">
-          <h2 style="font-size:20px;">Propuestas aprobadas de tu comisión</h2>
+          <h2 style="font-size:20px;">Propuestas de tu comisión</h2>
         </div>
-        <p id="pfComisionPropuestasEmpty" style="display:none; font-size:13.5px; color:var(--blue-slate);">Aún no hay propuestas aprobadas en tu comisión.</p>
+        <p id="pfComisionPropuestasEmpty" style="display:none; font-size:13.5px; color:var(--blue-slate);">Aún no hay propuestas en tu comisión.</p>
         <ul class="role-bullets" id="pfComisionPropuestasList" style="--accent:var(--teal);"></ul>
       </div>
 
@@ -1517,6 +1517,17 @@
       return '';
     }
 
+    // Lo que identifica una propuesta para quien la lee es el documento que subió el comisario
+    // (lo que va a leer/votar), no el nombre de quien la subió — por eso el documento va como
+    // enlace principal y el nombre del comisario queda como dato secundario. Si una propuesta
+    // vieja no tiene nombreArchivo guardado, se cae en el nombre del comisario como enlace.
+    function propuestaListItemHtml(p) {
+      const tieneArchivo = !!p.nombreArchivo;
+      const tituloEnlace = tieneArchivo ? p.nombreArchivo : p.nombre;
+      const autorHtml = tieneArchivo ? ` <span style="color:#8695AC; font-size:12.5px;">— ${p.nombre}</span>` : '';
+      return `<li><a href="${p.url}" target="_blank">${tituloEnlace}</a>${autorHtml}${votacionBadgeHtml(p.resultadoVotacion)}</li>`;
+    }
+
     function renderPropuestaSections(u) {
       document.getElementById('pfTabPropuestaBtn').style.display = u.rolAsignado === 'Comisario' ? '' : 'none';
       document.getElementById('pfPropuestaComisario').style.display = u.rolAsignado === 'Comisario' ? 'block' : 'none';
@@ -1563,7 +1574,7 @@
               listEl.innerHTML = '';
             } else {
               emptyEl.style.display = 'none';
-              listEl.innerHTML = proposals.map(p => `<li><a href="${p.url}" target="_blank">${p.nombre}</a>${propuestaNombreArchivoHtml(p)}${votacionBadgeHtml(p.resultadoVotacion)}</li>`).join('');
+              listEl.innerHTML = proposals.map(propuestaListItemHtml).join('');
             }
           })
           .catch(err => console.error('No se pudo cargar las propuestas de la comisión:', err));
@@ -1588,7 +1599,7 @@
       return Object.keys(groups).sort().map(comisionTitle => {
         const info = comisionInfoByTitle(comisionTitle);
         const color = info ? info.color : 'var(--blue-slate)';
-        const items = groups[comisionTitle].map(p => `<li><a href="${p.url}" target="_blank">${p.nombre}</a>${propuestaNombreArchivoHtml(p)}${votacionBadgeHtml(p.resultadoVotacion)}</li>`).join('');
+        const items = groups[comisionTitle].map(propuestaListItemHtml).join('');
         return `
           <div class="card accent" style="--accent:${color};">
             <h3>${info ? info.code + ' — ' : ''}${comisionTitle}</h3>
