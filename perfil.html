@@ -87,30 +87,11 @@
 </div>
 
 <div id="perfilLoggedIn" style="display:none;">
-  <div class="profile-hero">
-    <div class="container">
-      <div class="profile-badge-card">
-        <div class="profile-badge-ribbon"></div>
-        <div class="profile-badge-body">
-          <div class="profile-badge-avatar" id="pfHeroAvatar"></div>
-          <p class="profile-badge-name" id="pfNombre"></p>
-          <p class="profile-badge-meta" id="pfMeta"></p>
-          <div class="profile-badge-role" id="pfHeroRol"></div>
-          <div class="profile-badge-divider"></div>
-          <div class="profile-badge-fields">
-            <div class="profile-badge-field"><div class="k">Usuario</div><div class="v" id="pfHeroUsuario"></div></div>
-            <div class="profile-badge-field"><div class="k">Bancada</div><div class="v" id="pfHeroBancada"></div></div>
-            <div class="profile-badge-field full"><div class="k">Comisión</div><div class="v" id="pfHeroComision"></div></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="section-inner">
+  <div class="section-inner" style="padding-bottom:0;">
     <div class="container" style="max-width:760px;">
       <div id="pfProfesorView" style="display:none;">
         <div class="section-head">
+          <p style="font-size:13px; font-weight:700; color:var(--blue-revel); margin:0 0 4px;">Hola, <span id="pfProfesorNombre"></span></p>
           <h2 style="font-size:20px;">Estudiantes de <span id="pfProfesorColegio"></span></h2>
           <p style="font-size:13px;">Listado de estudiantes inscritos de tu colegio, con su rol, comisión y bancada (asignados por el staff, o su preferencia mientras la asignación final no esté lista).</p>
         </div>
@@ -134,6 +115,23 @@
         </div>
 
       <div class="admin-tab-panel" id="pftab-info">
+      <div class="profile-badge-wrap">
+        <div class="profile-badge-card">
+          <div class="profile-badge-ribbon"></div>
+          <div class="profile-badge-body">
+            <div class="profile-badge-avatar" id="pfHeroAvatar"></div>
+            <p class="profile-badge-name" id="pfNombre"></p>
+            <p class="profile-badge-meta" id="pfMeta"></p>
+            <div class="profile-badge-role" id="pfHeroRol"></div>
+            <div class="profile-badge-divider"></div>
+            <div class="profile-badge-fields">
+              <div class="profile-badge-field"><div class="k">Usuario</div><div class="v" id="pfHeroUsuario"></div></div>
+              <div class="profile-badge-field"><div class="k">Bancada</div><div class="v" id="pfHeroBancada"></div></div>
+              <div class="profile-badge-field full"><div class="k">Comisión</div><div class="v" id="pfHeroComision"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
       <div id="pfNoInscripcion" style="display:none;">
         <form class="form-card" id="insForm">
           <div class="section-head" style="margin-bottom:var(--space-2);">
@@ -231,31 +229,6 @@
         </form>
       </div>
 
-      <div id="pfInscripcionData" style="display:none;">
-        <div class="section-head">
-          <h2 style="font-size:20px;">Tu inscripción</h2>
-        </div>
-        <div class="grid-cards">
-          <div class="card">
-            <h3 id="pfRolesTitle">Opciones de rol</h3>
-            <span class="origen-badge sin-asignar" id="pfRolesPendiente" style="display:none; margin-bottom:8px;">Pendiente de asignar</span>
-            <ul class="role-bullets" id="pfRoles" style="--accent:var(--gold-star);"></ul>
-          </div>
-          <div class="card">
-            <h3 id="pfComisionesTitle">Opciones de comisión</h3>
-            <span class="origen-badge sin-asignar" id="pfComisionesPendiente" style="display:none; margin-bottom:8px;">Pendiente de asignar</span>
-            <ul class="role-bullets" id="pfComisiones" style="--accent:var(--blue-slate);"></ul>
-          </div>
-          <div class="card">
-            <h3 id="pfPartidoTitle">Bancada de preferencia</h3>
-            <span class="origen-badge sin-asignar" id="pfPartidoPendiente" style="display:none; margin-bottom:8px;">Pendiente de asignar</span>
-            <div style="display:flex; align-items:center; gap:10px;">
-              <img id="pfPartidoLogo" onerror="this.style.display='none';" style="display:none; width:36px; height:36px; object-fit:contain; border-radius:6px; flex-shrink:0;">
-              <p id="pfPartido" style="font-weight:600; color:var(--blue-revel); margin:0;"></p>
-            </div>
-          </div>
-        </div>
-      </div>
       </div>
 
       <div class="admin-tab-panel" id="pftab-votacion" style="display:none;">
@@ -1047,6 +1020,7 @@
       document.getElementById('pfHeroBancada').textContent = '—';
       document.getElementById('pfHeroComision').textContent = '—';
       document.getElementById('pfProfesorView').style.display = 'block';
+      document.getElementById('pfProfesorNombre').textContent = u.nombre || u.username;
       document.getElementById('pfProfesorColegio').textContent = u.institucion || 'tu colegio';
       fetch(EUROMODELO_SCRIPT_URL, {
         method: 'POST',
@@ -1094,55 +1068,7 @@
 
       if (u.inscripcion) {
         document.getElementById('pfNoInscripcion').style.display = 'none';
-        document.getElementById('pfInscripcionData').style.display = 'block';
-        const ins = u.inscripcion;
-
-        if (u.rolAsignado) {
-          document.getElementById('pfRolesTitle').textContent = 'Rol asignado';
-          document.getElementById('pfRolesPendiente').style.display = 'none';
-          document.getElementById('pfRoles').innerHTML = `<li class="assigned">${u.rolAsignado}</li>`;
-        } else {
-          document.getElementById('pfRolesTitle').textContent = 'Opciones de rol';
-          document.getElementById('pfRolesPendiente').style.display = 'inline-block';
-          document.getElementById('pfRoles').innerHTML =
-            `<li>Opción 1: ${ins.rol1}</li><li>Opción 2: ${ins.rol2}</li><li>Opción 3: ${ins.rol3}</li>`;
-        }
-
-        if (u.comisionAsignada) {
-          document.getElementById('pfComisionesTitle').textContent = 'Comisión asignada';
-          document.getElementById('pfComisionesPendiente').style.display = 'none';
-          document.getElementById('pfComisiones').innerHTML = `<li class="assigned">${u.comisionAsignada}</li>`;
-        } else {
-          document.getElementById('pfComisionesTitle').textContent = 'Opciones de comisión';
-          document.getElementById('pfComisionesPendiente').style.display = 'inline-block';
-          document.getElementById('pfComisiones').innerHTML =
-            `<li>Opción 1: ${ins.comision1}</li><li>Opción 2: ${ins.comision2}</li><li>Opción 3: ${ins.comision3}</li>`;
-        }
-
-        function setPartidoDisplay(partidoTitle) {
-          document.getElementById('pfPartido').textContent = partidoTitle;
-          const logoEl = document.getElementById('pfPartidoLogo');
-          const match = PARTIDOS.find(p => p.title === partidoTitle);
-          if (match) {
-            logoEl.src = match.logo;
-            logoEl.alt = match.code;
-            logoEl.style.display = 'block';
-          } else {
-            logoEl.style.display = 'none';
-          }
-        }
-
-        if (u.partidoAsignado) {
-          document.getElementById('pfPartidoTitle').textContent = 'Bancada asignada';
-          document.getElementById('pfPartidoPendiente').style.display = 'none';
-          setPartidoDisplay(u.partidoAsignado);
-        } else {
-          document.getElementById('pfPartidoTitle').textContent = 'Bancada de preferencia';
-          document.getElementById('pfPartidoPendiente').style.display = 'inline-block';
-          setPartidoDisplay(ins.partido);
-        }
       } else {
-        document.getElementById('pfInscripcionData').style.display = 'none';
         document.getElementById('pfNoInscripcion').style.display = 'block';
         initInscripcionForm(u);
       }

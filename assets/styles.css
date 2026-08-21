@@ -424,8 +424,8 @@ details[open] summary::after{content:'\2013';}
 .gallery-panel{display:none;}
 .gallery-panel.active{display:grid;}
 
-/* ---- Profile hero (perfil.html) — gafete de delegado ---- */
-.profile-hero{background:linear-gradient(160deg,var(--navy-deep),var(--blue-revel)); padding:var(--space-6) 0;}
+/* ---- Profile badge (perfil.html) — gafete de delegado ---- */
+.profile-badge-wrap{background:linear-gradient(160deg,var(--navy-deep),var(--blue-revel)); border-radius:18px; padding:var(--space-5) var(--space-3); margin-bottom:var(--space-4);}
 .profile-badge-card{max-width:420px; margin:0 auto; background:var(--white); border-radius:14px; overflow:hidden; box-shadow:0 20px 50px rgba(0,0,0,.28);}
 .profile-badge-ribbon{background:var(--gold-star); height:8px; width:100%;}
 .profile-badge-body{padding:30px 30px 26px; text-align:center;}
