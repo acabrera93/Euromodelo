@@ -123,6 +123,7 @@
             <p class="profile-badge-name" id="pfNombre"></p>
             <p class="profile-badge-meta" id="pfMeta"></p>
             <div class="profile-badge-role" id="pfHeroRol"></div>
+            <p class="profile-badge-cargo" id="pfHeroCargo" style="display:none;"></p>
             <div class="profile-badge-divider"></div>
             <div class="profile-badge-fields">
               <div class="profile-badge-field"><div class="k">Usuario</div><div class="v" id="pfHeroUsuario"></div></div>
@@ -1203,12 +1204,17 @@
 
       const esOficial = !!(result && (result.cargoParlamento || result.cargoComision));
       document.getElementById('pfTabMesaBtn').style.display = esOficial ? '' : 'none';
+      const cargoHeroEl = document.getElementById('pfHeroCargo');
       if (esOficial) {
         const cargos = [];
         if (result.cargoParlamento) cargos.push(`${result.cargoParlamento} del Parlamento`);
         if (result.cargoComision) cargos.push(`${result.cargoComision} de tu comisión`);
+        cargoHeroEl.textContent = cargos.join(' · ');
+        cargoHeroEl.style.display = 'block';
         document.getElementById('pfMesaCargoLabel').textContent = 'Ganaste: ' + cargos.join(' · ');
         renderMesaDirectiva(u);
+      } else {
+        cargoHeroEl.style.display = 'none';
       }
     }
 
