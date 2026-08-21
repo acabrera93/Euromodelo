@@ -294,12 +294,14 @@
               </select>
             </div>
             <div class="field full">
-              <label>Experiencia relevante <span class="hint">(ediciones anteriores, debate, oratoria, liderazgo estudiantil)</span></label>
+              <label>Experiencia relevante <span class="hint">(ediciones anteriores, debate, oratoria, liderazgo estudiantil — máximo 80 palabras)</span></label>
               <textarea id="pfPostExperiencia" required></textarea>
+              <p class="word-counter" id="pfPostExperienciaCount">0/80 palabras</p>
             </div>
             <div class="field full">
-              <label>¿Por qué quieres integrar una mesa directiva?</label>
+              <label>¿Por qué quieres integrar una mesa directiva? <span class="hint">(máximo 80 palabras)</span></label>
               <textarea id="pfPostMotivacion" required></textarea>
+              <p class="word-counter" id="pfPostMotivacionCount">0/80 palabras</p>
             </div>
           </div>
 
@@ -1117,7 +1119,7 @@
       const videoBtn = candidate.videoUrl
         ? `<a class="candidate-video-btn" style="text-decoration:none; display:inline-block;" href="${candidate.videoUrl}" target="_blank" rel="noopener">&#127909; Ver video</a>`
         : `<span class="candidate-video-btn" style="opacity:.55; cursor:default;">Sin video aún</span>`;
-      const voteBtn = yaVoto ? '' : `<button class="candidate-video-btn" type="button" style="background:var(--gold-star); color:var(--navy-deep);" data-vote-candidato="${candidate.id}" data-vote-ambito="${ambito}" data-vote-nombre="${candidate.nombre}">Votar</button>`;
+      const voteCol = yaVoto ? '' : `<div class="candidate-vote-col"><button class="candidate-vote-btn" type="button" data-vote-candidato="${candidate.id}" data-vote-ambito="${ambito}" data-vote-nombre="${candidate.nombre}">&#128499; Votar</button></div>`;
       const postulacionHtml = candidatePostulacionHtml(candidate);
       return `
         <div class="candidate-profile-card${postulacionHtml ? ' has-postulacion' : ''}">
@@ -1127,9 +1129,9 @@
             ${partidoBadgeHtml(candidate)}
             <div class="candidate-profile-actions">
               ${videoBtn}
-              ${voteBtn}
             </div>
           </div>
+          ${voteCol}
         </div>
         ${postulacionHtml}`;
     }
@@ -1624,6 +1626,23 @@
       document.getElementById('pfPostVideoComisionWrap').style.display = (tipo === 'Comision' || tipo === 'Ambos') ? 'block' : 'none';
     });
 
+    const POSTULACION_MAX_PALABRAS = 80;
+    function contarPalabras(texto) {
+      const trimmed = texto.trim();
+      return trimmed ? trimmed.split(/\s+/).length : 0;
+    }
+    function wireWordCounter(textareaId, counterId) {
+      const textarea = document.getElementById(textareaId);
+      const counter = document.getElementById(counterId);
+      textarea.addEventListener('input', () => {
+        const n = contarPalabras(textarea.value);
+        counter.textContent = `${n}/${POSTULACION_MAX_PALABRAS} palabras`;
+        counter.classList.toggle('over', n > POSTULACION_MAX_PALABRAS);
+      });
+    }
+    wireWordCounter('pfPostExperiencia', 'pfPostExperienciaCount');
+    wireWordCounter('pfPostMotivacion', 'pfPostMotivacionCount');
+
     document.getElementById('pfPostSubmitBtn').addEventListener('click', async () => {
       const errEl = document.getElementById('pfPostError');
       errEl.style.display = 'none';
@@ -1641,6 +1660,11 @@
         || (necesitaParlamento && !videoUrlParlamento)
         || (necesitaComision && !videoUrlComision)) {
         errEl.textContent = 'Completa todos los campos — incluida tu foto de perfil y un video por cada mesa a la que te postulas.';
+        errEl.style.display = 'block';
+        return;
+      }
+      if (contarPalabras(experiencia) > POSTULACION_MAX_PALABRAS || contarPalabras(motivacion) > POSTULACION_MAX_PALABRAS) {
+        errEl.textContent = `"Experiencia relevante" y "¿Por qué quieres integrar una mesa directiva?" tienen un máximo de ${POSTULACION_MAX_PALABRAS} palabras cada uno.`;
         errEl.style.display = 'block';
         return;
       }
