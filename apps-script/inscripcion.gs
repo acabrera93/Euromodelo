@@ -283,7 +283,9 @@ var CANONICAL_HEADERS_ = [
   'propuesta_url', 'propuesta_estado', 'propuesta_comentario', 'propuesta_nombre_archivo',
   // '' | 'Aprobada' | 'No aprobada'. A diferencia de propuesta_estado (que decide el staff:
   // si se debate y si pasa a Plenaria), esto lo pone la propia mesa directiva electa (comisión o
-  // Parlamento) con el resultado real del debate/votación — ver handleSetResultadoVotacion_.
+  // Parlamento) con el resultado real del debate/votación — ver handleSetResultadoVotacion_. Se
+  // limpia a '' en cuanto propuesta_estado pasa a 'Plenaria' (automático o manual): el resultado
+  // de comisión no vale para Plenaria, donde se vuelve a votar desde cero.
   'resultado_votacion',
   // '' | 'Manual' | 'Automática'. Se recalcula cada vez que rol_asignado/comision_asignada/
   // partido_asignado cambian, desde handleUpdateAssignment_ (Manual) o handleApplyAssignment_
@@ -877,6 +879,31 @@ function handleSetResultadoVotacion_(sheet, headers, ss, data) {
     cell.setNumberFormat('@');
     cell.setValue(resultado);
   }
+
+  // La mesa de comisión es la única autorizada a actuar mientras propuesta_estado='Aprobada'
+  // (ver autorizacionMesaParaPropuesta_ arriba) — así que si llegamos hasta acá con ese estado,
+  // quien decidió el resultado fue necesariamente esa mesa, no la del Parlamento. Si su propio
+  // debate aprobó la propuesta, pasa sola a Plenaria: ya no hace falta que el staff la mande a
+  // mano con "Enviar a Plenaria". Si la rechazó ('No aprobada'), se queda en 'Aprobada' — sigue
+  // siendo válida en su propia comisión, pero no avanza.
+  if (resultado === 'Aprobada' && (propRecord.propuesta_estado || '').toString() === 'Aprobada') {
+    var estadoIdx = headers.indexOf('propuesta_estado');
+    if (estadoIdx !== -1) {
+      var estadoCell = sheet.getRange(propRowNum, estadoIdx + 1);
+      estadoCell.setNumberFormat('@');
+      estadoCell.setValue('Plenaria');
+    }
+    // resultado_votacion se acaba de escribir arriba con el resultado del debate de comisión —
+    // pero en Plenaria esa propuesta se vuelve a votar desde cero, así que se limpia de una vez:
+    // no debe seguir mostrando la insignia "Aprobada por votación" de la comisión como si ya
+    // fuera también el resultado de Plenaria (donde todavía nadie ha votado).
+    if (colIdx !== -1) {
+      var resetCell = sheet.getRange(propRowNum, colIdx + 1);
+      resetCell.setNumberFormat('@');
+      resetCell.setValue('');
+    }
+  }
+
   return jsonOut_({ ok: true });
 }
 
@@ -1164,6 +1191,18 @@ function handleUpdateAssignment_(sheet, headers, ss, data) {
     cell.setNumberFormat('@');
     cell.setValue(data[field] || '');
   });
+
+  // Mismo criterio que en handleSetResultadoVotacion_: si el staff manda la propuesta a Plenaria
+  // a mano (botón "Enviar a Plenaria"), el resultado de la votación de comisión ya no aplica —
+  // en Plenaria se vuelve a votar desde cero, así que no debe seguir mostrando esa insignia vieja.
+  if (data.propuesta_estado === 'Plenaria') {
+    var resultadoIdx = headers.indexOf('resultado_votacion');
+    if (resultadoIdx !== -1) {
+      var resultadoCell = sheet.getRange(rowNum, resultadoIdx + 1);
+      resultadoCell.setNumberFormat('@');
+      resultadoCell.setValue('');
+    }
+  }
 
   // Si el payload trae rol/comisión/partido, es una edición de fila de participante (Guardar o
   // Borrar), no una revisión de propuesta: se recalcula el origen de la asignación.
