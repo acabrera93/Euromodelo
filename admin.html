@@ -572,9 +572,7 @@
     }
     sessionStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify({ email, password }));
     showContent();
-    await loadParticipants();
-    await loadCandidatos();
-    loadPostulacionesMesa();
+    await Promise.all([loadParticipants(), loadCandidatosYPostulaciones()]);
     clearButtonLoading(submitBtn);
     if (result.mustChangePassword) openForcePasswordModal();
   });
@@ -757,16 +755,29 @@
       tipoEuromodelo: currentBloque.tipo, ciudad: currentBloque.ciudad,
     });
     clearButtonLoading(e.target);
-    if (result && result.ok) await loadCandidatos();
+    if (result && result.ok) {
+      // Actualiza localmente en vez de recargar todo desde el servidor: la respuesta ya confirmó
+      // que se aprobaron, así que no hace falta esperar otro viaje de red para reflejarlo.
+      allCandidatos.forEach(c => { if ((c.aprobado || '') !== 'Sí') c.aprobado = 'Sí'; });
+      renderCandidatos();
+    }
   });
 
-  async function loadCandidatos() {
+  // Trae candidatos y postulaciones en paralelo (Promise.all) en vez de uno tras otro — Apps
+  // Script ya es lento de por sí en cada llamada, así que encadenarlas duplicaba la espera.
+  async function loadCandidatosYPostulaciones() {
     const creds = getCreds();
     if (!creds) return;
-    const result = await apiCall({ form: 'admin_list_candidatos', adminEmail: creds.email, adminPassword: creds.password, tipoEuromodelo: currentBloque.tipo, ciudad: currentBloque.ciudad });
-    if (!result || !result.ok) return;
-    allCandidatos = result.candidatos || [];
+    const [candResult, postResult] = await Promise.all([
+      apiCall({ form: 'admin_list_candidatos', adminEmail: creds.email, adminPassword: creds.password, tipoEuromodelo: currentBloque.tipo, ciudad: currentBloque.ciudad }),
+      apiCall({ form: 'admin_list_postulaciones_mesa', adminEmail: creds.email, adminPassword: creds.password, tipoEuromodelo: currentBloque.tipo, ciudad: currentBloque.ciudad }),
+    ]);
+    if (candResult && candResult.ok) allCandidatos = candResult.candidatos || [];
+    if (postResult && postResult.ok) allPostulaciones = postResult.postulaciones || [];
+    // Orden importa: postulacionAccionesHtml (dentro de renderPostulacionesMesa) lee allCandidatos
+    // para saber quién ya es candidato, así que candidatos se asigna arriba antes de renderizar.
     renderCandidatos();
+    renderPostulacionesMesa();
   }
 
   const TIPO_POSTULACION_LABELS_ = { Parlamento: 'Parlamento Europeo', Comision: 'Comisión', Ambos: 'Ambas' };
@@ -817,15 +828,12 @@
     </tr>`;
   }
 
-  async function loadPostulacionesMesa() {
-    const creds = getCreds();
-    if (!creds) return;
-    const result = await apiCall({ form: 'admin_list_postulaciones_mesa', adminEmail: creds.email, adminPassword: creds.password, tipoEuromodelo: currentBloque.tipo, ciudad: currentBloque.ciudad });
-    if (!result || !result.ok) return;
-    const postulaciones = result.postulaciones || [];
-    document.getElementById('postulacionesMesaTableBody').innerHTML = postulaciones.map(postulacionRowHtml).join('');
-    document.getElementById('postulacionesMesaEmpty').style.display = postulaciones.length === 0 ? 'block' : 'none';
-    document.getElementById('statCandPostulaciones').textContent = postulaciones.length;
+  let allPostulaciones = [];
+
+  function renderPostulacionesMesa() {
+    document.getElementById('postulacionesMesaTableBody').innerHTML = allPostulaciones.map(postulacionRowHtml).join('');
+    document.getElementById('postulacionesMesaEmpty').style.display = allPostulaciones.length === 0 ? 'block' : 'none';
+    document.getElementById('statCandPostulaciones').textContent = allPostulaciones.length;
   }
 
   document.getElementById('postulacionesMesaTableBody').addEventListener('click', async (e) => {
@@ -839,7 +847,8 @@
       setButtonLoading(e.target);
       const result = await apiCall({ form: 'admin_delete_postulacion_mesa', adminEmail: creds.email, adminPassword: creds.password, refCode });
       if (result && result.ok) {
-        await loadPostulacionesMesa();
+        allPostulaciones = allPostulaciones.filter(p => p.ref_code !== refCode);
+        renderPostulacionesMesa();
       } else {
         clearButtonLoading(e.target);
       }
@@ -849,18 +858,27 @@
     if (action === 'agregar-candidato') {
       const creds = getCreds();
       setButtonLoading(e.target, 'Agregando…');
+      const ambito = e.target.dataset.candAmbito;
+      const comision = e.target.dataset.candComision || '';
+      const email = e.target.dataset.postulacionEmail;
+      const nombre = e.target.dataset.postulacionNombre;
+      const videoUrl = e.target.dataset.candVideo || '';
       const result = await apiCall({
         form: 'admin_add_candidato', adminEmail: creds.email, adminPassword: creds.password,
         tipoEuromodelo: currentBloque.tipo, ciudad: currentBloque.ciudad,
-        ambito: e.target.dataset.candAmbito,
-        comision: e.target.dataset.candComision || '',
-        email: e.target.dataset.postulacionEmail,
-        nombre: e.target.dataset.postulacionNombre,
-        videoUrl: e.target.dataset.candVideo || '',
+        ambito, comision, email, nombre, videoUrl,
       });
       if (result && result.ok) {
-        await loadCandidatos();
-        await loadPostulacionesMesa();
+        // El backend ya devuelve el id generado — con eso alcanza para armar el candidato
+        // localmente (mismos campos que trae admin_list_candidatos) sin volver a pedir las dos
+        // listas completas por red.
+        allCandidatos.push({
+          id: result.id, tipo_euromodelo: currentBloque.tipo, ciudad: currentBloque.ciudad,
+          ambito, comision, email, nombre, video_url: videoUrl, aprobado: 'No', cargo: '',
+          enviado: new Date().toISOString(),
+        });
+        renderCandidatos();
+        renderPostulacionesMesa();
       } else {
         clearButtonLoading(e.target);
         alert('No se pudo agregar el candidato. Intenta de nuevo.');
@@ -881,7 +899,9 @@
       setButtonLoading(e.target);
       const result = await apiCall({ form: 'admin_approve_candidato', adminEmail: creds.email, adminPassword: creds.password, id });
       if (result && result.ok) {
-        await loadCandidatos();
+        const c = allCandidatos.find(c => c.id === id);
+        if (c) c.aprobado = 'Sí';
+        renderCandidatos();
       } else {
         clearButtonLoading(e.target);
       }
@@ -893,7 +913,9 @@
     setButtonLoading(e.target);
     const result = await apiCall({ form: 'admin_delete_candidato', adminEmail: creds.email, adminPassword: creds.password, id });
     if (result && result.ok) {
-      await loadCandidatos();
+      allCandidatos = allCandidatos.filter(c => c.id !== id);
+      renderCandidatos();
+      renderPostulacionesMesa();
     } else {
       clearButtonLoading(e.target);
     }
@@ -910,7 +932,9 @@
     const result = await apiCall({ form: 'admin_set_cargo_candidato', adminEmail: creds.email, adminPassword: creds.password, id, cargo });
     select.disabled = false;
     if (result && result.ok) {
-      await loadCandidatos();
+      const c = allCandidatos.find(c => c.id === id);
+      if (c) c.cargo = cargo;
+      renderCandStats(); // el select ya refleja el valor elegido — solo hace falta refrescar el contador
     } else {
       alert('No se pudo guardar el cargo. Intenta de nuevo.');
     }
@@ -1006,7 +1030,7 @@
     // La vista previa de simulación mostrada corresponde al bloque anterior: se limpia para no
     // confundir esos números con los del bloque recién seleccionado.
     resetSimulacionPreview();
-    loadCandidatos().then(loadPostulacionesMesa);
+    loadCandidatosYPostulaciones();
   }
 
   document.getElementById('bloqueTabs').querySelector('.admin-tab-btn[data-tipo="Nacional"]').addEventListener('click', () => {
@@ -1128,7 +1152,7 @@
   if (savedCreds) {
     showContent();
     loadParticipants();
-    loadCandidatos().then(loadPostulacionesMesa);
+    loadCandidatosYPostulaciones();
   }
 </script>
 </body>

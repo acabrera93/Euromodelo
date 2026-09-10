@@ -1700,6 +1700,32 @@
           }
         } catch (err) {
           console.error('No se pudo enviar la postulación:', err);
+          // La subida de foto a Drive es lenta, y a veces el servidor sí termina de guardar la
+          // postulación pero la respuesta no le llega de vuelta al navegador (conexión lenta o
+          // inestable) — acá se ve como un error aunque en la Sheet sí quedó. Antes de avisarle a
+          // la persona que falló, se confirma contra el servidor si esta postulación en concreto
+          // ya quedó registrada.
+          let yaQuedoGuardada = false;
+          try {
+            const checkRes = await fetch(EUROMODELO_SCRIPT_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+              body: JSON.stringify({ form: 'mis_postulaciones_mesa', email: currentProfileUser.username, password: currentProfileUser.password }),
+            });
+            const checkResult = await checkRes.json();
+            if (checkResult && checkResult.ok) {
+              yaQuedoGuardada = (necesitaParlamento && checkResult.parlamento) || (necesitaComision && checkResult.comision);
+              if (yaQuedoGuardada) applyPostulacionMesaCoverage(checkResult);
+            }
+          } catch (checkErr) {
+            console.error('No se pudo confirmar si la postulación quedó guardada:', checkErr);
+          }
+
+          if (yaQuedoGuardada) {
+            document.getElementById('pfPostulacionForm').style.display = 'none';
+            document.getElementById('pfPostSuccess').classList.add('show');
+            return;
+          }
           clearButtonLoading(btn);
           errEl.textContent = 'No se pudo enviar tu postulación. Intenta de nuevo.';
           errEl.style.display = 'block';
