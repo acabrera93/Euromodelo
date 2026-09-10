@@ -32,19 +32,12 @@
       <button class="btn-ghost-sm" id="loginBtn">Iniciar sesión</button>
       <div class="login-panel" id="loginPanel">
         <h4>Iniciar sesión</h4>
-        <p class="login-note">Piloto: usa el usuario y la contraseña generados al finalizar tu preinscripción.</p>
+        <p class="login-note">Usa el correo con el que hiciste tu preinscripción — no necesitas contraseña.</p>
         <form id="loginForm">
           <input type="email" name="username" placeholder="Correo electrónico" required>
-          <input type="password" name="password" placeholder="Contraseña" required>
           <button type="submit">Entrar</button>
         </form>
-        <p id="loginError" style="display:none; color:#C0392B; font-size:12px; margin-top:8px;">Usuario o contraseña incorrectos.</p>
-        <p class="login-forgot"><a href="#" id="forgotPasswordLink">¿Olvidaste tu contraseña?</a></p>
-        <form id="forgotPasswordForm" style="display:none;">
-          <input type="email" name="email" placeholder="Tu correo electrónico" required>
-          <button type="submit">Enviar nueva contraseña</button>
-        </form>
-        <p id="forgotPasswordSent" style="display:none; color:#2E7D6B; font-size:12px; margin-top:8px;">Si el correo está registrado, te enviaremos una nueva contraseña en unos minutos.</p>
+        <p id="loginError" style="display:none; color:#C0392B; font-size:12px; margin-top:8px;">No encontramos ese correo. Verifica que esté bien escrito.</p>
         <div class="login-links">
           <a href="preinscripcion.html">Preinscribirme</a>
           <a href="perfil.html">Mi perfil</a>
@@ -59,7 +52,7 @@
   <div class="container" style="grid-template-columns:1fr;">
     <div>
       <h1>Preinscripción</h1>
-      <p>Completa tus datos básicos para reservar tu cupo. Al finalizar, la plataforma te entregará un usuario y una contraseña para continuar con tu inscripción.</p>
+      <p>Completa tus datos básicos para reservar tu cupo. Al finalizar, podrás iniciar sesión con tu correo (sin contraseña) para continuar con tu inscripción.</p>
     </div>
   </div>
 </div>
@@ -142,7 +135,7 @@
       </div>
 
       <div class="form-submit-row">
-        <span class="form-note">Al enviar, se generará automáticamente tu usuario y contraseña. Guárdalos: los necesitarás para iniciar sesión y completar tu inscripción.</span>
+        <span class="form-note">Al enviar, tu correo queda registrado como tu usuario — podrás iniciar sesión con él, sin contraseña.</span>
         <button class="btn-primary" type="submit">Enviar preinscripción</button>
       </div>
     </form>
@@ -150,12 +143,11 @@
     <div class="success-panel" id="preSuccess">
       <div class="mark">&#10003;</div>
       <h3>¡Preinscripción registrada!</h3>
-      <p>Guarda estos datos: los necesitarás para iniciar sesión y completar tu inscripción. También te enviamos un correo con esta información.</p>
+      <p>Con este correo podrás iniciar sesión para completar tu inscripción — no necesitas contraseña. También te enviamos un correo con esta información.</p>
       <div class="credentials-card">
-        <p style="margin:0; font-size:13px; color:rgba(255,255,255,.75);">Tus credenciales de acceso</p>
+        <p style="margin:0; font-size:13px; color:rgba(255,255,255,.75);">Tu usuario para iniciar sesión</p>
         <div class="cred-row">
           <div class="cred-item"><div class="cred-label">Usuario</div><div class="cred-value" id="credUsername"></div></div>
-          <div class="cred-item"><div class="cred-label">Contraseña</div><div class="cred-value" id="credPassword"></div></div>
         </div>
       </div>
       <a class="btn-primary" href="perfil.html" id="preSuccessCta" style="display:inline-block; margin-top:var(--space-3);">Continuar a mi inscripción &rarr;</a>
@@ -263,7 +255,6 @@
           tipo: data.tipo,
           tipo_euromodelo: data.tipoEuromodelo,
           email: data.email,
-          password: creds.password,
           nombre_completo: data.nombre,
           tipo_documento: data.tipoDocumento,
           numero_documento: data.numDocumento,
@@ -282,7 +273,6 @@
     preForm.style.display = 'none';
     document.getElementById('preSuccess').classList.add('show');
     document.getElementById('credUsername').textContent = creds.username;
-    document.getElementById('credPassword').textContent = creds.password;
     if (tipoCuenta === 'Profesor') {
       document.getElementById('preSuccessCta').textContent = 'Continuar a mi perfil →';
     }

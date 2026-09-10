@@ -93,13 +93,6 @@ function refCode(prefix) {
   return prefix + '-' + Math.random().toString(36).slice(2, 7).toUpperCase();
 }
 
-function randomAlphaNum(len) {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let out = '';
-  for (let i = 0; i < len; i++) out += chars[Math.floor(Math.random() * chars.length)];
-  return out;
-}
-
 function slugifyName(str) {
   return (str || '')
     .toLowerCase()
@@ -111,13 +104,12 @@ function slugifyName(str) {
 const EUROMODELO_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbztpSnDRFqR1JAvh4jmNyLcUo05Ur3PoRckFeavmP6PqezdYTW0QNTz172gG20U6vYsPg/exec';
 
 /* ---------- Autenticación (piloto) ----------
-   El usuario es el correo del participante. localStorage guarda una copia local
-   (euromodelo_users) para acceso rápido en el mismo dispositivo; el backend
-   (Sheet "preinscripciones", vía Apps Script) es la fuente de verdad para poder
-   iniciar sesión desde otro dispositivo, y para recuperar la contraseña.
-   euromodelo_users = { email: { password, mustChangePassword, nombre, tipoDocumento,
-                                  numDocumento, ciudad, institucion, autorizacion, createdAt,
-                                  inscripcion: null | {...} } }
+   El usuario es el correo del participante — sin contraseña: entrar con el correo ya alcanza
+   (ver handleLogin_ en el backend). localStorage guarda una copia local (euromodelo_users) para
+   acceso rápido en el mismo dispositivo; el backend (Sheet "preinscripciones", vía Apps Script)
+   es la fuente de verdad para poder iniciar sesión desde otro dispositivo.
+   euromodelo_users = { email: { nombre, tipoDocumento, numDocumento, ciudad, institucion,
+                                  autorizacion, createdAt, inscripcion: null | {...} } }
    euromodelo_currentUser = "email" | null
    -------------------------------------------------- */
 const AUTH_USERS_KEY = 'euromodelo_users';
@@ -134,34 +126,22 @@ function saveUsers(users) {
 function createUser(data) {
   const users = getUsers();
   const username = (data.email || '').trim().toLowerCase();
-  const password = randomAlphaNum(6);
-  users[username] = { ...data, password, mustChangePassword: true, createdAt: new Date().toISOString(), inscripcion: null };
+  users[username] = { ...data, createdAt: new Date().toISOString(), inscripcion: null };
   saveUsers(users);
-  return { username, password };
+  return { username };
 }
-async function loginUser(usernameOrEmail, password) {
+async function loginUser(usernameOrEmail) {
   const uname = (usernameOrEmail || '').trim().toLowerCase();
   const users = getUsers();
-  const local = users[uname];
-  if (local && local.password === password) {
-    localStorage.setItem(AUTH_CURRENT_KEY, uname);
-    return true;
-  }
-  // No coincide en este dispositivo (o es la primera vez aquí): verificar contra el backend.
   try {
     const res = await fetch(EUROMODELO_SCRIPT_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ form: 'login', email: uname, password }),
+      body: JSON.stringify({ form: 'login', email: uname }),
     });
     const result = await res.json();
     if (result && result.ok && result.user) {
-      users[uname] = {
-        ...(local || {}),
-        ...result.user,
-        password,
-        mustChangePassword: local ? !!local.mustChangePassword : false,
-      };
+      users[uname] = { ...(users[uname] || {}), ...result.user };
       saveUsers(users);
       localStorage.setItem(AUTH_CURRENT_KEY, uname);
       return true;
@@ -171,29 +151,9 @@ async function loginUser(usernameOrEmail, password) {
   }
   return false;
 }
-// Se intenta solo cuando loginUser ya falló: el mismo botón de "Iniciar sesión" de los
-// participantes sirve también para el staff con cuenta de administrador. Si el correo/contraseña
-// coincide con una cuenta admin (pestaña "admins" en la Sheet), guarda las credenciales bajo la
-// misma clave de sessionStorage que ya usa admin.html, para que su auto-login la reconozca sin
-// pedir la clave otra vez al llegar ahí.
-const ADMIN_CREDS_STORAGE_KEY = 'euromodelo_admin_creds';
-async function attemptAdminLogin(email, password) {
-  try {
-    const res = await fetch(EUROMODELO_SCRIPT_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ form: 'admin_login', email, password }),
-    });
-    const result = await res.json();
-    if (result && result.ok) {
-      sessionStorage.setItem(ADMIN_CREDS_STORAGE_KEY, JSON.stringify({ email, password }));
-      return true;
-    }
-  } catch (e) {
-    console.error('No se pudo verificar como administrador:', e);
-  }
-  return false;
-}
+// El staff sigue entrando con correo y contraseña, pero exclusivamente desde admin.html (su
+// propio formulario, con su propia cuenta en la pestaña "admins") — el panel de login público
+// de arriba ya no pide contraseña, así que no puede autenticar administradores.
 function logoutUser() {
   localStorage.removeItem(AUTH_CURRENT_KEY);
 }
@@ -203,12 +163,12 @@ function logoutUser() {
 async function refreshUserFromServer(username) {
   const users = getUsers();
   const local = users[username];
-  if (!local || !local.password) return null;
+  if (!local) return null;
   try {
     const res = await fetch(EUROMODELO_SCRIPT_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ form: 'login', email: username, password: local.password }),
+      body: JSON.stringify({ form: 'login', email: username }),
     });
     const result = await res.json();
     if (result && result.ok && result.user) {
@@ -237,37 +197,6 @@ function saveInscripcion(username, inscripcionData) {
     saveUsers(users);
   }
 }
-function changePassword(username, newPassword) {
-  const users = getUsers();
-  if (users[username]) {
-    users[username].password = newPassword;
-    users[username].mustChangePassword = false;
-    saveUsers(users);
-  }
-  try {
-    fetch(EUROMODELO_SCRIPT_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ form: 'update_password', email: username, newPassword }),
-    });
-  } catch (e) {
-    console.error('No se pudo sincronizar la nueva contraseña con el backend:', e);
-  }
-}
-function requestPasswordReset(email) {
-  try {
-    fetch(EUROMODELO_SCRIPT_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ form: 'forgot_password', email: (email || '').trim().toLowerCase() }),
-    });
-  } catch (e) {
-    console.error('No se pudo solicitar la recuperación de contraseña:', e);
-  }
-}
-
 /* ---------- Botones con estado de carga ----------
    Se usa en cualquier botón que dispare una espera real (fetch con respuesta leída, o una
    navegación a otra página): reemplaza el contenido del botón por un spinner + texto, y lo
@@ -368,41 +297,16 @@ function initLoginPanel() {
       e.preventDefault();
       const fd = new FormData(loginForm);
       const username = fd.get('username').trim();
-      const password = fd.get('password').trim();
       const submitBtn = loginForm.querySelector('button[type="submit"]');
       if (submitBtn) setButtonLoading(submitBtn);
-      const ok = await loginUser(username, password);
+      const ok = await loginUser(username);
       if (ok) {
         window.location.href = 'perfil.html';
-        return;
-      }
-      const isAdmin = await attemptAdminLogin(username, password);
-      if (isAdmin) {
-        window.location.href = 'admin.html';
         return;
       }
       if (submitBtn) clearButtonLoading(submitBtn);
       const errEl = document.getElementById('loginError');
       if (errEl) errEl.style.display = 'block';
-    });
-  }
-
-  const forgotLink = document.getElementById('forgotPasswordLink');
-  const forgotForm = document.getElementById('forgotPasswordForm');
-  const forgotSent = document.getElementById('forgotPasswordSent');
-  if (forgotLink && forgotForm) {
-    forgotLink.addEventListener('click', (e) => {
-      e.preventDefault();
-      if (loginForm) loginForm.style.display = 'none';
-      forgotLink.style.display = 'none';
-      forgotForm.style.display = 'block';
-    });
-    forgotForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const fd = new FormData(forgotForm);
-      requestPasswordReset(fd.get('email'));
-      forgotForm.style.display = 'none';
-      if (forgotSent) forgotSent.style.display = 'block';
     });
   }
 }

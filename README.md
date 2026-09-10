@@ -13,7 +13,7 @@ roles.html                  Roles (incluye test "Brújula Legislativa")
 comisiones.html             Comisiones (7)
 partidos.html                Partidos Políticos (hemiciclo + test "Brújula de Partido Político")
 galeria.html                Galería "20 Años, Mil Historias"
-preinscripcion.html         Formulario de preinscripción (genera usuario/contraseña)
+preinscripcion.html         Formulario de preinscripción (el correo queda como usuario)
 perfil.html                 Área personal del estudiante: inscripción (rol/comisión/partido),
                              postulación a mesas directivas (Parlamento + su comisión, votadas
                              presencialmente) y vista de quiénes se postularon, subida de
@@ -31,18 +31,17 @@ assets/
 El sitio usa **localStorage del navegador** (no una base de datos ni un backend real).
 Esto significa que:
 
-- El login (usuario/contraseña) sigue siendo local al navegador de cada estudiante — sirve
-  para saber quién está inscribiéndose y mostrarle su perfil, pero no es un sistema de
-  autenticación seguro.
+- El login de participantes (Estudiante/Profesor) es **solo con correo, sin contraseña**: si el
+  correo existe en la Sheet de preinscripciones, entra — no es un sistema de autenticación
+  seguro, cualquiera que conozca el correo de otro participante puede entrar a su cuenta. El
+  panel de staff (`admin.html`) es la única cuenta que sí pide contraseña (pestaña "admins").
+  localStorage guarda una copia local para acceso rápido en el mismo dispositivo.
 - Tanto la preinscripción como la inscripción (rol/comisión/partido, completada dentro de
   `perfil.html` una vez el estudiante inicia sesión) sí se envían a un backend real: un Google
   Apps Script (`apps-script/inscripcion.gs`) que las guarda en una Google Sheet y notifica por
   correo al staff.
-- Es un **piloto funcional para validar el flujo** (preinscripción → credenciales → login →
-  completar inscripción en el perfil), no la solución definitiva. Las contraseñas en texto
-  plano en localStorage son aceptables para el piloto, no para producción.
-- Las contraseñas se generan y almacenan en texto plano en el navegador. Aceptable para un
-  piloto; no aceptable para producción.
+- Es un **piloto funcional para validar el flujo** (preinscripción → login con correo →
+  completar inscripción en el perfil), no la solución definitiva.
 
 ## Pendientes para el equipo de diseño / staff
 

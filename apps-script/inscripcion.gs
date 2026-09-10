@@ -133,6 +133,17 @@ function credentialsCardHtml_(username, password) {
   );
 }
 
+// Tarjeta de "tu usuario" para el correo de bienvenida del participante: ya no hay contraseña
+// que mostrar, solo el correo con el que inicia sesión.
+function usernameCardHtml_(email) {
+  return (
+    '<div style="background:#0B2545; border-radius:12px; padding:22px; text-align:center; margin-bottom:22px;">' +
+      '<p style="margin:0 0 10px; font-size:12px; color:rgba(255,255,255,.7); text-transform:uppercase; letter-spacing:.08em;">Tu usuario para iniciar sesión</p>' +
+      '<div style="font-size:17px; color:#ffffff; font-weight:700; word-break:break-all;">' + escapeHtml_(email) + '</div>' +
+    '</div>'
+  );
+}
+
 function loginButtonHtml_() {
   var loginUrl = SITE_URL_ + 'perfil.html';
   return (
@@ -146,11 +157,11 @@ function loginButtonHtml_() {
 function sendParticipantWelcomeEmail_(data) {
   var isProfesor = (data.tipo || '').toString() === 'Profesor';
   var introText = isProfesor
-    ? 'Hola <b>' + escapeHtml_(data.nombre_completo || '') + '</b>, gracias por registrarte como profesor acompañante en el <b>XX Euromodelo Joven 2026</b>. Guarda tus credenciales: con ellas podrás iniciar sesión y ver el listado de estudiantes inscritos de tu colegio.'
-    : 'Hola <b>' + escapeHtml_(data.nombre_completo || '') + '</b>, gracias por preinscribirte al <b>XX Euromodelo Joven 2026</b>. Guarda tus credenciales: las necesitarás para iniciar sesión y completar tu inscripción.';
+    ? 'Hola <b>' + escapeHtml_(data.nombre_completo || '') + '</b>, gracias por registrarte como profesor acompañante en el <b>XX Euromodelo Joven 2026</b>. Con tu correo podrás iniciar sesión (sin contraseña) para ver el listado de estudiantes inscritos de tu colegio.'
+    : 'Hola <b>' + escapeHtml_(data.nombre_completo || '') + '</b>, gracias por preinscribirte al <b>XX Euromodelo Joven 2026</b>. Con tu correo podrás iniciar sesión (sin contraseña) para completar tu inscripción.';
   var body =
     '<p style="color:#3A4A63; font-size:14.5px; line-height:1.6; margin:0 0 18px;">' + introText + '</p>' +
-    credentialsCardHtml_(data.email || '', data.password || '') +
+    usernameCardHtml_(data.email || '') +
     loginButtonHtml_() +
     '<p style="color:#8695AC; font-size:12px; line-height:1.6; margin:22px 0 0; text-align:center;">Si no reconoces esta preinscripción, puedes ignorar este correo.</p>';
   MailApp.sendEmail({
@@ -303,10 +314,13 @@ var INSCRIPCION_FIELDS_ = [
   'partido', 'resultado_brujula', 'resultado_brujula_comision', 'resultado_brujula_partido'
 ];
 
-// ---------- Autenticación: login / recuperar contraseña / cambiar contraseña ----------
+// ---------- Autenticación de participantes: solo correo, sin contraseña ----------
+// Los participantes (Estudiante/Profesor) entran solo con su correo — ver findRowByColumn_ más
+// abajo. La columna 'password' de CANONICAL_HEADERS_ queda en la Sheet sin usarse (por
+// compatibilidad con filas viejas), pero ningún handler la exige ni la valida. El panel de
+// staff (admin.html) es la única cuenta que sigue pidiendo contraseña — ver verifyAdminCredentials_.
 function handleLogin_(sheet, headers, data) {
   var email = (data.email || '').toString().trim().toLowerCase();
-  var password = (data.password || '').toString();
   var rowNum = findRowByColumn_(sheet, headers, 'email', email, true);
   if (rowNum === -1) return jsonOut_({ ok: false });
 
@@ -314,48 +328,7 @@ function handleLogin_(sheet, headers, data) {
   var record = {};
   headers.forEach(function(h, i) { record[h] = rowValues[i]; });
 
-  if ((record.password || '').toString() !== password) {
-    return jsonOut_({ ok: false });
-  }
   return jsonOut_({ ok: true, user: mapRecordToUser_(record) });
-}
-
-function handleForgotPassword_(sheet, headers, data) {
-  var email = (data.email || '').toString().trim().toLowerCase();
-  var rowNum = findRowByColumn_(sheet, headers, 'email', email, true);
-  if (rowNum !== -1) {
-    var newPassword = randomPassword_();
-    var colIdx = headers.indexOf('password');
-    if (colIdx !== -1) {
-      var cell = sheet.getRange(rowNum, colIdx + 1);
-      cell.setNumberFormat('@');
-      cell.setValue(newPassword);
-    }
-    var nombreIdx = headers.indexOf('nombre_completo');
-    var nombre = nombreIdx !== -1 ? sheet.getRange(rowNum, nombreIdx + 1).getValue() : '';
-    try {
-      sendPasswordResetEmail_(email, nombre, newPassword);
-    } catch (err) {
-      console.error('No se pudo enviar el correo de recuperación: ' + err);
-    }
-  }
-  // Respuesta genérica siempre, para no revelar si el correo está registrado.
-  return jsonOut_({ ok: true });
-}
-
-function handleUpdatePassword_(sheet, headers, data) {
-  var email = (data.email || '').toString().trim().toLowerCase();
-  var newPassword = (data.newPassword || '').toString();
-  var rowNum = findRowByColumn_(sheet, headers, 'email', email, true);
-  if (rowNum !== -1 && newPassword) {
-    var colIdx = headers.indexOf('password');
-    if (colIdx !== -1) {
-      var cell = sheet.getRange(rowNum, colIdx + 1);
-      cell.setNumberFormat('@');
-      cell.setValue(newPassword);
-    }
-  }
-  return jsonOut_({ ok: true });
 }
 
 // Repetir la Brújula Legislativa desde el área personal reemplaza el resultado anterior.
@@ -380,12 +353,11 @@ function handleUpdateBrujula_(sheet, headers, data) {
 
 // ---------- Cuentas de profesor: listar estudiantes de su colegio ----------
 // Los profesores viven en la misma pestaña "preinscripciones" que los estudiantes (columna
-// `tipo`), así que reusan tal cual handleLogin_/handleForgotPassword_/handleUpdatePassword_.
-// Esta es la única función propia que necesitan: sin sesión (como el resto del proyecto),
-// reenvían su email/password en cada llamada y se validan aquí mismo.
+// `tipo`), así que reusan tal cual handleLogin_. Esta es la única función propia que necesitan:
+// sin sesión (como el resto del proyecto), reenvían su email en cada llamada y se validan aquí
+// mismo (findRowByColumn_ por email).
 function handleListStudents_(sheet, headers, data) {
   var email = (data.email || '').toString().trim().toLowerCase();
-  var password = (data.password || '').toString();
   var rowNum = findRowByColumn_(sheet, headers, 'email', email, true);
   if (rowNum === -1) return jsonOut_({ ok: false });
 
@@ -393,7 +365,6 @@ function handleListStudents_(sheet, headers, data) {
   var record = {};
   headers.forEach(function(h, i) { record[h] = rowValues[i]; });
 
-  if ((record.password || '').toString() !== password) return jsonOut_({ ok: false });
   if ((record.tipo || '').toString() !== 'Profesor') return jsonOut_({ ok: false });
 
   var institucion = (record.institucion_educativa || '').toString().trim().toLowerCase();
@@ -485,7 +456,6 @@ function resolvePropuestaFolder_(record) {
 // Cada subida reemplaza la url/estado/comentario anteriores, igual que repetir una brújula.
 function handleUploadPropuesta_(sheet, headers, data) {
   var email = (data.email || '').toString().trim().toLowerCase();
-  var password = (data.password || '').toString();
   var rowNum = findRowByColumn_(sheet, headers, 'email', email, true);
   if (rowNum === -1) return jsonOut_({ ok: false });
 
@@ -493,7 +463,6 @@ function handleUploadPropuesta_(sheet, headers, data) {
   var record = {};
   headers.forEach(function(h, i) { record[h] = rowValues[i]; });
 
-  if ((record.password || '').toString() !== password) return jsonOut_({ ok: false });
   if ((record.rol_asignado || '').toString() !== 'Comisario') return jsonOut_({ ok: false, error: 'not_comisario' });
 
   var fileBase64 = (data.fileBase64 || '').toString();
@@ -569,14 +538,12 @@ var PROPUESTA_ESTADOS_VISIBLES_COMISION_ = ['Aprobada', 'Plenaria'];
 // propia comisión asignada (si todavía no tiene comisión asignada, la lista viene vacía).
 function handleListComisionPropuestas_(sheet, headers, data) {
   var email = (data.email || '').toString().trim().toLowerCase();
-  var password = (data.password || '').toString();
   var rowNum = findRowByColumn_(sheet, headers, 'email', email, true);
   if (rowNum === -1) return jsonOut_({ ok: false });
 
   var rowValues = sheet.getRange(rowNum, 1, 1, headers.length).getValues()[0];
   var record = {};
   headers.forEach(function(h, i) { record[h] = rowValues[i]; });
-  if ((record.password || '').toString() !== password) return jsonOut_({ ok: false });
 
   var comision = (record.comision_asignada || '').toString();
   if (!comision) return jsonOut_({ ok: true, comision: '', proposals: [] });
@@ -609,14 +576,12 @@ function handleListComisionPropuestas_(sheet, headers, data) {
 // diferencia de handleListComisionPropuestas_, que solo muestra las de la comisión propia.
 function handleListPlenariaPropuestas_(sheet, headers, data) {
   var email = (data.email || '').toString().trim().toLowerCase();
-  var password = (data.password || '').toString();
   var rowNum = findRowByColumn_(sheet, headers, 'email', email, true);
   if (rowNum === -1) return jsonOut_({ ok: false });
 
   var rowValues = sheet.getRange(rowNum, 1, 1, headers.length).getValues()[0];
   var record = {};
   headers.forEach(function(h, i) { record[h] = rowValues[i]; });
-  if ((record.password || '').toString() !== password) return jsonOut_({ ok: false });
 
   var tipoEuromodelo = (record.tipo_euromodelo || 'Nacional').toString();
   var ciudad = (record.ciudad || '').toString();
@@ -687,13 +652,11 @@ function getPostulacionMesaCoverage_(ss, email) {
 // personal no le deje repetir una postulación a una mesa a la que ya postuló.
 function handleMisPostulacionesMesa_(sheet, headers, ss, data) {
   var email = (data.email || '').toString().trim().toLowerCase();
-  var password = (data.password || '').toString();
   var rowNum = findRowByColumn_(sheet, headers, 'email', email, true);
   if (rowNum === -1) return jsonOut_({ ok: false });
   var rowValues = sheet.getRange(rowNum, 1, 1, headers.length).getValues()[0];
   var record = {};
   headers.forEach(function(h, i) { record[h] = rowValues[i]; });
-  if ((record.password || '').toString() !== password) return jsonOut_({ ok: false });
 
   var coverage = getPostulacionMesaCoverage_(ss, email);
   return jsonOut_({ ok: true, parlamento: coverage.parlamento, comision: coverage.comision });
@@ -717,14 +680,12 @@ function resolveFotoMesaFolder_(record) {
 
 function handlePostularMesa_(sheet, headers, ss, data) {
   var email = (data.email || '').toString().trim().toLowerCase();
-  var password = (data.password || '').toString();
   var rowNum = findRowByColumn_(sheet, headers, 'email', email, true);
   if (rowNum === -1) return jsonOut_({ ok: false });
 
   var rowValues = sheet.getRange(rowNum, 1, 1, headers.length).getValues()[0];
   var record = {};
   headers.forEach(function(h, i) { record[h] = rowValues[i]; });
-  if ((record.password || '').toString() !== password) return jsonOut_({ ok: false });
 
   var dominio = (data.dominio || '').toString();
   var experiencia = (data.experiencia || '').toString().trim();
@@ -845,13 +806,11 @@ function autorizacionMesaParaPropuesta_(propRecord, cargos, comisionPropia) {
 // es de la mesa del Parlamento) — venga de la comisión que venga.
 function handleListPropuestasParaOficial_(sheet, headers, ss, data) {
   var email = (data.email || '').toString().trim().toLowerCase();
-  var password = (data.password || '').toString();
   var rowNum = findRowByColumn_(sheet, headers, 'email', email, true);
   if (rowNum === -1) return jsonOut_({ ok: false });
   var rowValues = sheet.getRange(rowNum, 1, 1, headers.length).getValues()[0];
   var record = {};
   headers.forEach(function(h, i) { record[h] = rowValues[i]; });
-  if ((record.password || '').toString() !== password) return jsonOut_({ ok: false });
 
   var tipoEuromodelo = (record.tipo_euromodelo || 'Nacional').toString();
   var ciudad = (record.ciudad || '').toString();
@@ -892,13 +851,11 @@ function handleListPropuestasParaOficial_(sheet, headers, ss, data) {
 // La mesa directiva electa marca el resultado real del debate/votación de una propuesta.
 function handleSetResultadoVotacion_(sheet, headers, ss, data) {
   var email = (data.email || '').toString().trim().toLowerCase();
-  var password = (data.password || '').toString();
   var rowNum = findRowByColumn_(sheet, headers, 'email', email, true);
   if (rowNum === -1) return jsonOut_({ ok: false });
   var rowValues = sheet.getRange(rowNum, 1, 1, headers.length).getValues()[0];
   var record = {};
   headers.forEach(function(h, i) { record[h] = rowValues[i]; });
-  if ((record.password || '').toString() !== password) return jsonOut_({ ok: false });
 
   var resultado = (data.resultado || '').toString();
   if (['Aprobada', 'No aprobada', ''].indexOf(resultado) === -1) return jsonOut_({ ok: false, error: 'resultado_invalido' });
@@ -974,13 +931,11 @@ function resolveVotantesParaPropuesta_(sheet, headers, propRecord) {
 
 function handleListConteoVotantes_(sheet, headers, ss, data) {
   var email = (data.email || '').toString().trim().toLowerCase();
-  var password = (data.password || '').toString();
   var rowNum = findRowByColumn_(sheet, headers, 'email', email, true);
   if (rowNum === -1) return jsonOut_({ ok: false });
   var rowValues = sheet.getRange(rowNum, 1, 1, headers.length).getValues()[0];
   var record = {};
   headers.forEach(function(h, i) { record[h] = rowValues[i]; });
-  if ((record.password || '').toString() !== password) return jsonOut_({ ok: false });
 
   var refCode = (data.refCode || '').toString();
   var propRowNum = findRowByColumn_(sheet, headers, 'ref_code', refCode);
@@ -1017,13 +972,11 @@ function handleListConteoVotantes_(sheet, headers, ss, data) {
 
 function handleSetConteoVoto_(sheet, headers, ss, data) {
   var email = (data.email || '').toString().trim().toLowerCase();
-  var password = (data.password || '').toString();
   var rowNum = findRowByColumn_(sheet, headers, 'email', email, true);
   if (rowNum === -1) return jsonOut_({ ok: false });
   var rowValues = sheet.getRange(rowNum, 1, 1, headers.length).getValues()[0];
   var record = {};
   headers.forEach(function(h, i) { record[h] = rowValues[i]; });
-  if ((record.password || '').toString() !== password) return jsonOut_({ ok: false });
 
   var refCode = (data.refCode || '').toString();
   var propRowNum = findRowByColumn_(sheet, headers, 'ref_code', refCode);
@@ -1462,14 +1415,12 @@ function buildEmailToPostulacionMap_(ss) {
 // criterio sin sesión que el resto del proyecto.
 function handleListCandidatos_(sheet, headers, ss, data) {
   var email = (data.email || '').toString().trim().toLowerCase();
-  var password = (data.password || '').toString();
   var rowNum = findRowByColumn_(sheet, headers, 'email', email, true);
   if (rowNum === -1) return jsonOut_({ ok: false });
 
   var rowValues = sheet.getRange(rowNum, 1, 1, headers.length).getValues()[0];
   var record = {};
   headers.forEach(function(h, i) { record[h] = rowValues[i]; });
-  if ((record.password || '').toString() !== password) return jsonOut_({ ok: false });
 
   var tipoEuromodelo = (record.tipo_euromodelo || 'Nacional').toString();
   var ciudad = (record.ciudad || '').toString();
@@ -1945,13 +1896,12 @@ function doPost_(e) {
 
   // Una sola pestaña para todo: la preinscripción crea la fila con los campos
   // de inscripción en blanco; la inscripción completa esa misma fila (por ref_code).
-  // También sirve como tabla de usuarios para login / recuperación de contraseña.
+  // También sirve como tabla de usuarios: el login de un participante (handleLogin_) es solo
+  // por correo, sin contraseña.
   var sheet = findOrCreateSheet_(ss, ['preinscripciones', 'preinscripcion', 'preinscripción'], 'preinscripciones');
   var headers = getHeaders_(sheet, CANONICAL_HEADERS_);
 
   if (data.form === 'login') return handleLogin_(sheet, headers, data);
-  if (data.form === 'forgot_password') return handleForgotPassword_(sheet, headers, data);
-  if (data.form === 'update_password') return handleUpdatePassword_(sheet, headers, data);
   if (data.form === 'update_brujula') return handleUpdateBrujula_(sheet, headers, data);
   if (data.form === 'list_students') return handleListStudents_(sheet, headers, data);
   if (data.form === 'upload_propuesta') return handleUploadPropuesta_(sheet, headers, data);

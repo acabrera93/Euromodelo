@@ -32,19 +32,12 @@
       <button class="btn-ghost-sm" id="loginBtn">Iniciar sesión</button>
       <div class="login-panel" id="loginPanel">
         <h4>Iniciar sesión</h4>
-        <p class="login-note">Piloto: usa el usuario y la contraseña generados al finalizar tu preinscripción.</p>
+        <p class="login-note">Usa el correo con el que hiciste tu preinscripción — no necesitas contraseña.</p>
         <form id="loginForm">
           <input type="email" name="username" placeholder="Correo electrónico" required>
-          <input type="password" name="password" placeholder="Contraseña" required>
           <button type="submit">Entrar</button>
         </form>
-        <p id="loginError" style="display:none; color:#C0392B; font-size:12px; margin-top:8px;">Usuario o contraseña incorrectos.</p>
-        <p class="login-forgot"><a href="#" id="forgotPasswordLink">¿Olvidaste tu contraseña?</a></p>
-        <form id="forgotPasswordForm" style="display:none;">
-          <input type="email" name="email" placeholder="Tu correo electrónico" required>
-          <button type="submit">Enviar nueva contraseña</button>
-        </form>
-        <p id="forgotPasswordSent" style="display:none; color:#2E7D6B; font-size:12px; margin-top:8px;">Si el correo está registrado, te enviaremos una nueva contraseña en unos minutos.</p>
+        <p id="loginError" style="display:none; color:#C0392B; font-size:12px; margin-top:8px;">No encontramos ese correo. Verifica que esté bien escrito.</p>
         <div class="login-links">
           <a href="preinscripcion.html">Preinscribirme</a>
           <a href="perfil.html">Mi perfil</a>
@@ -60,29 +53,16 @@
     <div class="container" style="max-width:420px;">
       <div class="section-head" style="text-align:center;">
         <h2>Inicia sesión</h2>
-        <p>Usa el usuario y la contraseña que recibiste al finalizar tu preinscripción.</p>
+        <p>Usa el correo con el que hiciste tu preinscripción — no necesitas contraseña.</p>
       </div>
       <form class="form-card" id="loginFormPerfil">
         <div class="field full"><label>Correo electrónico</label><input required type="email" name="username"></div>
-        <div class="field full"><label>Contraseña</label><input required type="password" name="password"></div>
-        <p id="loginErrorPerfil" style="display:none; color:#C0392B; font-size:13px; margin:0 0 var(--space-2);">Usuario o contraseña incorrectos.</p>
+        <p id="loginErrorPerfil" style="display:none; color:#C0392B; font-size:13px; margin:0 0 var(--space-2);">No encontramos ese correo. Verifica que esté bien escrito.</p>
         <div class="form-submit-row">
-          <span class="form-note">¿Aún no tienes usuario? <a href="preinscripcion.html">Preinscríbete</a>. <a href="#" id="forgotPasswordLinkPerfil">¿Olvidaste tu contraseña?</a></span>
+          <span class="form-note">¿Aún no tienes usuario? <a href="preinscripcion.html">Preinscríbete</a>.</span>
           <button class="btn-primary" type="submit">Entrar</button>
         </div>
       </form>
-      <form class="form-card" id="forgotPasswordFormPerfil" style="display:none; margin-top:var(--space-2);">
-        <div class="section-head" style="margin-bottom:var(--space-2);">
-          <h3 style="font-size:16px; color:var(--navy-deep); font-family:'Fraunces',serif;">Recuperar contraseña</h3>
-          <p style="font-size:13px;">Te enviaremos una nueva contraseña a tu correo.</p>
-        </div>
-        <div class="field full"><label>Correo electrónico</label><input required type="email" name="email"></div>
-        <div class="form-submit-row">
-          <span class="form-note"><a href="#" id="backToLoginLinkPerfil">&larr; Volver a iniciar sesión</a></span>
-          <button class="btn-primary" type="submit">Enviar nueva contraseña</button>
-        </div>
-      </form>
-      <p id="forgotPasswordSentPerfil" style="display:none; color:#2E7D6B; font-size:13.5px; text-align:center; margin-top:var(--space-2);">Si el correo está registrado, te enviaremos una nueva contraseña en unos minutos.</p>
     </div>
   </div>
 </div>
@@ -423,20 +403,6 @@
     <div class="form-submit-row" style="justify-content:flex-end; margin-top:14px;">
       <button class="btn-primary" id="conteoFinalizarBtn" type="button">Finalizar votación</button>
     </div>
-  </div>
-</div>
-<div class="modal-overlay" id="forcePasswordModal">
-  <div class="modal-card">
-    <h3>Elige una nueva contraseña</h3>
-    <p class="modal-intro">Por seguridad, esta es tu primera vez en tu área personal: elige una contraseña nueva para tu cuenta.</p>
-    <form class="form-card" id="forcePasswordForm" style="box-shadow:none; padding:0; margin-top:var(--space-2);">
-      <div class="field full"><label>Nueva contraseña</label><input required type="password" name="newPassword" minlength="6"></div>
-      <div class="field full"><label>Confirmar contraseña</label><input required type="password" name="confirmPassword" minlength="6"></div>
-      <p id="forcePasswordError" style="display:none; color:#C0392B; font-size:13px; margin:0 0 var(--space-2);">Las contraseñas no coinciden.</p>
-      <div class="form-submit-row" style="justify-content:flex-end;">
-        <button class="btn-primary" type="submit">Guardar contraseña</button>
-      </div>
-    </form>
   </div>
 </div>
 <footer>
@@ -967,43 +933,15 @@
       e.preventDefault();
       const fd = new FormData(loginFormPerfil);
       const username = fd.get('username').trim();
-      const password = fd.get('password').trim();
       const submitBtn = loginFormPerfil.querySelector('button[type="submit"]');
       setButtonLoading(submitBtn);
-      const ok = await loginUser(username, password);
+      const ok = await loginUser(username);
       if (ok) {
         window.location.reload();
         return;
       }
-      const isAdmin = await attemptAdminLogin(username, password);
-      if (isAdmin) {
-        window.location.href = 'admin.html';
-        return;
-      }
       clearButtonLoading(submitBtn);
       document.getElementById('loginErrorPerfil').style.display = 'block';
-    });
-
-    const forgotLinkPerfil = document.getElementById('forgotPasswordLinkPerfil');
-    const forgotFormPerfil = document.getElementById('forgotPasswordFormPerfil');
-    const backToLoginLinkPerfil = document.getElementById('backToLoginLinkPerfil');
-    const forgotSentPerfil = document.getElementById('forgotPasswordSentPerfil');
-    forgotLinkPerfil.addEventListener('click', (e) => {
-      e.preventDefault();
-      loginFormPerfil.style.display = 'none';
-      forgotFormPerfil.style.display = 'block';
-    });
-    backToLoginLinkPerfil.addEventListener('click', (e) => {
-      e.preventDefault();
-      forgotFormPerfil.style.display = 'none';
-      loginFormPerfil.style.display = 'block';
-    });
-    forgotFormPerfil.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const fd = new FormData(forgotFormPerfil);
-      requestPasswordReset(fd.get('email'));
-      forgotFormPerfil.style.display = 'none';
-      forgotSentPerfil.style.display = 'block';
     });
   } else {
     document.getElementById('perfilLoggedIn').style.display = 'block';
@@ -1824,25 +1762,6 @@
       logoutUser();
       window.location.href = 'index.html';
     });
-
-    if (user.mustChangePassword) {
-      const forcePasswordModal = createModalController('forcePasswordModal');
-      forcePasswordModal.open();
-      document.getElementById('forcePasswordForm').addEventListener('submit', (e) => {
-        e.preventDefault();
-        const fd = new FormData(e.target);
-        const p1 = fd.get('newPassword');
-        const p2 = fd.get('confirmPassword');
-        const errEl = document.getElementById('forcePasswordError');
-        if (p1 !== p2) {
-          errEl.style.display = 'block';
-          return;
-        }
-        errEl.style.display = 'none';
-        changePassword(user.username, p1);
-        forcePasswordModal.close();
-      });
-    }
   }
 </script>
 </body>
