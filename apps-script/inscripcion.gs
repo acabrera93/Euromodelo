@@ -1,7 +1,7 @@
 // Notificación interna al staff por cada preinscripción/inscripción: desactivada por ahora
 // (lista vacía) — sendNotificationEmail_ se salta el envío cuando no hay destinatarios.
 var NOTIFY_EMAILS_ = [];
-var SITE_URL_ = 'https://acabrera93.github.io/Euromodelo/';
+var SITE_URL_ = 'https://www.euromodelojoven.com/';
 // Acceso simple al endpoint de simulación (solo lectura, no escribe en la Sheet): clave
 // compartida + lista de correos autorizados. No es autenticación real, es un filtro básico.
 var STAFF_KEY_ = 'euromodelo2026';
