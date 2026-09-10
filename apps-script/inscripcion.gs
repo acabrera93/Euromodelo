@@ -923,29 +923,11 @@ function handleSetResultadoVotacion_(sheet, headers, ss, data) {
     cell.setValue(resultado);
   }
 
-  // La mesa de comisión es la única autorizada a actuar mientras propuesta_estado='Aprobada'
-  // (ver autorizacionMesaParaPropuesta_ arriba) — así que si llegamos hasta acá con ese estado,
-  // quien decidió el resultado fue necesariamente esa mesa, no la del Parlamento. Si su propio
-  // debate aprobó la propuesta, pasa sola a Plenaria: ya no hace falta que el staff la mande a
-  // mano con "Enviar a Plenaria". Si la rechazó ('No aprobada'), se queda en 'Aprobada' — sigue
-  // siendo válida en su propia comisión, pero no avanza.
-  if (resultado === 'Aprobada' && (propRecord.propuesta_estado || '').toString() === 'Aprobada') {
-    var estadoIdx = headers.indexOf('propuesta_estado');
-    if (estadoIdx !== -1) {
-      var estadoCell = sheet.getRange(propRowNum, estadoIdx + 1);
-      estadoCell.setNumberFormat('@');
-      estadoCell.setValue('Plenaria');
-    }
-    // resultado_votacion se acaba de escribir arriba con el resultado del debate de comisión —
-    // pero en Plenaria esa propuesta se vuelve a votar desde cero, así que se limpia de una vez:
-    // no debe seguir mostrando la insignia "Aprobada por votación" de la comisión como si ya
-    // fuera también el resultado de Plenaria (donde todavía nadie ha votado).
-    if (colIdx !== -1) {
-      var resetCell = sheet.getRange(propRowNum, colIdx + 1);
-      resetCell.setNumberFormat('@');
-      resetCell.setValue('');
-    }
-  }
+  // El resultado del debate de comisión (Aprobada/No aprobada) queda registrado, pero
+  // propuesta_estado NO avanza solo a 'Plenaria' — eso lo decide el staff a mano desde el panel
+  // de admin ("Enviar a Plenaria"), aunque la comisión haya aprobado la propuesta. Al mandarla a
+  // Plenaria manualmente, handleUpdateAssignment_ ya limpia resultado_votacion (esa propuesta se
+  // vuelve a votar desde cero en Plenaria).
 
   return jsonOut_({ ok: true });
 }

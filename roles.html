@@ -56,14 +56,10 @@
 </header>
 
 <div class="page-banner">
-  <div class="container">
+  <div class="container" style="grid-template-columns:1fr;">
     <div>
       <h1>Roles dentro del Euromodelo Joven</h1>
       <p>Cada europarticipante asume un rol que reproduce el funcionamiento real de las instituciones europeas. Haz clic en cada tarjeta para ver el detalle completo.</p>
-    </div>
-    <div class="photo-placeholder ph-banner" style="height:160px;">
-      <span class="ph-icon">&#128247;</span>
-      <span class="ph-label">Espacio para foto de cabecera — Roles</span>
     </div>
   </div>
 </div>
@@ -122,7 +118,6 @@
   roles.forEach((r, i) => {
     rolesGrid.innerHTML += `
       <div class="card accent" style="--accent:${r.color}; cursor:pointer;" data-role-index="${i}">
-        <div class="photo-placeholder ph-sq" style="border-color:${r.color}; color:${r.color};"><span class="ph-icon">&#128247;</span><span class="ph-label">${r.code}</span></div>
         <h3>${r.title}</h3>
         <ul class="role-bullets" style="--accent:${r.color};">${r.bullets.map(b => `<li>${b}</li>`).join('')}</ul>
         <div class="card-foot"><span class="link-btn">Ver detalle &rarr;</span></div>
@@ -137,7 +132,6 @@
     data.forEach((m, i) => {
       grid.innerHTML += `
         <div class="card accent" style="--accent:${m.color}; cursor:pointer;" data-mesa-group="${groupPrefix}" data-mesa-index="${i}">
-          <div class="photo-placeholder ph-sq" style="border-color:${m.color}; color:${m.color};"><span class="ph-icon">&#128247;</span><span class="ph-label">${m.code}</span></div>
           <h3>${m.title}</h3>
           <ul class="role-bullets" style="--accent:${m.color};">${m.bullets.map(b => `<li>${b}</li>`).join('')}</ul>
           <div class="card-foot"><span class="link-btn">Ver detalle &rarr;</span></div>
