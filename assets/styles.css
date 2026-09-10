@@ -220,6 +220,13 @@ nav.links .nav-dropdown-menu a.active{background:var(--blue-pale); color:var(--b
   width:56px; height:56px; border-radius:10px; background:var(--blue-pale); color:var(--blue-revel);
   display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; font-weight:600; font-size:17px;
 }
+.card-icon-svg{
+  width:56px; height:56px; border-radius:10px;
+  background:var(--blue-pale);
+  display:flex; align-items:center; justify-content:center;
+  color:var(--accent, var(--blue-revel));
+}
+.card-icon-svg svg{ width:28px; height:28px; }
 .card h3{font-size:17px; margin:2px 0 0; color:var(--navy-deep); font-weight:600;}
 .card p{font-size:14px; line-height:1.55; color:#54637C; margin:0; flex-grow:1;}
 .card-foot{display:flex; align-items:center; justify-content:space-between; margin-top:4px; gap:8px;}
