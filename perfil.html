@@ -265,8 +265,9 @@
         <div id="pfPostulacionForm" class="form-card">
           <div class="section-head" style="margin-bottom:var(--space-2);">
             <h3 style="font-size:16px; color:var(--navy-deep); font-family:'Fraunces',serif;">Postúlate a una mesa directiva</h3>
-            <p style="font-size:13px;">Las mesas directivas conducen las sesiones por comisiones y la sesión plenaria. Cualquier rol puede postularse — Comisario, Europarlamentario o Primer Ministro. Se evalúan el dominio del procedimiento legislativo, la asertividad comunicativa y la capacidad de resolución de conflictos.</p>
+            <p style="font-size:13px;">Las mesas directivas conducen las sesiones por comisiones y la sesión plenaria. Cualquier rol puede postularse — Comisario, Europarlamentario o Primer Ministro. Se evalúan el dominio del procedimiento legislativo, la asertividad comunicativa y la capacidad de resolución de conflictos. Puedes postularte a la mesa de tu comisión y a la del Parlamento Europeo, pero no dos veces a la misma.</p>
           </div>
+          <p id="pfPostParcialInfo" style="display:none; font-size:13px; font-weight:600; color:var(--teal); margin:0 0 var(--space-2);"></p>
           <div class="form-grid">
             <div class="field full">
               <label>¿A qué te postulas?</label>
@@ -332,6 +333,11 @@
           <div class="mark">&#10003;</div>
           <h3>Postulación enviada</h3>
           <p>Recibirás la confirmación de tu rol en la mesa directiva por parte del staff del Euromodelo Joven.</p>
+        </div>
+        <div class="success-panel" id="pfPostAmbasCubiertas">
+          <div class="mark">&#10003;</div>
+          <h3>Ya te postulaste a las dos mesas directivas</h3>
+          <p>Postulaste tanto a la Presidencia del Parlamento Europeo como a la mesa directiva de tu comisión. Recibirás la confirmación de tu rol por parte del staff del Euromodelo Joven.</p>
         </div>
       </div>
 
@@ -1429,6 +1435,50 @@
         });
     }
 
+    // Una sola postulación por mesa (Parlamento y Comision se cuentan aparte) — el backend ya lo
+    // bloquea (ya_postulado_parlamento / ya_postulado_comision), pero además se filtra aquí el
+    // desplegable para que ni siquiera aparezca la opción de una mesa a la que ya se postuló.
+    function applyPostulacionMesaCoverage(coverage) {
+      const tipoSelect = document.getElementById('pfPostTipo');
+      const optParlamento = tipoSelect.querySelector('option[value="Parlamento"]');
+      const optComision = tipoSelect.querySelector('option[value="Comision"]');
+      const optAmbos = tipoSelect.querySelector('option[value="Ambos"]');
+      optParlamento.hidden = !!coverage.parlamento;
+      optComision.hidden = !!coverage.comision;
+      optAmbos.hidden = !!(coverage.parlamento || coverage.comision);
+      if (tipoSelect.selectedOptions[0] && tipoSelect.selectedOptions[0].hidden) {
+        tipoSelect.value = '';
+        document.getElementById('pfPostVideoParlamentoWrap').style.display = 'none';
+        document.getElementById('pfPostVideoComisionWrap').style.display = 'none';
+      }
+
+      const parcialInfo = document.getElementById('pfPostParcialInfo');
+      if (coverage.parlamento && coverage.comision) {
+        document.getElementById('pfPostulacionForm').style.display = 'none';
+        document.getElementById('pfPostSuccess').classList.remove('show');
+        document.getElementById('pfPostAmbasCubiertas').classList.add('show');
+        parcialInfo.style.display = 'none';
+      } else if (coverage.parlamento || coverage.comision) {
+        parcialInfo.textContent = coverage.parlamento
+          ? 'Ya te postulaste a la Presidencia del Parlamento Europeo — aquí puedes postularte también a la mesa directiva de tu comisión.'
+          : 'Ya te postulaste a la mesa directiva de tu comisión — aquí puedes postularte también a la Presidencia del Parlamento Europeo.';
+        parcialInfo.style.display = 'block';
+      } else {
+        parcialInfo.style.display = 'none';
+      }
+    }
+
+    function renderPostulacionMesaEstado(u) {
+      fetch(EUROMODELO_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ form: 'mis_postulaciones_mesa', email: u.username, password: u.password }),
+      })
+        .then(res => res.json())
+        .then(result => applyPostulacionMesaCoverage((result && result.ok) ? result : { parlamento: false, comision: false }))
+        .catch(err => console.error('No se pudo consultar tus postulaciones a mesa directiva:', err));
+    }
+
     const PROPUESTA_MAX_BYTES = 8 * 1024 * 1024;
     const FOTO_MAX_BYTES = 4 * 1024 * 1024;
 
@@ -1637,10 +1687,16 @@
           if (result && result.ok) {
             document.getElementById('pfPostulacionForm').style.display = 'none';
             document.getElementById('pfPostSuccess').classList.add('show');
+            renderPostulacionMesaEstado(currentProfileUser);
           } else {
             clearButtonLoading(btn);
-            errEl.textContent = 'No se pudo enviar tu postulación. Intenta de nuevo.';
+            const mensajes = {
+              ya_postulado_parlamento: 'Ya te habías postulado a la Presidencia del Parlamento Europeo — no puedes volver a postularte a esa mesa.',
+              ya_postulado_comision: 'Ya te habías postulado a la mesa directiva de tu comisión — no puedes volver a postularte a esa mesa.',
+            };
+            errEl.textContent = (result && mensajes[result.error]) || 'No se pudo enviar tu postulación. Intenta de nuevo.';
             errEl.style.display = 'block';
+            if (result && mensajes[result.error]) renderPostulacionMesaEstado(currentProfileUser);
           }
         } catch (err) {
           console.error('No se pudo enviar la postulación:', err);
@@ -1699,6 +1755,7 @@
     renderInscripcionSummary(user);
     renderPropuestaSections(user);
     renderVotacion(user);
+    renderPostulacionMesaEstado(user);
     renderPlenariaPropuestas(user);
     if (user.inscripcion) {
       // Refresco silencioso: si el staff ya cargó rol/comisión/partido en la Sheet,

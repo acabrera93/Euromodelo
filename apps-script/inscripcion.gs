@@ -662,6 +662,43 @@ function ensurePostulacionesMesaSheet_(ss) {
   return { sheet: sheet, headers: headers };
 }
 
+// A qué mesa(s) ya postuló esta persona (uniendo todas sus filas — puede tener una para
+// Parlamento y otra distinta para Comision). Se usa tanto para bloquear una postulación
+// duplicada a la misma mesa (handlePostularMesa_) como para que el propio participante sepa
+// qué le falta por postular (handleMisPostulacionesMesa_).
+function getPostulacionMesaCoverage_(ss, email) {
+  var post = ensurePostulacionesMesaSheet_(ss);
+  var coverage = { parlamento: false, comision: false };
+  var lastRow = post.sheet.getLastRow();
+  if (lastRow < 2) return coverage;
+  var values = post.sheet.getRange(2, 1, lastRow - 1, post.headers.length).getValues();
+  values.forEach(function(row) {
+    var r = {};
+    post.headers.forEach(function(h, i) { r[h] = row[i]; });
+    if ((r.email || '').toString().trim().toLowerCase() !== email) return;
+    var tipo = (r.tipo_postulacion || '').toString();
+    if (tipo === 'Parlamento' || tipo === 'Ambos') coverage.parlamento = true;
+    if (tipo === 'Comision' || tipo === 'Ambos') coverage.comision = true;
+  });
+  return coverage;
+}
+
+// El propio participante consulta a qué mesa(s) ya postuló, para que el formulario en su área
+// personal no le deje repetir una postulación a una mesa a la que ya postuló.
+function handleMisPostulacionesMesa_(sheet, headers, ss, data) {
+  var email = (data.email || '').toString().trim().toLowerCase();
+  var password = (data.password || '').toString();
+  var rowNum = findRowByColumn_(sheet, headers, 'email', email, true);
+  if (rowNum === -1) return jsonOut_({ ok: false });
+  var rowValues = sheet.getRange(rowNum, 1, 1, headers.length).getValues()[0];
+  var record = {};
+  headers.forEach(function(h, i) { record[h] = rowValues[i]; });
+  if ((record.password || '').toString() !== password) return jsonOut_({ ok: false });
+
+  var coverage = getPostulacionMesaCoverage_(ss, email);
+  return jsonOut_({ ok: true, parlamento: coverage.parlamento, comision: coverage.comision });
+}
+
 var FOTOS_MESA_FOLDER_NAME_ = 'Fotos Mesa Directiva Euromodelo Joven 2026';
 var FOTO_MAX_BYTES_ = 4 * 1024 * 1024; // ~4MB, de sobra para una foto de perfil
 
@@ -706,6 +743,12 @@ function handlePostularMesa_(sheet, headers, ss, data) {
     || (necesitaComision && !videoUrlComision)) {
     return jsonOut_({ ok: false, error: 'campos_incompletos' });
   }
+
+  // Una sola postulación por mesa (Parlamento y Comision se cuentan aparte) — 'Ambos' cubre las
+  // dos de una vez, así que también queda bloqueado si ya cubrió cualquiera de las dos antes.
+  var coverage = getPostulacionMesaCoverage_(ss, email);
+  if (necesitaParlamento && coverage.parlamento) return jsonOut_({ ok: false, error: 'ya_postulado_parlamento' });
+  if (necesitaComision && coverage.comision) return jsonOut_({ ok: false, error: 'ya_postulado_comision' });
 
   var fotoBytes;
   try {
@@ -1948,6 +1991,7 @@ function doPost_(e) {
   if (data.form === 'admin_list_candidatos') return handleAdminListCandidatos_(ss, data);
   if (data.form === 'admin_set_cargo_candidato') return handleAdminSetCargoCandidato_(ss, data);
   if (data.form === 'postular_mesa') return handlePostularMesa_(sheet, headers, ss, data);
+  if (data.form === 'mis_postulaciones_mesa') return handleMisPostulacionesMesa_(sheet, headers, ss, data);
   if (data.form === 'admin_list_postulaciones_mesa') return handleAdminListPostulacionesMesa_(ss, data);
   if (data.form === 'admin_delete_postulacion_mesa') return handleAdminDeletePostulacionMesa_(ss, data);
   if (data.form === 'list_mesa_propuestas') return handleListPropuestasParaOficial_(sheet, headers, ss, data);
