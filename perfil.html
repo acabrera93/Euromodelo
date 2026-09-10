@@ -1178,6 +1178,18 @@
     }
 
     // ---------- Mesa Directiva electa: marcar resultado de propuestas y contar votos ----------
+    // El cargo (Presidente/Vicepresidente/Secretario General) ya no se calcula solo por votos —
+    // el staff lo asigna a mano desde el panel de admin (Candidatos a mesas) una vez conocido el
+    // resultado de la votación presencial. Si esto da "no_autorizado" es casi siempre porque a
+    // esa persona todavía no le asignaron el cargo ahí, no un error del sitio.
+    const MESA_ACCION_MENSAJES_ = {
+      no_autorizado: 'Tu cuenta todavía no tiene asignado un cargo de mesa directiva para esto. Pide al staff que te lo asigne desde el panel de administración, en "Candidatos a mesas".',
+      not_found: 'No se encontró esa propuesta — puede que ya no exista. Recarga la página e intenta de nuevo.',
+    };
+    function mesaAccionErrorMessage(error) {
+      return (error && MESA_ACCION_MENSAJES_[error]) || 'No se pudo guardar el resultado. Intenta de nuevo.';
+    }
+
     function mesaPropuestaRowHtml(p) {
       const badge = p.resultadoVotacion === 'Aprobada'
         ? '<span class="tag" style="background:var(--teal); color:#fff;">Aprobada</span>'
@@ -1252,7 +1264,7 @@
             renderMesaDirectiva(currentProfileUser);
           } else {
             clearButtonLoading(resultadoBtn);
-            alert('No se pudo guardar el resultado. Intenta de nuevo.');
+            alert(mesaAccionErrorMessage(result && result.error));
           }
         } catch (err) {
           console.error('No se pudo guardar el resultado de la votación:', err);
@@ -1410,7 +1422,7 @@
           mostrarResultadoConteo(resultado);
           renderMesaDirectiva(currentProfileUser);
         } else {
-          alert('No se pudo guardar el resultado. Intenta de nuevo.');
+          alert(mesaAccionErrorMessage(result && result.error));
         }
       } catch (err) {
         console.error('No se pudo finalizar la votación:', err);
