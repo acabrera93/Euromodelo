@@ -15,9 +15,10 @@ partidos.html                Partidos Políticos (hemiciclo + test "Brújula de 
 galeria.html                Galería "20 Años, Mil Historias"
 preinscripcion.html         Formulario de preinscripción (genera usuario/contraseña)
 perfil.html                 Área personal del estudiante: inscripción (rol/comisión/partido),
-                             postulación y votación de mesas directivas (Parlamento + su comisión),
-                             subida de propuestas, y — para quien gane un cargo de mesa — marcar
-                             el resultado de cada propuesta y contar los votos de su sesión
+                             postulación a mesas directivas (Parlamento + su comisión, votadas
+                             presencialmente) y vista de quiénes se postularon, subida de
+                             propuestas, y — para quien gane un cargo de mesa — marcar el
+                             resultado de cada propuesta y contar los votos de su sesión
 
 assets/
   styles.css                 Hoja de estilos compartida (tokens de color, tipografía, componentes)
@@ -57,9 +58,9 @@ Esto significa que:
    ritmo" / "Vuélvela a ver") pendientes de enlazar a material real y video real.
 5. **Grandes Mentes**: perfiles de invitados con datos de marcador de posición
    ("Por confirmar"); actualizar nombre, rol, biografía y foto cuando se confirmen.
-6. **Mesas Directivas — Votación**: estructura completa (4 ciudades × 7 comisiones × roles),
-   con candidatos de marcador de posición. Reemplazar por nombre real + enlace de video de
-   YouTube de cada candidato.
+6. **Mesas Directivas — Candidatos**: la votación se hace presencialmente (ya no desde el
+   sitio); el panel de admin sirve para aprobar postulaciones como candidatos y, tras conocer
+   el resultado presencial, asignarle a mano el cargo que ganó cada quien.
 7. **Galería**: pestañas por edición con espacios de foto vacíos, listas para poblarse.
 8. **Partidos Políticos**: los íconos de partido son placeholders de foto/logo (no se
    incrustaron logos reales por restricciones de marca — ver conversación previa).
