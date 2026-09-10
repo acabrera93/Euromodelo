@@ -707,7 +707,7 @@
   }
 
   function candRowHtml(c) {
-    const videoCell = c.video_url ? `<a href="${c.video_url}" target="_blank">Ver video</a>` : '—';
+    const videoCell = c.video_url ? videoThumbnailHtml(c.video_url, 'Ver video') : '—';
     const aprobado = (c.aprobado || '') === 'Sí';
     const estadoBadge = aprobado
       ? '<span class="cand-status-badge is-open" style="margin-left:8px;">Aprobado</span>'
@@ -813,9 +813,11 @@
 
   function postulacionRowHtml(p) {
     const videos = [];
-    if (p.video_url_parlamento) videos.push(`<a href="${p.video_url_parlamento}" target="_blank">Ver video (Parlamento)</a>`);
-    if (p.video_url_comision) videos.push(`<a href="${p.video_url_comision}" target="_blank">Ver video (Comisión)</a>`);
-    const fotoCell = p.foto_url ? `<a href="${p.foto_url}" target="_blank"><img src="${p.foto_url}" alt="${p.nombre || ''}" style="width:44px; height:44px; border-radius:8px; object-fit:cover; display:block;"></a>` : '—';
+    if (p.video_url_parlamento) videos.push(videoThumbnailHtml(p.video_url_parlamento, 'Video Parlamento'));
+    if (p.video_url_comision) videos.push(videoThumbnailHtml(p.video_url_comision, 'Video Comisión'));
+    const fotoCell = p.foto_url
+      ? `<a href="${p.foto_url}" target="_blank"><img src="${driveImageSrc(p.foto_url, 88)}" alt="${p.nombre || ''}" style="width:44px; height:44px; border-radius:8px; object-fit:cover; display:block;" loading="lazy"></a>`
+      : '—';
     return `<tr data-ref-code="${p.ref_code || ''}">
       <td>${fotoCell}</td>
       <td>${p.nombre || ''}</td>
@@ -823,7 +825,7 @@
       <td>${p.dominio || ''}</td>
       <td>${TIPO_POSTULACION_LABELS_[p.tipo_postulacion] || p.tipo_postulacion || '—'}</td>
       <td style="max-width:280px; white-space:normal;">${p.experiencia || ''}<br><i>${p.motivacion || ''}</i></td>
-      <td>${videos.length ? videos.join('<br>') : '—'}</td>
+      <td>${videos.length ? `<div style="display:flex; gap:6px; flex-wrap:wrap;">${videos.join('')}</div>` : '—'}</td>
       <td><div class="admin-row-actions">${postulacionAccionesHtml(p)}<button class="admin-row-btn danger" data-action="borrar-postulacion">Eliminar</button></div></td>
     </tr>`;
   }

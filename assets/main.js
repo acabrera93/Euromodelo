@@ -291,6 +291,45 @@ function clearButtonLoading(btn) {
   delete btn.dataset.originalHtml;
 }
 
+/* ---------- Fotos y videos de Drive/YouTube subidos por participantes ----------
+   Las fotos se suben a Drive y se guardan con file.getUrl() (una página "…/view", no una imagen
+   directa) — hace falta reescribirla al formato de contenido de lh3.googleusercontent.com para
+   que sirva como <img src>. Los videos son un enlace que la persona pega a mano (YouTube o
+   Drive), así que se arma un thumbnail solo cuando se reconoce el host; si no, cae a un enlace de
+   texto normal. -------------------------------------------------------------------------- */
+function extractDriveFileId(url) {
+  const m = (url || '').match(/\/d\/([a-zA-Z0-9_-]+)/) || (url || '').match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  return m ? m[1] : '';
+}
+function driveImageSrc(url, width) {
+  const id = extractDriveFileId(url);
+  return id ? 'https://lh3.googleusercontent.com/d/' + id + '=w' + (width || 200) : (url || '');
+}
+function extractYouTubeId(url) {
+  const m = (url || '').match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{6,})/);
+  return m ? m[1] : '';
+}
+function videoThumbnailHtml(url, label) {
+  if (!url) return '';
+  const safeLabel = label || 'Ver video';
+  const ytId = extractYouTubeId(url);
+  let thumbSrc = '';
+  if (ytId) {
+    thumbSrc = 'https://img.youtube.com/vi/' + ytId + '/hqdefault.jpg';
+  } else {
+    const driveId = extractDriveFileId(url);
+    if (driveId) thumbSrc = 'https://drive.google.com/thumbnail?id=' + driveId + '&sz=w320';
+  }
+  if (!thumbSrc) {
+    return `<a class="video-thumb-link video-thumb-fallback" href="${url}" target="_blank" rel="noopener">&#127909; ${safeLabel}</a>`;
+  }
+  return (
+    `<a class="video-thumb-link" href="${url}" target="_blank" rel="noopener" title="${safeLabel}">` +
+      `<span class="video-thumb"><img src="${thumbSrc}" alt="${safeLabel}" loading="lazy"><span class="video-thumb-play">&#9654;</span></span>` +
+    '</a>'
+  );
+}
+
 /* ---------- Header: panel de inicio de sesión ---------- */
 function initLoginPanel() {
   const loginBtn = document.getElementById('loginBtn');

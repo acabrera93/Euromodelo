@@ -1104,13 +1104,13 @@
     // usa el resto del sitio.
     function candidatePhotoHtml(candidate) {
       return candidate.fotoUrl
-        ? `<img src="${candidate.fotoUrl}" class="candidate-photo-lg" alt="${candidate.nombre}">`
+        ? `<img src="${driveImageSrc(candidate.fotoUrl, 240)}" class="candidate-photo-lg" alt="${candidate.nombre}">`
         : `<div class="photo-placeholder ph-profile"><span class="ph-icon">&#128247;</span><span class="ph-label">Sin foto</span></div>`;
     }
 
     function candidateCardHtml(candidate) {
       const videoBtn = candidate.videoUrl
-        ? `<a class="candidate-video-btn" style="text-decoration:none; display:inline-block;" href="${candidate.videoUrl}" target="_blank" rel="noopener">&#127909; Ver video</a>`
+        ? videoThumbnailHtml(candidate.videoUrl, 'Ver video')
         : `<span class="candidate-video-btn" style="opacity:.55; cursor:default;">Sin video aún</span>`;
       const cargoBadge = candidate.cargo ? ` <span class="tag">${candidate.cargo}</span>` : '';
       const postulacionHtml = candidatePostulacionHtml(candidate);
