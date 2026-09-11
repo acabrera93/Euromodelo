@@ -317,12 +317,14 @@ var INSCRIPCION_FIELDS_ = [
 // ---------- Autenticación de participantes: solo correo, sin contraseña ----------
 // Los participantes (Estudiante/Profesor) entran solo con su correo — ver findRowByColumn_ más
 // abajo. La columna 'password' de CANONICAL_HEADERS_ queda en la Sheet sin usarse (por
-// compatibilidad con filas viejas), pero ningún handler la exige ni la valida. El panel de
-// staff (admin.html) es la única cuenta que sigue pidiendo contraseña — ver verifyAdminCredentials_.
+// compatibilidad con filas viejas), pero ningún handler la exige ni la valida. El staff puede
+// entrar por este mismo formulario: si el correo no es de ningún participante pero sí está en
+// STAFF_AUTHORIZED_EMAILS_, se devuelve isStaff para que el front pida la contraseña y reintente
+// contra admin_login (ver isAuthorizedStaffEmail_ / handleAdminLogin_ más abajo).
 function handleLogin_(sheet, headers, data) {
   var email = (data.email || '').toString().trim().toLowerCase();
   var rowNum = findRowByColumn_(sheet, headers, 'email', email, true);
-  if (rowNum === -1) return jsonOut_({ ok: false });
+  if (rowNum === -1) return jsonOut_({ ok: false, isStaff: isAuthorizedStaffEmail_(email) });
 
   var rowValues = sheet.getRange(rowNum, 1, 1, headers.length).getValues()[0];
   var record = {};

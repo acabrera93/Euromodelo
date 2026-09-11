@@ -928,20 +928,8 @@
 
   if (!user) {
     document.getElementById('perfilLoggedOut').style.display = 'block';
-    const loginFormPerfil = document.getElementById('loginFormPerfil');
-    loginFormPerfil.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const fd = new FormData(loginFormPerfil);
-      const username = fd.get('username').trim();
-      const submitBtn = loginFormPerfil.querySelector('button[type="submit"]');
-      setButtonLoading(submitBtn);
-      const ok = await loginUser(username);
-      if (ok) {
-        window.location.reload();
-        return;
-      }
-      clearButtonLoading(submitBtn);
-      document.getElementById('loginErrorPerfil').style.display = 'block';
+    wireLoginForm(document.getElementById('loginFormPerfil'), document.getElementById('loginErrorPerfil'), {
+      onSuccess: () => { window.location.reload(); },
     });
   } else {
     document.getElementById('perfilLoggedIn').style.display = 'block';

@@ -114,6 +114,10 @@ const EUROMODELO_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbztpSnDRF
    -------------------------------------------------- */
 const AUTH_USERS_KEY = 'euromodelo_users';
 const AUTH_CURRENT_KEY = 'euromodelo_currentUser';
+// Misma clave que ADMIN_STORAGE_KEY en admin.html (no se reutiliza ese nombre de const acá
+// porque admin.html también carga este archivo, y dos `const` con el mismo nombre en el mismo
+// documento truenan con "already been declared").
+const STAFF_ADMIN_STORAGE_KEY = 'euromodelo_admin_creds';
 
 function getUsers() {
   try {
@@ -144,18 +148,113 @@ async function loginUser(usernameOrEmail) {
       users[uname] = { ...(users[uname] || {}), ...result.user };
       saveUsers(users);
       localStorage.setItem(AUTH_CURRENT_KEY, uname);
-      return true;
+      return { ok: true };
     }
+    return { ok: false, isStaff: !!(result && result.isStaff) };
   } catch (e) {
     console.error('No se pudo verificar el usuario contra el backend:', e);
   }
-  return false;
+  return { ok: false, isStaff: false };
 }
-// El staff sigue entrando con correo y contraseña, pero exclusivamente desde admin.html (su
-// propio formulario, con su propia cuenta en la pestaña "admins") — el panel de login público
-// de arriba ya no pide contraseña, así que no puede autenticar administradores.
+// El staff puede entrar por el mismo formulario público que los participantes: si el correo no
+// pertenece a ningún participante pero sí está autorizado como staff (ver isStaff arriba),
+// wireLoginForm revela un campo de contraseña y reintenta contra admin_login.
+async function loginAdmin(email, password) {
+  const uname = (email || '').trim().toLowerCase();
+  try {
+    const res = await fetch(EUROMODELO_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ form: 'admin_login', email: uname, password: password || '' }),
+    });
+    const result = await res.json();
+    if (result && result.ok) {
+      sessionStorage.setItem(STAFF_ADMIN_STORAGE_KEY, JSON.stringify({ email: uname, password: password || '' }));
+      return { ok: true, mustChangePassword: !!result.mustChangePassword };
+    }
+  } catch (e) {
+    console.error('No se pudo verificar el administrador contra el backend:', e);
+  }
+  return { ok: false };
+}
 function logoutUser() {
   localStorage.removeItem(AUTH_CURRENT_KEY);
+}
+
+/* ---------- Formulario de login compartido (header + perfil.html) ----------
+   Un mismo correo puede ser el de un participante o el de un miembro del staff. Primer intento:
+   solo correo, contra el login de participantes. Si el backend responde isStaff, el formulario
+   revela un campo de contraseña sin recargar y el siguiente submit va contra loginAdmin. */
+function buildStaffPasswordField(form) {
+  let pwInput = form.querySelector('input[name="staffPassword"]');
+  if (pwInput) return pwInput;
+  pwInput = document.createElement('input');
+  pwInput.type = 'password';
+  pwInput.name = 'staffPassword';
+  pwInput.placeholder = 'Contraseña de administrador';
+  pwInput.autocomplete = 'current-password';
+  pwInput.required = true;
+  // Envuelto en .field para heredar el estilo de los formularios tipo .form-card; en el panel de
+  // login del header (.login-panel input) el selector aplica igual sin importar el envoltorio.
+  const wrap = document.createElement('div');
+  wrap.className = 'field full';
+  wrap.appendChild(pwInput);
+  // El botón puede no ser hijo directo del <form> (p. ej. va dentro de .form-submit-row en
+  // perfil.html, junto a una nota de ayuda) — insertar el campo justo antes de ese contenedor,
+  // no antes del botón mismo, para no romper su layout en fila.
+  const submitBtn = form.querySelector('button[type="submit"]');
+  let insertionPoint = submitBtn;
+  while (insertionPoint.parentNode !== form) insertionPoint = insertionPoint.parentNode;
+  form.insertBefore(wrap, insertionPoint);
+  return pwInput;
+}
+function wireLoginForm(form, errorEl, opts) {
+  if (!form) return;
+  opts = opts || {};
+  const originalErrorText = errorEl ? errorEl.textContent : '';
+  const usernameInput = form.querySelector('input[name="username"]');
+  const submitBtn = form.querySelector('button[type="submit"]');
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(form);
+    const username = (fd.get('username') || '').trim();
+    if (errorEl) errorEl.style.display = 'none';
+    setButtonLoading(submitBtn);
+
+    if (form.dataset.staffMode === 'true') {
+      const password = (fd.get('staffPassword') || '').trim();
+      const result = await loginAdmin(username, password);
+      if (result.ok) {
+        window.location.href = 'admin.html';
+        return;
+      }
+      clearButtonLoading(submitBtn);
+      if (errorEl) {
+        errorEl.textContent = 'Correo o contraseña incorrectos.';
+        errorEl.style.display = 'block';
+      }
+      return;
+    }
+
+    const result = await loginUser(username);
+    if (result.ok) {
+      clearButtonLoading(submitBtn);
+      if (opts.onSuccess) opts.onSuccess();
+      return;
+    }
+    clearButtonLoading(submitBtn);
+    if (result.isStaff) {
+      form.dataset.staffMode = 'true';
+      if (usernameInput) usernameInput.readOnly = true;
+      buildStaffPasswordField(form).focus();
+      if (submitBtn) submitBtn.textContent = 'Entrar como administrador';
+      return;
+    }
+    if (errorEl) {
+      errorEl.textContent = originalErrorText;
+      errorEl.style.display = 'block';
+    }
+  });
 }
 // A diferencia de loginUser, siempre consulta el backend (no usa el atajo local):
 // sirve para refrescar el perfil con datos que solo vive en la Sheet, como el rol,
@@ -292,23 +391,9 @@ function initLoginPanel() {
   if (loginBtn && loginPanel) {
     loginBtn.addEventListener('click', () => loginPanel.classList.toggle('open'));
   }
-  if (loginForm) {
-    loginForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const fd = new FormData(loginForm);
-      const username = fd.get('username').trim();
-      const submitBtn = loginForm.querySelector('button[type="submit"]');
-      if (submitBtn) setButtonLoading(submitBtn);
-      const ok = await loginUser(username);
-      if (ok) {
-        window.location.href = 'perfil.html';
-        return;
-      }
-      if (submitBtn) clearButtonLoading(submitBtn);
-      const errEl = document.getElementById('loginError');
-      if (errEl) errEl.style.display = 'block';
-    });
-  }
+  wireLoginForm(loginForm, document.getElementById('loginError'), {
+    onSuccess: () => { window.location.href = 'perfil.html'; },
+  });
 }
 
 /* ---------- Hemiciclo interactivo (SVG) ---------- */
